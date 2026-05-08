@@ -1,0 +1,20 @@
+{
+  "compatibilityLevel": "JAVA_8",
+  "package": "fr.dynamx.common.core.mixin",
+  "refmap": "refmap.dynamxmod.json",
+  "mixins": [
+    "MixinChunk",
+    "MixinEntity",
+    "MixinEntityLivingBase",
+    "MixinNetHandlerPlayServer",
+    "MixinWorld"
+  ],
+  "minVersion": "0.6",
+  "server": [],
+  "client": [
+    "MixinEntityPlayerSP",
+    "MixinEntityRenderer",
+    "MixinRenderGlobal",
+    "MixinRenderManager"
+  ]
+}
