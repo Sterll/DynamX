@@ -37,3 +37,6 @@ MpsExporter.jar
 *.obj
 *.mtl
 *.dc.claude-terminal/
+
+.claude-terminal
+.claude-terminal/
