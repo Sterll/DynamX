@@ -1,0 +1,100 @@
+package fr.dynamx.server.network.udp;
+
+import fr.dynamx.common.DynamXMain;
+import fr.dynamx.common.network.udp.EncapsulatedUDPPacket;
+import fr.dynamx.common.network.udp.UdpTestPacket;
+import fr.dynamx.common.network.udp.auth.UDPServerAuthenticationCompletePacket;
+import fr.dynamx.utils.DynamXConfig;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
+import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.server.level.ServerPlayer;
+
+import java.net.DatagramPacket;
+import java.net.InetSocketAddress;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
+/**
+ * Low-level UDP packet dispatcher running on the server.
+ *
+ * <p>TODO port:1.20.1 - {@code ByteBufUtils.readUTF8String} → {@link FriendlyByteBuf#readUtf()}.
+ */
+public class UDPServerPacketHandler {
+    private final ExecutorService threadService;
+    private final Map<InetSocketAddress, UDPClient> clientNetworkMap = new HashMap<>();
+    private final UdpServerNetworkHandler server;
+
+    public UDPServerPacketHandler(UdpServerNetworkHandler server) {
+        this.server = server;
+        this.threadService = Executors.newFixedThreadPool(1);
+    }
+
+    public void close() {
+        this.clientNetworkMap.clear();
+        this.threadService.shutdown();
+    }
+
+    public void closeConnection(InetSocketAddress address) {
+        this.clientNetworkMap.remove(address);
+    }
+
+    private void handleAuthentication(InetSocketAddress address, DatagramPacket packet, ByteBuf in) {
+        try {
+            final FriendlyByteBuf fbuf = new FriendlyByteBuf(in);
+            final String hash = fbuf.readUtf();
+            final ServerPlayer player = this.server.waitingAuth.remove(hash);
+
+            if (player != null) {
+                UDPClient client = new UDPClient(player, address, hash);
+                this.clientNetworkMap.put(client.socketAddress, client);
+                this.server.clientMap.put(player.getId(), client);
+                DynamXMain.log.info(client + " has been authenticated by server.");
+                this.server.sendPacket(new UDPServerAuthenticationCompletePacket(), client);
+            } else {
+                DynamXMain.log.warn("Cannot authenticate a client : not waiting for auth");
+            }
+        } catch (Exception e) {
+            if (DynamXConfig.udpDebug) {
+                throw e;
+            }
+            // Else just ignore, it may be a bad packet, or an intentional attack
+        }
+    }
+
+    public void read(byte[] data, final DatagramPacket packet) {
+        final InetSocketAddress address = (InetSocketAddress) packet.getSocketAddress();
+        final UDPClient client = this.clientNetworkMap.get(address);
+        final ByteBuf in = Unpooled.wrappedBuffer(data);
+        final byte id = in.readByte();
+
+        if (DynamXConfig.udpDebug) {
+            if (client != null)
+                DynamXMain.log.info("[UDP-DEBUG] Read packet with id " + id + " from " + client.player);
+            else
+                DynamXMain.log.error("[UDP-DEBUG] Read packet with id " + id + " but client is null..." + packet.getAddress());
+        }
+
+        if (client == null && id != 0) { // 0 is auth packet
+            return; // player disconnected — ignore packet
+        }
+
+        this.threadService.execute(() -> {
+            if (id == 0) {
+                UDPServerPacketHandler.this.handleAuthentication(address, packet, in);
+            } else if (id == 9) {
+                FriendlyByteBuf fbuf = new FriendlyByteBuf(in);
+                UdpTestPacket packet2 = new UdpTestPacket(fbuf.readInt(), fbuf.readUtf(), fbuf.readLong(), fbuf.readLong() == -1 ? System.currentTimeMillis() : -2);
+                server.sendPacket(packet2, client);
+            } else {
+                if (id >= 10) {
+                    EncapsulatedUDPPacket.readAndHandle(id, in, client.player);
+                } else {
+                    throw new IllegalArgumentException("Illegal dynamx packet id " + id);
+                }
+            }
+        });
+    }
+}
