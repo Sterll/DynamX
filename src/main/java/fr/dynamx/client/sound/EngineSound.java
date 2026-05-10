@@ -1,0 +1,77 @@
+package fr.dynamx.client.sound;
+
+import fr.dynamx.api.audio.EnumSoundState;
+import fr.dynamx.common.entities.BaseVehicleEntity;
+import fr.dynamx.common.entities.modules.engines.BasicEngineModule;
+
+/**
+ * <p>TODO port:1.20.1 - direct port; only {@code entity.isDead} -> {@code !entity.isAlive()}.</p>
+ */
+public class EngineSound extends VehicleSound {
+    private final BasicEngineModule engine;
+    private final fr.dynamx.common.contentpack.type.vehicle.EngineSound soundIn;
+
+    public EngineSound(fr.dynamx.common.contentpack.type.vehicle.EngineSound sound, BaseVehicleEntity<?> vehicle, BasicEngineModule engine) {
+        super(sound.getSoundName(), vehicle);
+        this.soundIn = sound;
+        this.engine = engine;
+    }
+
+    @Override
+    public void onStarted() {
+        setState(EnumSoundState.STARTING);
+        setVolumeFactor(0);
+    }
+
+    @Override
+    public boolean tryStop() {
+        if (getVolumeFactor() <= 0 || !vehicleEntity.isAlive()) {
+            setState(EnumSoundState.STOPPED);
+            setVolumeFactor(0);
+            return true;
+        } else {
+            setState(EnumSoundState.STOPPING);
+            return false;
+        }
+    }
+
+    @Override
+    public void update(DynamXSoundHandler handler) {
+        if (getState() == EnumSoundState.STOPPING) {
+            setVolumeFactor(getVolumeFactor() - 0.02f);
+            if (getVolumeFactor() <= 0) {
+                handler.stopSound(this);
+            }
+        }
+        if (getState() == EnumSoundState.STARTING) {
+            setVolumeFactor(getVolumeFactor() + 0.02f);
+            if (getVolumeFactor() >= 1) {
+                setState(EnumSoundState.PLAYING);
+                setVolumeFactor(1);
+            }
+        }
+        super.update(handler);
+    }
+
+    public boolean shouldPlay(float rpm, boolean forInterior) {
+        return soundIn.isInterior() == forInterior && soundIn.getRpmRange()[0] <= rpm && soundIn.getRpmRange()[1] >= rpm;
+    }
+
+    @Override
+    public boolean isSoundActive() {
+        return engine.isEngineStarted() || getState() == EnumSoundState.STOPPING;
+    }
+
+    @Override
+    protected float getCurrentVolume() {
+        return (30F * (engine.getSoundPitch()));
+    }
+
+    @Override
+    protected float getCurrentPitch() {
+        float pitch = engine.getSoundPitch();
+        float min = soundIn.getPitchRange()[0];
+        pitch = (soundIn.getPitchRange()[1] - min) * pitch + min;
+        return pitch;
+    }
+}

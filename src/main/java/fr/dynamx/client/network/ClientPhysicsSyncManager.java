@@ -1,0 +1,34 @@
+package fr.dynamx.client.network;
+
+import fr.dynamx.common.DynamXContext;
+import fr.dynamx.common.network.packets.MessagePing;
+import net.minecraft.client.Minecraft;
+
+/**
+ * <p>TODO port:1.20.1 - {@code Minecraft.getMinecraft()} -> {@code Minecraft.getInstance()};
+ * {@code isSingleplayer()} -> {@code hasSingleplayerServer()}.</p>
+ */
+public class ClientPhysicsSyncManager {
+    public static int simulationTime;
+    public static int pingMs = -1;
+    public static long lastPing;
+
+    public static void tick() {
+        if (!Minecraft.getInstance().hasSingleplayerServer()) {
+            if (System.currentTimeMillis() - lastPing > 10000) {
+                pingMs = -2;
+                lastPing = System.currentTimeMillis();
+                DynamXContext.getNetwork().sendToServer(new MessagePing(lastPing, false));
+            }
+            ClientPhysicsSyncManager.simulationTime++;
+        }
+    }
+
+    public static String getPingMessage() {
+        return pingMs >= 80 ? pingMs + " ms" : "";
+    }
+
+    public static boolean hasBadConnection() {
+        return pingMs >= 80 || pingMs == -2;
+    }
+}
