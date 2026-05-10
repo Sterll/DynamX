@@ -1,0 +1,155 @@
+package fr.dynamx.api.entities.modules;
+
+import fr.dynamx.api.network.sync.SimulationHolder;
+import fr.dynamx.common.physics.entities.AbstractEntityPhysicsHandler;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.player.Player;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.api.distmarker.OnlyIn;
+import net.neoforged.fml.LogicalSide;
+
+import javax.annotation.Nullable;
+
+/**
+ * Base implementation of a ModularPhysicsEntity module <br>
+ * For examples, you can check the default modules of DynamX : <br>
+ *
+ * @see fr.dynamx.common.entities.modules.SeatsModule
+ * @see fr.dynamx.common.entities.modules.AbstractLightsModule
+ * @see fr.dynamx.common.entities.modules.WheelsModule
+ * @see fr.dynamx.common.entities.modules.engines.BasicEngineModule
+ */
+// TODO port:1.20.1 - Concrete module classes referenced in javadocs (SeatsModule, WheelsModule, etc.)
+// belong to Phase 6 entities; only the API interface is ported here.
+public interface IPhysicsModule<P extends AbstractEntityPhysicsHandler<?, ?>> extends IBaseModule {
+    /**
+     * Called when a passenger is added to the entity
+     */
+    default void addPassenger(Entity passenger) {
+    }
+
+    /**
+     * Called when a passenger is removed from the entity
+     */
+    default void removePassenger(Entity passenger) {
+    }
+
+    /**
+     * Called when the {@link AbstractEntityPhysicsHandler} of the entity is created <br>
+     * Use this function to create the physics handler of your module, if required <br>
+     * This is called even when the entity doesn't use physics, like the server entity in single player
+     *
+     * @param handler The physics handler of the entity, or null if physics are not simulated on this side
+     */
+    default void initPhysicsEntity(@Nullable P handler) {
+    }
+
+    /**
+     * Called when the entity pack info was just loaded
+     */
+    default void initEntityProperties() {
+    }
+
+    /**
+     * Called when the entity is set dead <br>
+     * <strong>Use onRemovedFromWorld to remove physics objects !</strong>
+     */
+    default void onSetDead() {
+    }
+
+    /**
+     * Called when the entity is removed from the world (death, chunk unload...)
+     */
+    default void onRemovedFromWorld() {
+    }
+
+    /**
+     * If this module has a controller (an {@link IVehicleController} listening for key inputs), then it
+     * should return a new controller for this module <br>
+     * Called when a driver mounts <br>
+     * Client side only
+     *
+     * @return the controller to use until the driver dismounts, or null
+     */
+    @Nullable
+    @OnlyIn(Dist.CLIENT)
+    default IVehicleController createNewController() {
+        return null;
+    }
+
+    /**
+     * Fired when the {@link SimulationHolder} of this entity changes
+     *
+     * @param simulationHolder The new {@link SimulationHolder}
+     * @param changeContext    The context of this update
+     */
+    default void onSetSimulationHolder(SimulationHolder simulationHolder, Player simulationPlayerHolder, SimulationHolder.UpdateContext changeContext) {
+    }
+
+    /**
+     * Called to update textures of this module (egg for wheels) according to the new entity's metadata
+     */
+    @OnlyIn(Dist.CLIENT)
+    default void onTexturesChange(byte newMetadata) {
+    }
+
+    /**
+     * Implement this on you module to listen entity updates
+     */
+    interface IEntityUpdateListener {
+        /**
+         * @return True to listen this update on this side (default is true on all sides)
+         */
+        default boolean listenEntityUpdates(LogicalSide side) {
+            return true;
+        }
+
+        /**
+         * Called when updating the entity
+         */
+        default void updateEntity() {
+        }
+    }
+
+    /**
+     * Implement this on you module to listen entity vanilla and render pos updates <br>
+     * This function permits to memorize prev values of your positions for render interpolation
+     */
+    interface IEntityPosUpdateListener {
+        /**
+         * @return True to listen this update on this side (default is true on client side)
+         */
+        default boolean listenEntityPosUpdates(LogicalSide side) {
+            return side == LogicalSide.CLIENT;
+        }
+
+        /**
+         * Called when updating the entity vanilla and render pos
+         */
+        default void updateEntityPos() {
+        }
+    }
+
+    /**
+     * Implement this on you module to listen entity physics updates
+     */
+    interface IPhysicsUpdateListener {
+        /**
+         * Called before ticking the physics world (can be in an external thread) <br>
+         * Here you can give the "input" to the physics world, i.e. your controls, your forces, etc
+         *
+         * @param simulatingPhysics If physics should be simulated in this update <br> If false, the physics handler may be null
+         */
+        default void preUpdatePhysics(boolean simulatingPhysics) {
+        }
+
+        /**
+         * Called after ticking the physics world (can be in an external thread) <br>
+         * Here you can get the results of your "input" : the new position, the new rotation, etc
+         *
+         * @param simulatingPhysics If physics should be simulated in this update <br> If false, the physics handler may be null
+         */
+        default void postUpdatePhysics(boolean simulatingPhysics) {
+        }
+    }
+}
