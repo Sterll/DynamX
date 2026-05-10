@@ -9,9 +9,9 @@ import fr.dynamx.common.physics.entities.AbstractEntityPhysicsHandler;
 import fr.dynamx.common.physics.world.BuiltinPhysicsWorld;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.Level;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.fml.LogicalSide;
-import net.neoforged.neoforge.common.NeoForge;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.fml.LogicalSide;
+import net.minecraftforge.common.MinecraftForge;
 
 /**
  * Server-side root proxy. Mirrors the legacy 1.12 {@code CommonProxy}; client side overrides this
@@ -41,8 +41,8 @@ public abstract class CommonProxy {
     }
 
     public void init() {
-        NeoForge.EVENT_BUS.register(new PhysicsTickHandler());
-        NeoForge.EVENT_BUS.register(new CommonEventHandler());
+        MinecraftForge.EVENT_BUS.register(new PhysicsTickHandler());
+        MinecraftForge.EVENT_BUS.register(new CommonEventHandler());
     }
 
     public void completeInit() {

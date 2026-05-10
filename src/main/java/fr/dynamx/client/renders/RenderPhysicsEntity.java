@@ -15,7 +15,7 @@ import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.entity.EntityRenderer;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
 import net.minecraft.resources.ResourceLocation;
-import net.neoforged.neoforge.common.NeoForge;
+import net.minecraftforge.common.MinecraftForge;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -33,7 +33,7 @@ import java.util.stream.Collectors;
  *       {@code render(T entity, float entityYaw, float partialTicks, PoseStack poseStack, MultiBufferSource bufferSource, int packedLight)}.
  *       The (x, y, z) are now derived from the PoseStack which the engine pre-translates to the
  *       entity's interpolated position.</li>
- *   <li>{@code MinecraftForge.EVENT_BUS.post(...)} -&gt; {@code NeoForge.EVENT_BUS.post(...)}.</li>
+ *   <li>{@code MinecraftForge.EVENT_BUS.post(...)} -&gt; {@code MinecraftForge.EVENT_BUS.post(...)}.</li>
  *   <li>{@code GlStateManager.translate / rotate / pushMatrix / popMatrix / disableLighting / disableDepth / disableTexture2D} -&gt;
  *       {@code PoseStack#translate / mulPose / pushPose / popPose} + {@code RenderType} selection
  *       on the {@link MultiBufferSource} (lighting/depth/texture state is folded into the RenderType).</li>
@@ -61,7 +61,7 @@ public abstract class RenderPhysicsEntity<T extends PhysicsEntity<?>> extends En
      * <p>TODO port:1.20.1 - In 1.12 this fed values into the fixed-function matrix stack via
      * {@code GlStateManager.translate} / {@code GlStateManager.rotate}. The new entry point now
      * takes a {@link PoseStack} that should be mutated instead. The original return type was
-     * {@code org.lwjgl.util.vector.Quaternion} (lwjgl2). We keep the JOML-quat returned by
+     * {@code org.joml.Quaternionf} (lwjgl2). We keep the JOML-quat returned by
      * {@code ClientDynamXUtils.computeInterpolatedJomlQuaternion} now.
      */
     public org.joml.Quaternionf setupRenderTransform(T entity, org.joml.Vector3f renderPosition, float partialTicks) {
@@ -108,17 +108,17 @@ public abstract class RenderPhysicsEntity<T extends PhysicsEntity<?>> extends En
         // Render vehicle
         DynamXEntityRenderEvent preEvent = new DynamXEntityRenderEvent(entity, context, DynamXEntityRenderEvent.Type.ENTITY, renderPass);
         // TODO port:1.20.1 - NeoForge events: post returns the event, check isCanceled() if ICancellableEvent.
-        NeoForge.EVENT_BUS.post(preEvent);
+        MinecraftForge.EVENT_BUS.post(preEvent);
         renderEntity(entity, context);
 
         if (renderPass == 0) {
             spawnParticles(entity, context);
             // Render debug
             DynamXEntityRenderEvent debugEvent = new DynamXEntityRenderEvent(entity, context, DynamXEntityRenderEvent.Type.DEBUG, renderPass);
-            NeoForge.EVENT_BUS.post(debugEvent);
+            MinecraftForge.EVENT_BUS.post(debugEvent);
             renderDebug(entity, context);
         }
-        NeoForge.EVENT_BUS.post(new DynamXEntityRenderEvent(entity, context, DynamXEntityRenderEvent.Type.POST, renderPass));
+        MinecraftForge.EVENT_BUS.post(new DynamXEntityRenderEvent(entity, context, DynamXEntityRenderEvent.Type.POST, renderPass));
 
         Vector3fPool.closePool();
         QuaternionPool.closePool();

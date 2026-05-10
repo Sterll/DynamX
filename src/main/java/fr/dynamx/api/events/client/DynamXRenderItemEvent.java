@@ -1,8 +1,8 @@
 package fr.dynamx.api.events.client;
 
 import lombok.Getter;
-import net.neoforged.bus.api.Event;
-import net.neoforged.bus.api.ICancellableEvent;
+import net.minecraftforge.eventbus.api.Event;
+import net.minecraftforge.eventbus.api.Cancelable;
 
 /**
  * Fired around item rendering.
@@ -11,7 +11,8 @@ import net.neoforged.bus.api.ICancellableEvent;
  *   typed as Object until then.
  */
 @Getter
-public class DynamXRenderItemEvent extends Event implements ICancellableEvent {
+@Cancelable
+public class DynamXRenderItemEvent extends Event {
     private final Object context;     // TODO port:1.20.1 - BaseRenderContext.ItemRenderContext
     private final Object sceneGraph;  // TODO port:1.20.1 - AbstractItemNode<?, ?>
     private final EventStage stage;

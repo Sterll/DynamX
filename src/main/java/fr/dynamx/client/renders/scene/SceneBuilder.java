@@ -14,7 +14,7 @@ import fr.dynamx.client.renders.scene.node.SceneNode;
 import fr.dynamx.client.renders.scene.node.SimpleNode;
 import fr.dynamx.utils.errors.DynamXErrorManager;
 import lombok.Getter;
-import net.neoforged.neoforge.common.NeoForge;
+import net.minecraftforge.common.MinecraftForge;
 import org.joml.Matrix4f;
 
 import java.util.ArrayList;
@@ -28,7 +28,7 @@ import java.util.function.BiFunction;
  *
  * <p>TODO port:1.20.1 -
  * <ul>
- *   <li>{@code MinecraftForge.EVENT_BUS.post(...)} -> {@code NeoForge.EVENT_BUS.post(...)}.</li>
+ *   <li>{@code MinecraftForge.EVENT_BUS.post(...)} -> {@code MinecraftForge.EVENT_BUS.post(...)}.</li>
  *   <li>{@link CreatePartSceneEvent#getSceneGraphResult()} returns {@code Object} until SceneNode is
  *       exposed by the api; cast applied here.</li>
  *   <li>{@code GlStateManager.pushMatrix() / popMatrix()} inside the fake-leaf fallback are gone;
@@ -193,7 +193,7 @@ public class SceneBuilder<C extends IRenderContext, A extends IModelPackObject> 
         validateNode(obj, nodeName, node);
         List<SceneNode<C, A>> childGraph = node.nodes.isEmpty() ? null : node.generateScene(obj, modelScale);
         CreatePartSceneEvent event = new CreatePartSceneEvent(obj, node.leaf, modelScale, (List) childGraph);
-        NeoForge.EVENT_BUS.post(event);
+        MinecraftForge.EVENT_BUS.post(event);
         SceneNode<C, A> graphResult = (SceneNode<C, A>) event.getSceneGraphResult();
         if (graphResult.getLinkedChildren() != null) {
             for (SceneNode<C, A> linkedChild : graphResult.getLinkedChildren()) {

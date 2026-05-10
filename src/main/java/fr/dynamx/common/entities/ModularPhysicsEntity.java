@@ -14,7 +14,7 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.level.Level;
-import net.neoforged.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.Dist;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -30,7 +30,7 @@ import java.util.List;
  * @see PackEntityPhysicsHandler For the physics implementation
  */
 // TODO port:1.20.1 - Forge IEntityAdditionalSpawnData (per-module spawn data) is dropped here in
-// favor of NeoForge IEntityWithComplexSpawn at the entity level. The per-module spawn-data path
+// favor of NeoForge IEntityAdditionalSpawnData at the entity level. The per-module spawn-data path
 // still uses ByteBuf via instanceof-check for now; once a NeoForge equivalent module hook is
 // designed it should be wired here (Phase 5).
 public abstract class ModularPhysicsEntity<T extends AbstractEntityPhysicsHandler<?, ?>> extends PhysicsEntity<T> {

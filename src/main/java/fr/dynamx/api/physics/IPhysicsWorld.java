@@ -10,7 +10,7 @@ import fr.dynamx.common.entities.PhysicsEntity;
 import fr.dynamx.common.physics.terrain.PhysicsWorldTerrain;
 import fr.dynamx.common.physics.utils.PhysicsWorldOperation;
 import net.minecraft.world.level.Level;
-import net.neoforged.neoforge.common.NeoForge;
+import net.minecraftforge.common.MinecraftForge;
 
 /**
  * Where all physics happen
@@ -55,7 +55,7 @@ public interface IPhysicsWorld {
     default void addBulletEntity(PhysicsEntity<?> e) {
         e.isRegistered = PhysicsEntity.EnumEntityPhysicsRegistryState.REGISTERING;
         addOperation(new PhysicsWorldOperation<>(PhysicsWorldOperation.PhysicsWorldOperationType.ADD_ENTITY, e));
-        NeoForge.EVENT_BUS.post(new PhysicsEvent.PhysicsEntityAdded(e, this));
+        MinecraftForge.EVENT_BUS.post(new PhysicsEvent.PhysicsEntityAdded(e, this));
     }
 
     /**
@@ -66,7 +66,7 @@ public interface IPhysicsWorld {
     default void removeBulletEntity(PhysicsEntity<?> e) {
         addOperation(new PhysicsWorldOperation<>(PhysicsWorldOperation.PhysicsWorldOperationType.REMOVE_ENTITY, e));
         e.isRegistered = PhysicsEntity.EnumEntityPhysicsRegistryState.NOT_REGISTERED;
-        NeoForge.EVENT_BUS.post(new PhysicsEvent.PhysicsEntityRemoved(e, this));
+        MinecraftForge.EVENT_BUS.post(new PhysicsEvent.PhysicsEntityRemoved(e, this));
     }
 
     /**

@@ -5,7 +5,7 @@ import fr.dynamx.api.network.IDnxPacket;
 import io.netty.buffer.ByteBuf;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.block.Block;
-import net.neoforged.fml.LogicalSide;
+import net.minecraftforge.fml.LogicalSide;
 
 import java.util.ArrayList;
 import java.util.HashMap;

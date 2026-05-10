@@ -24,10 +24,10 @@ import net.minecraft.nbt.Tag;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
-import net.neoforged.fml.LogicalSide;
-import net.neoforged.neoforge.common.NeoForge;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
+import net.minecraftforge.fml.LogicalSide;
+import net.minecraftforge.common.MinecraftForge;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -42,7 +42,7 @@ import static fr.dynamx.common.DynamXMain.log;
  * Tracks who's sitting in which seat, dispatches mount/dismount events.
  */
 // TODO port:1.20.1 - MessageSeatsSync/PhysicsEntitySynchronizer/CameraMode/ClientEventHandler are forward
-// references (Phase 5/7). MinecraftForge.EVENT_BUS -> NeoForge.EVENT_BUS; Side -> LogicalSide for the API
+// references (Phase 5/7). MinecraftForge.EVENT_BUS -> MinecraftForge.EVENT_BUS; Side -> LogicalSide for the API
 // listener calls; MathHelper -> Mth; EntityPlayer -> Player. positionRider/onPassengerTurned forwards from
 // ModularPhysicsEntity invoke updatePassenger/applyOrientationToEntity here via reflection.
 public class SeatsModule implements IPhysicsModule<AbstractEntityPhysicsHandler<?, ?>> {
@@ -173,7 +173,7 @@ public class SeatsModule implements IPhysicsModule<AbstractEntityPhysicsHandler<
                     entity.getSynchronizer().onPlayerStartControlling((Player) passenger, true);
                 }
             }
-            NeoForge.EVENT_BUS.post(new VehicleEntityEvent.EntityMount(LogicalSide.SERVER, passenger, entity, this, hitPart));
+            MinecraftForge.EVENT_BUS.post(new VehicleEntityEvent.EntityMount(LogicalSide.SERVER, passenger, entity, this, hitPart));
             DynamXContext.getNetwork().sendToClient(new MessageSeatsSync((IModuleContainer.ISeatsContainer) entity), EnumPacketTarget.ALL_TRACKING_ENTITY, entity);
         } else {
             log.error("Cannot add passenger : " + passenger + " : seat not found !");
@@ -197,7 +197,7 @@ public class SeatsModule implements IPhysicsModule<AbstractEntityPhysicsHandler<
             }
         }
         DynamXContext.getNetwork().sendToClient(new MessageSeatsSync((IModuleContainer.ISeatsContainer) entity), EnumPacketTarget.ALL_TRACKING_ENTITY, entity);
-        NeoForge.EVENT_BUS.post(new VehicleEntityEvent.EntityDismount(entity.level().isClientSide ? LogicalSide.CLIENT : LogicalSide.SERVER, passenger, entity, this, seat));
+        MinecraftForge.EVENT_BUS.post(new VehicleEntityEvent.EntityDismount(entity.level().isClientSide ? LogicalSide.CLIENT : LogicalSide.SERVER, passenger, entity, this, seat));
         //Client side is managed by updateSeats
     }
 
@@ -216,7 +216,7 @@ public class SeatsModule implements IPhysicsModule<AbstractEntityPhysicsHandler<
             if (seatEntry.getKey().isDriver() && seatEntry.getValue() instanceof Player) {
                 netHandler.onPlayerStopControlling((Player) seatEntry.getValue(), true);
             }
-            ClientEventHandler.MC.tell(() -> NeoForge.EVENT_BUS.post(new VehicleEntityEvent.EntityDismount(LogicalSide.CLIENT, seatEntry.getValue(), entity, this, seatEntry.getKey())));
+            ClientEventHandler.MC.tell(() -> MinecraftForge.EVENT_BUS.post(new VehicleEntityEvent.EntityDismount(LogicalSide.CLIENT, seatEntry.getValue(), entity, this, seatEntry.getKey())));
         }
         //And remove them
         if (!remove.isEmpty())
@@ -239,7 +239,7 @@ public class SeatsModule implements IPhysicsModule<AbstractEntityPhysicsHandler<
                         if (seat.isDriver() && passengerEntity instanceof Player) {
                             netHandler.onPlayerStartControlling((Player) passengerEntity, true);
                         }
-                        ClientEventHandler.MC.tell(() -> NeoForge.EVENT_BUS.post(new VehicleEntityEvent.EntityMount(LogicalSide.CLIENT, passengerEntity, entity, this, seat)));
+                        ClientEventHandler.MC.tell(() -> MinecraftForge.EVENT_BUS.post(new VehicleEntityEvent.EntityMount(LogicalSide.CLIENT, passengerEntity, entity, this, seat)));
                     }
                 } else {
                     log.warn("Entity with id " + e.getValue() + " not found for seat in " + entity);

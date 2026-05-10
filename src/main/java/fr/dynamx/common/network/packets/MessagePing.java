@@ -4,7 +4,7 @@ import fr.dynamx.api.network.EnumNetworkType;
 import fr.dynamx.api.network.IDnxPacket;
 import io.netty.buffer.ByteBuf;
 import net.minecraft.world.entity.player.Player;
-import net.neoforged.fml.LogicalSide;
+import net.minecraftforge.fml.LogicalSide;
 
 public class MessagePing implements IDnxPacket {
     private long sentTime;

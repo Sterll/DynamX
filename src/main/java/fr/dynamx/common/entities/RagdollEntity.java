@@ -42,8 +42,8 @@ import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.neoforge.common.NeoForge;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.common.MinecraftForge;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -207,7 +207,7 @@ public class RagdollEntity extends ModularPhysicsEntity<RagdollPhysics<?>> imple
     @Override
     protected void fireCreateModulesEvent(Dist side) {
         //Don't simplify the generic type, for fml (kept for backwards-compatible call shape)
-        NeoForge.EVENT_BUS.post(new PhysicsEntityEvent.CreateModules<>(RagdollEntity.class, this, (java.util.List) moduleList, side));
+        MinecraftForge.EVENT_BUS.post(new PhysicsEntityEvent.CreateModules<>(RagdollEntity.class, this, (java.util.List) moduleList, side));
     }
 
     @Override

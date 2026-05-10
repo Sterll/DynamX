@@ -1,6 +1,6 @@
 package fr.dynamx.api.network.sync;
 
-import net.neoforged.fml.LogicalSide;
+import net.minecraftforge.fml.LogicalSide;
 
 /**
  * All possible holder of the simulation of an entity, they will be responsible to sync the entity data to the other clients (and to the server if required)

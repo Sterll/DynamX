@@ -1,6 +1,6 @@
 package fr.dynamx.api.network.sync;
 
-import net.neoforged.fml.LogicalSide;
+import net.minecraftforge.fml.LogicalSide;
 
 public abstract class SynchronizationRules {
     public static final SynchronizationRules SERVER_TO_CLIENTS = new ServerToClients();

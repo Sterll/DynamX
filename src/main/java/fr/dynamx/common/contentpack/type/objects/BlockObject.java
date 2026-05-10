@@ -34,7 +34,7 @@ import java.util.Map;
  *   - fr.dynamx.common.blocks.DynamXBlock / TEDynamXBlock (Phase 4)
  *   - net.minecraft.block.material.Material - removed in 1.20.1, replaced by MapColor and
  *     BlockBehaviour.Properties (Material/MaterialColor are gone; we use MapColor as a stand-in)
- *   - net.minecraftforge.common.MinecraftForge.EVENT_BUS - NeoForge.EVENT_BUS
+ *   - net.minecraftforge.common.MinecraftForge.EVENT_BUS - MinecraftForge.EVENT_BUS
  *   The createItem(), getSceneGraph(), getTextureVariantsFor() and postLoad collisions setup are stubbed
  *   where they require Phase 4/5/6/7 types. The new addModules(...) signature takes Object/Object.
  */

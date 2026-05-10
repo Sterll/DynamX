@@ -35,7 +35,7 @@ import java.util.stream.Collectors;
  *   - fr.dynamx.common.items.ItemProps (Phase 6)
  *   - fr.dynamx.utils.DynamXUtils.getModelPath (broken in main due to unported deps)
  *   - net.minecraft.item.Item / ItemStack -&gt; net.minecraft.world.item.Item / ItemStack
- *   - net.minecraftforge.common.MinecraftForge.EVENT_BUS -&gt; NeoForge.EVENT_BUS
+ *   - net.minecraftforge.common.MinecraftForge.EVENT_BUS -&gt; MinecraftForge.EVENT_BUS
  *   The createItem(), getSceneGraph(), addModules(), appendTo(), postLoad(), getPickedResult() bodies
  *   that depend on the above are stubbed accordingly.
  */

@@ -7,7 +7,7 @@ import fr.dynamx.common.physics.terrain.chunk.ChunkLoadingTicket;
 import fr.dynamx.utils.VerticalChunkPos;
 import fr.dynamx.utils.debug.Profiler;
 import net.minecraft.world.level.Level;
-import net.neoforged.neoforge.event.level.ChunkEvent;
+import net.minecraftforge.event.level.ChunkEvent;
 
 import javax.annotation.Nullable;
 

@@ -25,8 +25,8 @@ import fr.dynamx.utils.errors.DynamXErrorManager;
 import lombok.Getter;
 import lombok.Setter;
 import net.minecraft.world.item.ItemStack;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
 import org.joml.Matrix4f;
 
 import java.util.ArrayList;
@@ -46,8 +46,8 @@ import java.util.Map;
  *   - fr.dynamx.common.entities.{BaseVehicleEntity, PackPhysicsEntity} (Phase 6)
  *   - fr.dynamx.utils.DynamXUtils.getModelPath (broken: references unported DxModelPath)
  *   - net.minecraft.client.renderer.block.model.ItemCameraTransforms.TransformType -&gt; ItemDisplayContext
- *   - net.minecraftforge.common.MinecraftForge.EVENT_BUS -&gt; NeoForge.EVENT_BUS
- *   - net.minecraftforge.fml.relauncher.{Side, SideOnly} -&gt; net.neoforged.api.distmarker.{Dist, OnlyIn}
+ *   - net.minecraftforge.common.MinecraftForge.EVENT_BUS -&gt; MinecraftForge.EVENT_BUS
+ *   - net.minecraftforge.fml.relauncher.{Side, SideOnly} -&gt; net.minecraftforge.api.distmarker.{Dist, OnlyIn}
  *
  *   The createItem(), getSceneGraph(), addModules(), getTextureVariantsFor(), wheel/engine attachment in
  *   postLoad(), applyItemTransforms() and translation-key helpers are all stubbed where they require the

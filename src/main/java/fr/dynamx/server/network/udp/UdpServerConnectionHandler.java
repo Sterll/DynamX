@@ -10,8 +10,8 @@ import fr.dynamx.server.network.DynamXServerNetworkSystem;
 import fr.dynamx.utils.DynamXConfig;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.neoforge.event.entity.player.PlayerEvent;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.event.entity.player.PlayerEvent;
 import org.apache.commons.lang3.RandomStringUtils;
 
 import java.security.MessageDigest;
@@ -26,7 +26,7 @@ import java.util.Objects;
  *
  * <p>TODO port:1.20.1 - Forge {@code FMLCommonHandler#instance()} and Forge
  * {@code PlayerEvent.PlayerLoggedInEvent} are replaced by NeoForge's
- * {@code net.neoforged.neoforge.event.entity.player.PlayerEvent.PlayerLoggedInEvent}.
+ * {@code net.minecraftforge.event.entity.player.PlayerEvent.PlayerLoggedInEvent}.
  */
 public class UdpServerConnectionHandler {
     private final IDnxNetworkHandler networkHandler;

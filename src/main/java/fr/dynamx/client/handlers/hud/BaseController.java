@@ -8,8 +8,8 @@ import fr.dynamx.common.entities.modules.engines.BasicEngineModule;
 import lombok.Getter;
 import lombok.Setter;
 import net.minecraft.client.Minecraft;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
 
 /**
  * Common base for vehicle controllers (car, boat, helicopter).

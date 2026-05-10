@@ -4,7 +4,7 @@ import fr.dynamx.api.network.EnumNetworkType;
 import fr.dynamx.api.network.IDnxPacket;
 import io.netty.buffer.ByteBuf;
 import net.minecraft.world.entity.player.Player;
-import net.neoforged.fml.LogicalSide;
+import net.minecraftforge.fml.LogicalSide;
 
 public class MessageEntityInteract implements IDnxPacket {
     private int vehicleID;
@@ -39,7 +39,7 @@ public class MessageEntityInteract implements IDnxPacket {
     @Override
     public void handleUDPReceive(Player context, LogicalSide side) {
         // TODO port:1.20.1 - body needs PhysicsEntity, PackPhysicsEntity, ItemWrench, IModuleContainer,
-        // InteractivePart, VehicleEntityEvent (MinecraftForge.EVENT_BUS → NeoForge.EVENT_BUS),
+        // InteractivePart, VehicleEntityEvent (MinecraftForge.EVENT_BUS → MinecraftForge.EVENT_BUS),
         // Vector3fPool, level().getEntity(int). Restore in Phase 5b/8/9.
     }
 }

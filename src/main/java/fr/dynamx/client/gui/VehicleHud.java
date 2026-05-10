@@ -13,7 +13,7 @@ import fr.dynamx.client.network.ClientPhysicsEntitySynchronizer;
 import fr.dynamx.client.network.ClientPhysicsSyncManager;
 import fr.dynamx.common.entities.PackPhysicsEntity;
 import net.minecraft.resources.ResourceLocation;
-import net.neoforged.neoforge.common.NeoForge;
+import net.minecraftforge.common.MinecraftForge;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -23,7 +23,7 @@ import java.util.List;
  *
  * <p>TODO port:1.20.1 - Surface changes:</p>
  * <ul>
- *   <li>{@code MinecraftForge.EVENT_BUS} -> {@code NeoForge.EVENT_BUS}.</li>
+ *   <li>{@code MinecraftForge.EVENT_BUS} -> {@code MinecraftForge.EVENT_BUS}.</li>
  *   <li>{@code Gui.ICONS} -> {@code GuiComponent.GUI_ICONS_LOCATION} -> {@code Gui.GUI_ICONS_LOCATION}.</li>
  *   <li>{@code mc.getTextureManager().bindTexture(loc)} + {@code GuiTextureSprite.drawScaledCustomSizeModalRect}
  *       -> {@code GuiGraphics.blit(ResourceLocation, int, int, int, int, int, int, int, int)}.</li>
@@ -43,7 +43,7 @@ public class VehicleHud extends GuiFrame {
         CameraSystem.setupCamera(entity);
         setCssClass("root");
         List<IVehicleController> controllers = new ArrayList<>(((ClientEntityNetHandler) entity.cast().getSynchronizer()).getControllers());
-        if (NeoForge.EVENT_BUS.post(new VehicleEntityEvent.CreateHud(this, styleSheets, entity.getSeats().isLocalPlayerDriving(), this.riddenEntity, controllers)).isCanceled()) {
+        if (MinecraftForge.EVENT_BUS.post(new VehicleEntityEvent.CreateHud(this, styleSheets, entity.getSeats().isLocalPlayerDriving(), this.riddenEntity, controllers)).isCanceled()) {
             return;
         }
         controllers.forEach(c -> {

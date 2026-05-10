@@ -18,7 +18,7 @@ import javax.annotation.Nullable;
  *   <li>{@code DynamXContext.getDxModelRegistry().getModel(...)} - DynamXContext isn't ported yet;
  *       getRenderContext returns null until that registry lands.</li>
  *   <li>{@code MinecraftForge.EVENT_BUS.post(new PhysicsEntityEvent.InitRenderer<>(...))} -
- *       {@code NeoForge.EVENT_BUS.post(...)} ; commented out because the event class isn't ported.</li>
+ *       {@code MinecraftForge.EVENT_BUS.post(...)} ; commented out because the event class isn't ported.</li>
  *   <li>Constructor switched from {@code RenderManager} to {@code EntityRendererProvider.Context}.</li>
  * </ul>
  *

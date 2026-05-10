@@ -8,7 +8,7 @@ import fr.dynamx.DynamX;
 import fr.dynamx.utils.DynamXConstants;
 import net.minecraft.client.resources.language.I18n;
 import net.minecraft.resources.ResourceLocation;
-import net.neoforged.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.Dist;
 
 import java.util.Arrays;
 

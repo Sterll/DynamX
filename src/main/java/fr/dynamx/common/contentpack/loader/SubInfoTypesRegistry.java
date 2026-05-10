@@ -10,8 +10,8 @@ import fr.dynamx.api.contentpack.registry.RegisteredSubInfoType;
 import fr.dynamx.api.contentpack.registry.SubInfoTypeEntry;
 import fr.dynamx.api.contentpack.registry.SubInfoTypeRegistries;
 import fr.dynamx.utils.errors.DynamXErrorManager;
-import net.neoforged.fml.ModList;
-import net.neoforged.neoforgespi.language.ModFileScanData;
+import net.minecraftforge.fml.ModList;
+import net.minecraftforge.forgespi.language.ModFileScanData;
 
 import javax.annotation.Nullable;
 import java.lang.reflect.Constructor;
@@ -38,7 +38,7 @@ import java.util.Set;
  *   - net.minecraftforge.fml.common.event.FMLConstructionEvent - replaced by a no-arg scan
  *     performed during mod loading (caller has to invoke {@code discoverSubInfoTypes()} once
  *     the mod registry is initialized).
- *   - Side check via {@code event.getSide().isClient()} -&gt; uses {@link net.neoforged.fml.loading.FMLEnvironment}.
+ *   - Side check via {@code event.getSide().isClient()} -&gt; uses {@link net.minecraftforge.fml.loading.FMLEnvironment}.
  *   The wiring of SubInfoTypeRegistries.getInfoList() / .hasSubInfoTypesRegistry() is still
  *   stubbed in {@link SubInfoTypeRegistries} (Phase 0). The discovery loop therefore reflects
  *   on the returned object to register entries; failures are logged through DynamX.LOGGER.warn.
@@ -99,7 +99,7 @@ public class SubInfoTypesRegistry<T extends ISubInfoTypeOwner<?>> {
                     throw new IllegalArgumentException("Only ISubInfoType objects can have the RegisteredSubInfoType annotation. Errored class: " + object);
 
                 RegisteredSubInfoType an = object.getAnnotation(RegisteredSubInfoType.class);
-                if (an.isClientOnly() && !net.neoforged.fml.loading.FMLEnvironment.dist.isClient())
+                if (an.isClientOnly() && !net.minecraftforge.fml.loading.FMLEnvironment.dist.isClient())
                     continue;
                 Class<? extends ISubInfoTypeOwner<?>> subInfoTypeClass = null;
                 if (an.registries().length >= 1)

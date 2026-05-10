@@ -5,7 +5,7 @@ import fr.dynamx.api.network.IDnxPacket;
 import fr.dynamx.utils.VerticalChunkPos;
 import io.netty.buffer.ByteBuf;
 import net.minecraft.world.entity.player.Player;
-import net.neoforged.fml.LogicalSide;
+import net.minecraftforge.fml.LogicalSide;
 
 public class MessageUpdateChunk implements IDnxPacket {
     private VerticalChunkPos[] chunksToUpdate;

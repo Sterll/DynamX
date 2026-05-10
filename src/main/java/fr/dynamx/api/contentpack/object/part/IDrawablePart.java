@@ -2,8 +2,8 @@ package fr.dynamx.api.contentpack.object.part;
 
 import com.jme3.math.Vector3f;
 import fr.dynamx.api.contentpack.object.render.IModelPackObject;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
 
 import java.util.List;
 

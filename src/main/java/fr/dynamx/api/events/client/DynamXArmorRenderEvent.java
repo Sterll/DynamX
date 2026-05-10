@@ -2,8 +2,8 @@ package fr.dynamx.api.events.client;
 
 import fr.dynamx.api.events.EventPhase;
 import lombok.Getter;
-import net.neoforged.bus.api.Event;
-import net.neoforged.bus.api.ICancellableEvent;
+import net.minecraftforge.eventbus.api.Event;
+import net.minecraftforge.eventbus.api.Cancelable;
 
 /**
  * Fired around armor rendering.
@@ -12,7 +12,8 @@ import net.neoforged.bus.api.ICancellableEvent;
  *   typed as Object until then.
  */
 @Getter
-public class DynamXArmorRenderEvent extends Event implements ICancellableEvent {
+@Cancelable
+public class DynamXArmorRenderEvent extends Event {
     private final Object context;     // TODO port:1.20.1 - BaseRenderContext.ArmorRenderContext
     private final Object sceneGraph;  // TODO port:1.20.1 - SceneNode<?, ?>
     private final EventPhase eventPhase;

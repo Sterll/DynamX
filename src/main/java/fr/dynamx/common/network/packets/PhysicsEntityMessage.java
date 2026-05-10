@@ -5,7 +5,7 @@ import fr.dynamx.api.network.IDnxPacket;
 import fr.dynamx.common.entities.PhysicsEntity;
 import io.netty.buffer.ByteBuf;
 import net.minecraft.world.entity.player.Player;
-import net.neoforged.fml.LogicalSide;
+import net.minecraftforge.fml.LogicalSide;
 
 import javax.annotation.Nullable;
 

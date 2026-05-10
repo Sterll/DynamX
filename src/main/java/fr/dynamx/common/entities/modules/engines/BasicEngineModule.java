@@ -25,10 +25,10 @@ import net.minecraft.client.CameraType;
 import net.minecraft.client.Minecraft;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.entity.player.Player;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
-import net.neoforged.fml.LogicalSide;
-import net.neoforged.neoforge.common.NeoForge;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
+import net.minecraftforge.fml.LogicalSide;
+import net.minecraftforge.common.MinecraftForge;
 
 import javax.annotation.Nullable;
 import java.util.HashMap;
@@ -179,11 +179,11 @@ public abstract class BasicEngineModule implements IPhysicsModule<BaseVehiclePhy
     @Override
     @OnlyIn(Dist.CLIENT)
     public void updateEntity() {
-        if (!NeoForge.EVENT_BUS.post(new VehicleEntityEvent.UpdateSounds(entity, this, EventPhase.PRE))) {
+        if (!MinecraftForge.EVENT_BUS.post(new VehicleEntityEvent.UpdateSounds(entity, this, EventPhase.PRE))) {
             if (entity.getPackInfo() != null) {
                 updateSounds();
             }
-            NeoForge.EVENT_BUS.post(new VehicleEntityEvent.UpdateSounds(entity, this, EventPhase.POST));
+            MinecraftForge.EVENT_BUS.post(new VehicleEntityEvent.UpdateSounds(entity, this, EventPhase.POST));
         }
     }
 

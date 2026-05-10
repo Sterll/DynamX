@@ -8,20 +8,20 @@ import fr.dynamx.utils.maths.DynamXGeometry;
 import fr.dynamx.utils.optimization.Vector3fPool;
 import io.netty.buffer.ByteBuf;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
-import net.neoforged.neoforge.entity.IEntityWithComplexSpawn;
+import net.minecraftforge.entity.IEntityAdditionalSpawnData;
 
 /**
  * Stand-alone seat entity attached to a DynamX block.
  */
 // TODO port:1.20.1 - TEDynamXBlock & PartBlockSeat are not ported yet (Phase 4b / 8). The class
-// references them forward. IEntityAdditionalSpawnData -> IEntityWithComplexSpawn with RegistryFriendlyByteBuf.
-public class SeatEntity extends Entity implements IEntityWithComplexSpawn {
+// references them forward. IEntityAdditionalSpawnData -> IEntityAdditionalSpawnData with FriendlyByteBuf.
+public class SeatEntity extends Entity implements IEntityAdditionalSpawnData {
     protected TEDynamXBlock block;
     protected PartBlockSeat<?> mySeat;
     protected byte seatID;
@@ -123,12 +123,12 @@ public class SeatEntity extends Entity implements IEntityWithComplexSpawn {
     }
 
     @Override
-    public void writeSpawnData(RegistryFriendlyByteBuf buf) {
+    public void writeSpawnData(FriendlyByteBuf buf) {
         writeSpawnData((ByteBuf) buf);
     }
 
     @Override
-    public void readSpawnData(RegistryFriendlyByteBuf buf) {
+    public void readSpawnData(FriendlyByteBuf buf) {
         readSpawnData((ByteBuf) buf);
     }
 }

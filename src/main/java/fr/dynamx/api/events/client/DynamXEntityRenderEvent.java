@@ -1,7 +1,7 @@
 package fr.dynamx.api.events.client;
 
 import lombok.Getter;
-import net.neoforged.bus.api.Event;
+import net.minecraftforge.eventbus.api.Event;
 
 import javax.annotation.Nullable;
 

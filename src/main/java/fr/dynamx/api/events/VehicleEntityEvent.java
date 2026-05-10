@@ -7,9 +7,9 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.bus.api.Event;
-import net.neoforged.bus.api.ICancellableEvent;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.eventbus.api.Event;
+import net.minecraftforge.eventbus.api.Cancelable;
 
 import javax.annotation.Nullable;
 import java.util.List;
@@ -22,6 +22,7 @@ import java.util.List;
  *   CarController all live in fr.dynamx.common.entities / fr.dynamx.client.* (Phases 5/6/7).
  *   They are typed as Object here to keep the API surface compilable.
  */
+@Cancelable
 public class VehicleEntityEvent extends Event {
     @Getter
     private final Dist side;
@@ -37,7 +38,7 @@ public class VehicleEntityEvent extends Event {
     /**
      * Called on server side when a player entity interacts with a vehicle
      */
-    public static class PlayerInteract extends VehicleEntityEvent implements ICancellableEvent {
+    public static class PlayerInteract extends VehicleEntityEvent {
         @Getter
         private final Player player;
         @Nullable
@@ -136,7 +137,7 @@ public class VehicleEntityEvent extends Event {
     /**
      * Fired when creating a vehicle HUD.
      */
-    public static class CreateHud extends VehicleEntityEvent implements ICancellableEvent {
+    public static class CreateHud extends VehicleEntityEvent {
         @Getter
         private final Object vehicleHud; // TODO port:1.20.1 - VehicleHud
         @Getter
@@ -158,7 +159,7 @@ public class VehicleEntityEvent extends Event {
     /**
      * Called on client side when the engine sounds of the entity are updated.
      */
-    public static class UpdateSounds extends VehicleEntityEvent implements ICancellableEvent {
+    public static class UpdateSounds extends VehicleEntityEvent {
         @Getter
         private final EventPhase eventPhase;
         @Getter
@@ -174,7 +175,7 @@ public class VehicleEntityEvent extends Event {
     /**
      * Called when a vehicle's wheel is changed.
      */
-    public static class ChangeWheel extends VehicleEntityEvent implements ICancellableEvent {
+    public static class ChangeWheel extends VehicleEntityEvent {
         @Getter
         private final byte wheelPartId;
         @Getter

@@ -6,7 +6,7 @@ import fr.dynamx.utils.debug.Profiler;
 import fr.dynamx.utils.optimization.SubClassPool;
 import fr.dynamx.utils.optimization.Vector3fPool;
 import net.minecraft.world.level.Level;
-import net.neoforged.neoforge.common.NeoForge;
+import net.minecraftforge.common.MinecraftForge;
 
 /**
  * Where all the physics happen <br>
@@ -22,7 +22,7 @@ public class BuiltinPhysicsWorld extends BasePhysicsWorld {
         this.physicsThread = Thread.currentThread();
 
         DynamX.LOGGER.info("Loading the physics world for the dimension {}", world.dimension());
-        NeoForge.EVENT_BUS.post(new PhysicsEvent.PhysicsWorldLoad(this));
+        MinecraftForge.EVENT_BUS.post(new PhysicsEvent.PhysicsWorldLoad(this));
     }
 
     @Override

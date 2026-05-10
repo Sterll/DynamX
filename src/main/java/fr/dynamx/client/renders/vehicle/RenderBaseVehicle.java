@@ -10,7 +10,7 @@ import fr.dynamx.common.entities.BaseVehicleEntity;
 import fr.dynamx.utils.debug.renderer.BoatDebugRenderer;
 import fr.dynamx.utils.debug.renderer.VehicleDebugRenderer;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
-import net.neoforged.neoforge.common.NeoForge;
+import net.minecraftforge.common.MinecraftForge;
 
 import javax.annotation.Nullable;
 
@@ -21,7 +21,7 @@ import javax.annotation.Nullable;
  * <ul>
  *   <li>Constructor switched from {@code RenderManager} to {@link EntityRendererProvider.Context}.</li>
  *   <li>{@code MinecraftForge.EVENT_BUS.post(new PhysicsEntityEvent.InitRenderer<>(...))} -&gt;
- *       {@code NeoForge.EVENT_BUS.post(...)} ; commented out because the event class isn't ported.</li>
+ *       {@code MinecraftForge.EVENT_BUS.post(...)} ; commented out because the event class isn't ported.</li>
  *   <li>{@code DynamXContext.getDxModelRegistry().getModel(...)} - DynamXContext isn't ported yet
  *       (Phase 5/8); {@link #getRenderContext} returns null until then.</li>
  *   <li>{@code WheelsModule#spawnPropulsionParticles(...)} - WheelsModule lives in Phase 6.</li>
@@ -42,7 +42,7 @@ public class RenderBaseVehicle<T extends BaseVehicleEntity<?>> extends RenderPhy
     public void spawnParticles(T carEntity, BaseRenderContext.EntityRenderContext context) {
         super.spawnParticles(carEntity, context);
         DynamXEntityRenderEvent particlesEvent = new DynamXEntityRenderEvent(carEntity, context, DynamXEntityRenderEvent.Type.PARTICLES, 0);
-        NeoForge.EVENT_BUS.post(particlesEvent);
+        MinecraftForge.EVENT_BUS.post(particlesEvent);
         // TODO port:1.20.1 - WheelsModule isn't ported yet (Phase 6). Was:
         //   if (carEntity.hasModuleOfType(WheelsModule.class)) {
         //       carEntity.getModuleByType(WheelsModule.class).spawnPropulsionParticles(this, context.getPartialTicks());

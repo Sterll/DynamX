@@ -4,7 +4,7 @@ import fr.dynamx.api.physics.BulletShapeType;
 import fr.dynamx.api.physics.IPhysicsWorld;
 import fr.dynamx.common.physics.CollisionsHandler;
 import lombok.Getter;
-import net.neoforged.bus.api.Event;
+import net.minecraftforge.eventbus.api.Event;
 
 public class PhysicsEvent extends Event {
 

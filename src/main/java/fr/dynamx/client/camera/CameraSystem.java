@@ -8,8 +8,8 @@ import fr.dynamx.utils.DynamXConfig;
 import fr.dynamx.utils.maths.DynamXGeometry;
 import fr.dynamx.utils.maths.DynamXMath;
 import net.minecraft.client.Minecraft;
-import net.neoforged.neoforge.client.event.ViewportEvent;
-import org.lwjgl.util.vector.Quaternion;
+import net.minecraftforge.client.event.ViewportEvent;
+import org.joml.Quaternionf;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -42,7 +42,7 @@ public class CameraSystem {
     private static float cameraPositionY;
     private static boolean watchingBehind = false;
 
-    private static final Quaternion glQuatCache = new Quaternion();
+    private static final Quaternionf glQuatCache = new Quaternionf();
     private static final com.jme3.math.Quaternion jmeQuatCache = new com.jme3.math.Quaternion();
     private static com.jme3.math.Quaternion lastCameraQuat;
 

@@ -10,8 +10,8 @@ import fr.dynamx.common.command.ISubCommand;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.neoforge.event.RegisterCommandsEvent;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.event.RegisterCommandsEvent;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -26,7 +26,7 @@ import java.util.Map;
  *
  * <p>TODO port:1.20.1 - Forge {@code PermissionAPI.registerNode(node, DefaultPermissionLevel.OP, desc)}
  * has no clean equivalent in NeoForge 1.20.1: it has been replaced by the new
- * {@code net.neoforged.neoforge.server.permission.PermissionAPI} (declarative nodes,
+ * {@code net.minecraftforge.server.permission.PermissionAPI} (declarative nodes,
  * registered via {@code PermissionGatherEvent.Nodes}). Wired with TODOs for now.
  */
 public class DynamXServerCommands {
@@ -76,7 +76,7 @@ public class DynamXServerCommands {
     }
 
     public ServerPlayer getPlayer(String name) {
-        MinecraftServer mc = net.neoforged.neoforge.server.ServerLifecycleHooks.getCurrentServer();
+        MinecraftServer mc = net.minecraftforge.server.ServerLifecycleHooks.getCurrentServer();
         return mc == null ? null : mc.getPlayerList().getPlayerByName(name);
     }
 }

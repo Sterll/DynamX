@@ -21,9 +21,9 @@ import lombok.Getter;
 import lombok.Setter;
 import net.minecraft.ChatFormatting;
 import net.minecraft.resources.ResourceLocation;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
-import net.neoforged.neoforge.common.NeoForge;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
+import net.minecraftforge.common.MinecraftForge;
 
 import java.util.Collections;
 import java.util.List;
@@ -32,7 +32,7 @@ import java.util.List;
  * <p>TODO port:1.20.1 - direct port; only renames:</p>
  * <ul>
  *   <li>{@code TextFormatting} -> {@code ChatFormatting}.</li>
- *   <li>{@code MinecraftForge.EVENT_BUS} -> {@code NeoForge.EVENT_BUS}.</li>
+ *   <li>{@code MinecraftForge.EVENT_BUS} -> {@code MinecraftForge.EVENT_BUS}.</li>
  *   <li>{@code @SideOnly(Side.CLIENT)} -> {@code @OnlyIn(Dist.CLIENT)}.</li>
  *   <li>{@code KeyBinding.isPressed/isKeyDown} -> {@code KeyMapping.consumeClick/isDown}.</li>
  *   <li>{@code net.minecraft.util.ResourceLocation} -> {@code net.minecraft.resources.ResourceLocation}.</li>
@@ -75,7 +75,7 @@ public class CarController extends BaseController {
             }
             if (KeyHandler.KEY_ATTACH_TRAILER.consumeClick())
                 ClientDynamXUtils.attachTrailer();
-            NeoForge.EVENT_BUS.post(new VehicleEntityEvent.ControllerUpdate<>(entity, this));
+            MinecraftForge.EVENT_BUS.post(new VehicleEntityEvent.ControllerUpdate<>(entity, this));
             int controls = 0;
             if (accelerating)
                 controls = controls | 2;

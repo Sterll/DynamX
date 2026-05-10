@@ -9,9 +9,9 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.world.level.Level;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
-import net.neoforged.neoforge.common.NeoForge;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
+import net.minecraftforge.common.MinecraftForge;
 
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -51,7 +51,7 @@ public class BuiltinThreadedPhysicsWorld extends BasePhysicsWorld implements Run
         });
         alive = true;
         DynamX.LOGGER.info("Loading the threaded physics world for the dimension " + world.dimension());
-        NeoForge.EVENT_BUS.post(new PhysicsEvent.PhysicsWorldLoad(this));
+        MinecraftForge.EVENT_BUS.post(new PhysicsEvent.PhysicsWorldLoad(this));
         myThread.start();
     }
 

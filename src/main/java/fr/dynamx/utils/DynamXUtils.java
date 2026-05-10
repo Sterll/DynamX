@@ -151,7 +151,7 @@ public class DynamXUtils {
         return Vector3fPool.get((float) pos.x, (float) pos.y, (float) pos.z);
     }
 
-    public static Vector3f toVector3f(javax.vecmath.Vector3f pos) {
+    public static Vector3f toVector3f(org.joml.Vector3f pos) {
         return Vector3fPool.get(pos.x, pos.y, pos.z);
     }
 
@@ -176,7 +176,7 @@ public class DynamXUtils {
         return new Quaternionf(quat.getX(), quat.getY(), quat.getZ(), quat.getW());
     }
 
-    public static Quaternionf toQuaternion(org.lwjgl.util.vector.Quaternion quat) {
+    public static Quaternionf toQuaternion(org.joml.Quaternionf quat) {
         return new Quaternionf(quat.getX(), quat.getY(), quat.getZ(), quat.getW());
     }
 

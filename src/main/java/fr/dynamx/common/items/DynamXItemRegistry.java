@@ -11,7 +11,7 @@ import java.util.List;
 /**
  * Central broker that the legacy code uses to gather every DynamX item before registering it with Forge.
  *
- * TODO port:1.20.1 - Full migration to {@link net.neoforged.neoforge.registries.DeferredRegister} will happen in
+ * TODO port:1.20.1 - Full migration to {@link net.minecraftforge.registries.DeferredRegister} will happen in
  * the entry-point wiring phase. For now we keep the legacy API surface (add / injectItems / registerItemBlock /
  * registerItemModels) so the rest of the codebase compiles, but the actual registry calls are stubbed:
  *  - {@link net.minecraft.world.item.CreativeModeTab} replaced {@code CreativeTabs}; instances are now built via

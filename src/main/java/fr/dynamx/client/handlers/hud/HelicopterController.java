@@ -12,11 +12,11 @@ import fr.dynamx.common.entities.modules.engines.HelicopterEngineModule;
 import fr.dynamx.common.entities.vehicles.HelicopterEntity;
 import fr.dynamx.utils.DynamXConstants;
 import net.minecraft.resources.ResourceLocation;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.Mod;
-import net.neoforged.neoforge.common.NeoForge;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.common.MinecraftForge;
 
 import java.util.Collections;
 import java.util.List;
@@ -30,7 +30,7 @@ import java.util.List;
  *       via {@code MouseHandler#xpos}, {@code ypos} and tick-deltas, or from {@code MovementInputUpdateEvent}.</li>
  *   <li>{@code MC.gameSettings.invertMouse} -> {@code MC.options.invertYMouse().get()}.</li>
  *   <li>{@code MC.player.getRidingEntity()} -> {@code MC.player.getVehicle()}.</li>
- *   <li>{@code MinecraftForge.EVENT_BUS} -> {@code NeoForge.EVENT_BUS}; KeyBinding -> KeyMapping renames.</li>
+ *   <li>{@code MinecraftForge.EVENT_BUS} -> {@code MinecraftForge.EVENT_BUS}; KeyBinding -> KeyMapping renames.</li>
  * </ul>
  */
 @Mod.EventBusSubscriber(modid = DynamXConstants.ID, value = Dist.CLIENT)
@@ -98,7 +98,7 @@ public class HelicopterController extends BaseController {
             }
             handbraking = !rolling && KeyHandler.KEY_HANDBRAKE.isDown();
 
-            NeoForge.EVENT_BUS.post(new VehicleEntityEvent.ControllerUpdate<>(entity, this));
+            MinecraftForge.EVENT_BUS.post(new VehicleEntityEvent.ControllerUpdate<>(entity, this));
             int controls = 0;
             if (accelerating)
                 controls = controls | 2;

@@ -17,7 +17,7 @@ import java.util.Map;
  *   - net.minecraftforge.fml.common.network.{ByteBufUtils, simpleimpl.*} - the Forge SimpleImpl
  *     network was removed in NeoForge; replaced by SimpleChannel / new Custom Packets. The
  *     handler entry points have been removed for now and will be re-implemented in Phase 6
- *     against {@link net.neoforged.neoforge.network.NetworkRegistry} or its successor.
+ *     against {@link net.minecraftforge.network.NetworkRegistry} or its successor.
  *   - net.minecraft.client.Minecraft#getIngameGUI -&gt; Minecraft.getInstance().gui (1.20.1).
  *   - net.minecraft.util.text.TextComponentString -&gt; Component.literal.
  *   - net.minecraft.client.Minecraft.addScheduledTask -&gt; Minecraft.getInstance().tell.

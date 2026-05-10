@@ -11,8 +11,8 @@ import javax.annotation.Nullable;
 
 /**
  * Vanilla TCP-based DynamX network handler. In Forge 1.12 this wrapped a {@code SimpleNetworkWrapper}.
- * In NeoForge 1.20.1 packets are dispatched via {@link net.neoforged.neoforge.network.PacketDistributor}
- * after registration through {@link net.neoforged.neoforge.network.registration.PayloadRegistrar}.
+ * In NeoForge 1.20.1 packets are dispatched via {@link net.minecraftforge.network.PacketDistributor}
+ * after registration through {@link net.minecraftforge.network.registration.PayloadRegistrar}.
  */
 // TODO port:1.20.1 - PacketDistributor send wiring and PayloadRegistrar registration are deferred to
 // DynamXNetwork#init. This class keeps the public API surface stable; methods stub the actual send.

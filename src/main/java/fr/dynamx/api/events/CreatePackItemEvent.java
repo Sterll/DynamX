@@ -4,8 +4,8 @@ import fr.dynamx.api.contentpack.object.IDynamXItem;
 import fr.dynamx.api.contentpack.object.subinfo.ISubInfoTypeOwner;
 import lombok.Getter;
 import lombok.Setter;
-import net.neoforged.bus.api.Event;
-import net.neoforged.bus.api.ICancellableEvent;
+import net.minecraftforge.eventbus.api.Event;
+import net.minecraftforge.eventbus.api.Cancelable;
 
 import javax.annotation.Nullable;
 
@@ -20,6 +20,7 @@ import javax.annotation.Nullable;
  *
  * @see CreatePackItemEvent
  */
+@Cancelable
 public abstract class CreatePackItemEvent<B extends ISubInfoTypeOwner<?>, C extends IDynamXItem<B>> extends Event {
     /**
      * The loader of this object.
@@ -51,25 +52,25 @@ public abstract class CreatePackItemEvent<B extends ISubInfoTypeOwner<?>, C exte
         return objectItem != null;
     }
 
-    public static class VehicleItem<B extends ISubInfoTypeOwner<?>, C extends IDynamXItem<B>> extends CreatePackItemEvent<B, C> implements ICancellableEvent {
+    public static class VehicleItem<B extends ISubInfoTypeOwner<?>, C extends IDynamXItem<B>> extends CreatePackItemEvent<B, C> {
         public VehicleItem(Object loader, B objectInfo) {
             super(loader, objectInfo);
         }
     }
 
-    public static class SimpleItem<B extends ISubInfoTypeOwner<?>, C extends IDynamXItem<B>> extends CreatePackItemEvent<B, C> implements ICancellableEvent {
+    public static class SimpleItem<B extends ISubInfoTypeOwner<?>, C extends IDynamXItem<B>> extends CreatePackItemEvent<B, C> {
         public SimpleItem(Object loader, B objectInfo) {
             super(loader, objectInfo);
         }
     }
 
-    public static class SimpleBlock<B extends ISubInfoTypeOwner<?>, C extends IDynamXItem<B>> extends CreatePackItemEvent<B, C> implements ICancellableEvent {
+    public static class SimpleBlock<B extends ISubInfoTypeOwner<?>, C extends IDynamXItem<B>> extends CreatePackItemEvent<B, C> {
         public SimpleBlock(Object loader, B objectInfo) {
             super(loader, objectInfo);
         }
     }
 
-    public static class PropsItem<B extends ISubInfoTypeOwner<?>, C extends IDynamXItem<B>> extends CreatePackItemEvent<B, C> implements ICancellableEvent {
+    public static class PropsItem<B extends ISubInfoTypeOwner<?>, C extends IDynamXItem<B>> extends CreatePackItemEvent<B, C> {
         public PropsItem(Object loader, B objectInfo) {
             super(loader, objectInfo);
         }

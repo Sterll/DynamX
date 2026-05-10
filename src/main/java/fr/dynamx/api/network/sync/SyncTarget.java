@@ -1,6 +1,6 @@
 package fr.dynamx.api.network.sync;
 
-import net.neoforged.fml.LogicalSide;
+import net.minecraftforge.fml.LogicalSide;
 
 /**
  * All possible targets for SynchronizedVariable <br>

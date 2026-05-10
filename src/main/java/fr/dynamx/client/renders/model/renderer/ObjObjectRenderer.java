@@ -6,7 +6,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 
-import javax.vecmath.Vector4f;
+import org.joml.Vector4f;
 import java.util.HashMap;
 import java.util.Map;
 

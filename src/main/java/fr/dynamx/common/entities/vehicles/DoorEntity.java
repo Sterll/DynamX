@@ -27,8 +27,8 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.RemovalReason;
 import net.minecraft.world.level.Level;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.neoforge.common.NeoForge;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.common.MinecraftForge;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -102,7 +102,7 @@ public class DoorEntity<T extends PackEntityPhysicsHandler<PartDoor, ?>> extends
     @Override
     protected final void fireCreateModulesEvent(Dist side) {
         //Don't simplify the generic type, for fml
-        NeoForge.EVENT_BUS.post(new PhysicsEntityEvent.CreateModules<>(DoorEntity.class, this, (java.util.List) moduleList, side));
+        MinecraftForge.EVENT_BUS.post(new PhysicsEntityEvent.CreateModules<>(DoorEntity.class, this, (java.util.List) moduleList, side));
     }
 
     @Override

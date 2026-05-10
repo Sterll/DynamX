@@ -24,12 +24,12 @@ import fr.dynamx.utils.client.DynamXRenderUtils;
 import fr.dynamx.utils.errors.DynamXErrorManager;
 import fr.dynamx.utils.optimization.SubClassPool;
 import fr.dynamx.utils.optimization.Vector3fPool;
-import net.minecraft.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.Dist;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.Level;
-import net.neoforged.api.distmarker.LogicalSide;
+import net.minecraftforge.fml.LogicalSide;
 
 /**
  * Client-side proxy.
@@ -124,8 +124,8 @@ public class ClientProxy extends CommonProxy {
     @Override
     public Level getServerWorld() {
         // TODO port:1.20.1 - ServerLifecycleHooks.getCurrentServer() instead of FMLCommonHandler.
-        if (net.neoforged.fml.server.ServerLifecycleHooks.getCurrentServer() != null) {
-            return net.neoforged.fml.server.ServerLifecycleHooks.getCurrentServer().overworld();
+        if (net.minecraftforge.fml.server.ServerLifecycleHooks.getCurrentServer() != null) {
+            return net.minecraftforge.fml.server.ServerLifecycleHooks.getCurrentServer().overworld();
         }
         return null;
     }
@@ -138,7 +138,7 @@ public class ClientProxy extends CommonProxy {
     @Override
     public <T extends AbstractEntityPhysicsHandler<?, ?>> PhysicsEntitySynchronizer<? extends PhysicsEntity<T>> getNetHandlerForEntity(PhysicsEntity<T> tPhysicsEntity) {
         if (tPhysicsEntity.level().isClientSide) {
-            if (net.neoforged.fml.server.ServerLifecycleHooks.getCurrentServer() != null) {
+            if (net.minecraftforge.fml.server.ServerLifecycleHooks.getCurrentServer() != null) {
                 return new SPPhysicsEntitySynchronizer<>(tPhysicsEntity, LogicalSide.CLIENT);
             } else {
                 return new ClientPhysicsEntitySynchronizer<>(tPhysicsEntity);
@@ -215,7 +215,7 @@ public class ClientProxy extends CommonProxy {
             throw new RuntimeException("Bad ACSGUIS_REQUIRED_VERSION", e);
         }
 
-        // TODO port:1.20.1 - register ClientEventHandler on NeoForge.EVENT_BUS in the mod constructor.
+        // TODO port:1.20.1 - register ClientEventHandler on MinecraftForge.EVENT_BUS in the mod constructor.
         // TODO port:1.20.1 - reload listener registration moves to RegisterClientReloadListenersEvent.
         // The state-machine loading logic is kept inline as a lambda for the future hook.
         Runnable scheduledLoad = () -> {

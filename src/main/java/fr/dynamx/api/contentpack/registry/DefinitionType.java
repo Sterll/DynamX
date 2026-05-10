@@ -14,7 +14,7 @@ import lombok.Getter;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.block.SoundType;
 
-import javax.vecmath.Vector2f;
+import org.joml.Vector2f;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;

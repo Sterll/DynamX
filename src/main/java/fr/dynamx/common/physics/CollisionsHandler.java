@@ -8,7 +8,7 @@ import fr.dynamx.common.entities.PhysicsEntity;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
-import net.neoforged.neoforge.common.NeoForge;
+import net.minecraftforge.common.MinecraftForge;
 
 import java.util.HashSet;
 import java.util.Objects;
@@ -32,7 +32,7 @@ public class CollisionsHandler {
     public static void handleCollision(IPhysicsWorld physicsWorld, PhysicsCollisionEvent collisionEvent, BulletShapeType<?> bodyA, BulletShapeType<?> bodyB) {
         if ((bodyA.getType().isEntity() && bodyB.getType().isEntity()) || (bodyA.getType().isEntity() && bodyB.getType().isTerrain()) || (bodyA.getType().isTerrain() && bodyB.getType().isEntity())) {
             CollisionInfo info = new CollisionInfo(physicsWorld, bodyA, bodyB, EXPIRATION_TIME, collisionEvent);
-            NeoForge.EVENT_BUS.post(new PhysicsEvent.PhysicsCollision.Pre(physicsWorld, bodyA, bodyB, info));
+            MinecraftForge.EVENT_BUS.post(new PhysicsEvent.PhysicsCollision.Pre(physicsWorld, bodyA, bodyB, info));
             if (CACHED_COLLISIONS.add(info)) {
                 info.handleCollision();
             }
@@ -57,7 +57,7 @@ public class CollisionsHandler {
         public void handleCollision() {
             if (entityA.getType().isPlayer() && entityB.getType().isTerrain())
                 return;
-            NeoForge.EVENT_BUS.post(new PhysicsEvent.PhysicsCollision(physicsWorld, entityA, entityB, this));
+            MinecraftForge.EVENT_BUS.post(new PhysicsEvent.PhysicsCollision(physicsWorld, entityA, entityB, this));
             if (entityA.getObjectIn() instanceof PhysicsEntity && entityB.getObjectIn() instanceof PhysicsEntity) {
                 if (entityA.getType().isBulletEntity()) {
                     ((PhysicsEntity<?>) entityA.getObjectIn()).onCollisionEnter(collisionEvent, entityA, entityB);

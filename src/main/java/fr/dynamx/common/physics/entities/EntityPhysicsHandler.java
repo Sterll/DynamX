@@ -4,7 +4,7 @@ import com.jme3.bullet.collision.Activation;
 import com.jme3.bullet.objects.PhysicsRigidBody;
 import com.jme3.math.Quaternion;
 import com.jme3.math.Vector3f;
-import fr.dynamx.common.DynamX;
+import fr.dynamx.DynamX;
 import fr.dynamx.common.entities.PhysicsEntity;
 import net.minecraft.core.BlockPos;
 import net.minecraft.tags.FluidTags;

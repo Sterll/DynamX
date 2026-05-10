@@ -7,8 +7,8 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.Mod;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.common.Mod;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -37,7 +37,7 @@ public class CommonEventHandler {
 
     @SubscribeEvent
     public void onChunkLoad(Object event) {
-        // TODO port:1.20.1 - hook ChunkEvent.Load (net.neoforged.neoforge.event.level.ChunkEvent.Load),
+        // TODO port:1.20.1 - hook ChunkEvent.Load (net.minecraftforge.event.level.ChunkEvent.Load),
         // then transfer PENDING_CHUNKS_COLLISIONS into the chunk's DynamXChunkData attachment.
     }
 

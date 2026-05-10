@@ -29,7 +29,7 @@ import java.util.stream.Collectors;
  *  - {@code player.sendMessage(component)} -> {@link Player#sendSystemMessage(Component)} (server-side) or
  *    {@link Player#displayClientMessage(Component, boolean)} (client-side).
  *  - {@code ObfuscationReflectionHelper#findConstructor} -> {@code ObfuscationReflectionHelper#findConstructor}
- *    (still available under net.neoforged.neoforge.fml in 1.20.1, but path differs). The ReplaceEntitiesWrenchMode
+ *    (still available under net.minecraftforge.fml in 1.20.1, but path differs). The ReplaceEntitiesWrenchMode
  *    body uses reflection on PhysicsEntity which is Phase 6 — stubbed.
  *  - {@code DynamXContext.getNetwork().sendToServer(new MessageDebugRequest(...))}, packet types, joint registry,
  *    physics handler, ItemProps spawn — all forward-references; the action bodies are stubbed pending Phases 4-6.
@@ -219,7 +219,7 @@ public class WrenchMode {
             //    - entity.setDead() -> entity.discard().
             //    - posX/Y/Z -> getX()/getY()/getZ().
             //    - rotationYaw -> getYRot().
-            //    - ObfuscationReflectionHelper now lives under net.neoforged.fml.util.ObfuscationReflectionHelper.
+            //    - ObfuscationReflectionHelper now lives under net.minecraftforge.fml.util.ObfuscationReflectionHelper.
         }
     }
 

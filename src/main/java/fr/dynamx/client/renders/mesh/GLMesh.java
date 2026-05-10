@@ -11,7 +11,7 @@ import jme3utilities.math.MyMath;
 import jme3utilities.math.MyVector3f;
 import lombok.Getter;
 
-import javax.vecmath.Vector4f;
+import org.joml.Vector4f;
 import java.nio.FloatBuffer;
 import java.util.HashMap;
 import java.util.Map;

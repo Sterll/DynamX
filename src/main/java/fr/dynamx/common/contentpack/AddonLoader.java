@@ -5,10 +5,10 @@ import fr.dynamx.DynamX;
 import fr.dynamx.api.contentpack.DynamXAddon;
 import fr.dynamx.utils.errors.DynamXErrorManager;
 import lombok.Getter;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.fml.ModList;
-import net.neoforged.fml.loading.FMLEnvironment;
-import net.neoforged.neoforgespi.language.ModFileScanData;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.fml.ModList;
+import net.minecraftforge.fml.loading.FMLEnvironment;
+import net.minecraftforge.forgespi.language.ModFileScanData;
 import org.objectweb.asm.Type;
 
 import java.lang.reflect.Method;

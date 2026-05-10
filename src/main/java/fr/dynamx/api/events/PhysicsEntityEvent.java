@@ -6,9 +6,9 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.bus.api.Event;
-import net.neoforged.bus.api.ICancellableEvent;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.eventbus.api.Event;
+import net.minecraftforge.eventbus.api.Cancelable;
 
 import javax.annotation.Nullable;
 import java.util.List;
@@ -25,6 +25,7 @@ import java.util.List;
  *   are kept as plain events here without the generic-type filtering. Bus listeners that relied
  *   on filtering will need to be updated.
  */
+@Cancelable
 public class PhysicsEntityEvent extends Event {
     @Getter
     private final Dist side;
@@ -42,7 +43,7 @@ public class PhysicsEntityEvent extends Event {
     /**
      * Fired when an entity is being spawned
      */
-    public static class Spawn extends PhysicsEntityEvent implements ICancellableEvent {
+    public static class Spawn extends PhysicsEntityEvent {
 
         @Getter
         private final Object physicsEntity;
@@ -69,7 +70,7 @@ public class PhysicsEntityEvent extends Event {
     /**
      * Fired on server side when a player tries to kill a physics entity
      */
-    public static class Attacked extends PhysicsEntityEvent implements ICancellableEvent {
+    public static class Attacked extends PhysicsEntityEvent {
         @Getter
         private final Entity sourceEntity;
         @Getter

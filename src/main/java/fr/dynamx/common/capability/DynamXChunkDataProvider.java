@@ -4,10 +4,10 @@ import fr.dynamx.utils.DynamXConstants;
 import net.minecraft.core.Direction;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.chunk.LevelChunk;
-import net.neoforged.bus.api.IEventBus;
-import net.neoforged.neoforge.attachment.AttachmentType;
-import net.neoforged.neoforge.registries.DeferredRegister;
-import net.neoforged.neoforge.registries.NeoForgeRegistries;
+import net.minecraftforge.eventbus.api.IEventBus;
+import net.minecraftforge.attachment.AttachmentType;
+import net.minecraftforge.registries.DeferredRegister;
+import net.minecraftforge.registries.NeoForgeRegistries;
 
 import java.util.function.Supplier;
 

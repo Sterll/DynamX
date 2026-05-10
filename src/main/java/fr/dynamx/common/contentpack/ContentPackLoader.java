@@ -298,7 +298,7 @@ public class ContentPackLoader {
             DynamX.LOGGER.error("Fatal error while loading DynamX packs, we can't continue !", e);
             throw new RuntimeException(e);
         }
-        if (net.neoforged.fml.loading.FMLEnvironment.dist.isClient()) {
+        if (net.minecraftforge.fml.loading.FMLEnvironment.dist.isClient()) {
             //Reload languages added by packs
             scheduleLanguageRefresh();
         }

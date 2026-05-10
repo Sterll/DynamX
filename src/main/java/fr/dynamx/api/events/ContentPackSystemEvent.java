@@ -1,7 +1,7 @@
 package fr.dynamx.api.events;
 
 import lombok.Getter;
-import net.neoforged.bus.api.Event;
+import net.minecraftforge.eventbus.api.Event;
 
 public class ContentPackSystemEvent extends Event {
     public static class Load extends ContentPackSystemEvent {

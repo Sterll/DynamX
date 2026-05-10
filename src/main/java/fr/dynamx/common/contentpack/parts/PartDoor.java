@@ -43,8 +43,8 @@ import java.util.List;
  *   - fr.dynamx.common.physics.utils.{RigidBodyTransform, SynchronizedRigidBodyTransform}
  *   - fr.dynamx.utils.physics.DynamXPhysicsHelper.EnumPhysicsAxis
  *   - fr.dynamx.utils.client.ClientDynamXUtils, DynamXUtils, IModelTextureVariants
- *   - net.minecraftforge.common.MinecraftForge (now net.neoforged.neoforge.common.NeoForge)
- *   - javax.vecmath.Vector2f (gone in 1.20.1, replaced by org.joml.Vector2f)
+ *   - net.minecraftforge.common.MinecraftForge (now net.minecraftforge.common.NeoForge)
+ *   - org.joml.Vector2f (gone in 1.20.1, replaced by org.joml.Vector2f)
  *   The interact() / mount() / readPosition() / addModules() / createSceneGraph() / inner PartDoorNode
  *   are stubbed. axisToUse is typed as Object until DynamXPhysicsHelper lands.
  *

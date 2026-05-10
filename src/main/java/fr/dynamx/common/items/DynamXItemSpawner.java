@@ -88,7 +88,7 @@ public abstract class DynamXItemSpawner<T extends AbstractItemObject<T, ?>> exte
             // TODO port:1.20.1 - PhysicsEntityEvent.Spawn / PackPhysicsEntity are Phase 6 dependencies.
             //  Once ported:
             //   Object entity = getSpawnEntity(worldIn, playerIn, Vector3fPool.get(...), playerIn.getYRot() % 360.0F, 0);
-            //   if (!NeoForge.EVENT_BUS.post(new PhysicsEntityEvent.Spawn(worldIn, entity, playerIn, this, blockPos))) {
+            //   if (!MinecraftForge.EVENT_BUS.post(new PhysicsEntityEvent.Spawn(worldIn, entity, playerIn, this, blockPos))) {
             //       worldIn.addFreshEntity((net.minecraft.world.entity.Entity) entity);
             //   }
             Object entity = getSpawnEntity(worldIn, playerIn,

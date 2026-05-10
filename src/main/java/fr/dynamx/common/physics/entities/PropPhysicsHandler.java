@@ -6,7 +6,7 @@ import com.jme3.math.Transform;
 import com.jme3.math.Vector3f;
 import fr.dynamx.api.physics.BulletShapeType;
 import fr.dynamx.api.physics.EnumBulletShapeType;
-import fr.dynamx.common.DynamX;
+import fr.dynamx.DynamX;
 import fr.dynamx.common.contentpack.type.objects.PropObject;
 import fr.dynamx.common.entities.PropsEntity;
 import fr.dynamx.utils.maths.DynamXGeometry;

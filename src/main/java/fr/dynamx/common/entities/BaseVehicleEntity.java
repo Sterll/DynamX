@@ -13,8 +13,8 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.level.Level;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.neoforge.common.NeoForge;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.common.MinecraftForge;
 
 /**
  * Base implementation for all vehicles <br>
@@ -48,7 +48,7 @@ public abstract class BaseVehicleEntity<T extends BaseVehiclePhysicsHandler<?>> 
     @Override
     protected final void fireCreateModulesEvent(Dist side) {
         //Don't simplify the generic type, for fml (kept for backwards-compatible call shape)
-        NeoForge.EVENT_BUS.post(new PhysicsEntityEvent.CreateModules<>(BaseVehicleEntity.class, this, (java.util.List) moduleList, side));
+        MinecraftForge.EVENT_BUS.post(new PhysicsEntityEvent.CreateModules<>(BaseVehicleEntity.class, this, (java.util.List) moduleList, side));
     }
 
     @Override
@@ -56,7 +56,7 @@ public abstract class BaseVehicleEntity<T extends BaseVehiclePhysicsHandler<?>> 
         super.readAdditionalSaveData(tagCompound);
 
         setMetadata(tagCompound.getInt("Metadata"));
-        NeoForge.EVENT_BUS.post(new VehicleEntityEvent.LoadFromNBT(tagCompound, this));
+        MinecraftForge.EVENT_BUS.post(new VehicleEntityEvent.LoadFromNBT(tagCompound, this));
     }
 
     @Override
@@ -64,7 +64,7 @@ public abstract class BaseVehicleEntity<T extends BaseVehiclePhysicsHandler<?>> 
         super.addAdditionalSaveData(tagCompound);
 
         tagCompound.putInt("Metadata", getMetadata());
-        NeoForge.EVENT_BUS.post(new VehicleEntityEvent.SaveToNBT(tagCompound, this));
+        MinecraftForge.EVENT_BUS.post(new VehicleEntityEvent.SaveToNBT(tagCompound, this));
     }
 
     @Override

@@ -33,7 +33,7 @@ import io.netty.buffer.ByteBuf;
 import lombok.Getter;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Entity;
@@ -41,9 +41,9 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
-import net.neoforged.neoforge.common.NeoForge;
-import net.neoforged.neoforge.entity.IEntityWithComplexSpawn;
-import net.neoforged.fml.LogicalSide;
+import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.entity.IEntityAdditionalSpawnData;
+import net.minecraftforge.fml.LogicalSide;
 
 import javax.annotation.Nullable;
 import java.util.HashMap;
@@ -58,12 +58,12 @@ import java.util.Map;
 // TODO port:1.20.1 - DynamXContext, DynamXMain, PhysicsEntitySynchronizer, EntityPosVariable,
 // MessageJoints and the whole common.network.* tree are not ported yet (Phase 5). Imports above
 // are forward references shared with other already-ported classes (EntityJointsHandler etc.).
-// TODO port:1.20.1 - Forge IEntityAdditionalSpawnData -> NeoForge IEntityWithComplexSpawn
-// with RegistryFriendlyByteBuf in writeSpawnData/readSpawnData (was ByteBuf in 1.12).
+// TODO port:1.20.1 - Forge IEntityAdditionalSpawnData -> NeoForge IEntityAdditionalSpawnData
+// with FriendlyByteBuf in writeSpawnData/readSpawnData (was ByteBuf in 1.12).
 // Legacy ByteBuf writeSpawnData/readSpawnData kept as helpers; the NeoForge contract is
 // implemented by delegating to the legacy methods via Unpooled.wrappedBuffer.
 @SynchronizedEntityVariable.SynchronizedPhysicsModule(modid = DynamXConstants.ID)
-public abstract class PhysicsEntity<T extends AbstractEntityPhysicsHandler<?, ?>> extends Entity implements IDynamXObject, IEntityWithComplexSpawn {
+public abstract class PhysicsEntity<T extends AbstractEntityPhysicsHandler<?, ?>> extends Entity implements IDynamXObject, IEntityAdditionalSpawnData {
 
     /**
      * Entity network
@@ -202,7 +202,7 @@ public abstract class PhysicsEntity<T extends AbstractEntityPhysicsHandler<?, ?>
                 // Will refresh simulation holders on joint entities
                 getSynchronizer().setSimulationHolder(getSynchronizer().getSimulationHolder(), getSynchronizer().getSimulationPlayerHolder());
                 registerSynchronizedVariables();
-                NeoForge.EVENT_BUS.post(new PhysicsEntityEvent.Init(level().isClientSide ? net.neoforged.api.distmarker.Dist.CLIENT : net.neoforged.api.distmarker.Dist.DEDICATED_SERVER, this, usesPhysicsWorld));
+                MinecraftForge.EVENT_BUS.post(new PhysicsEntityEvent.Init(level().isClientSide ? net.minecraftforge.api.distmarker.Dist.CLIENT : net.minecraftforge.api.distmarker.Dist.DEDICATED_SERVER, this, usesPhysicsWorld));
                 initialized = EnumEntityInitState.ALL;
                 break;
         }
@@ -231,12 +231,12 @@ public abstract class PhysicsEntity<T extends AbstractEntityPhysicsHandler<?, ?>
     }
 
     @Override
-    public void writeSpawnData(RegistryFriendlyByteBuf buffer) {
+    public void writeSpawnData(FriendlyByteBuf buffer) {
         writeSpawnData((ByteBuf) buffer);
     }
 
     @Override
-    public void readSpawnData(RegistryFriendlyByteBuf additionalData) {
+    public void readSpawnData(FriendlyByteBuf additionalData) {
         readSpawnData((ByteBuf) additionalData);
     }
 
@@ -297,7 +297,7 @@ public abstract class PhysicsEntity<T extends AbstractEntityPhysicsHandler<?, ?>
             update = new PhysicsEntityEvent.ServerUpdate(this, PhysicsEntityEvent.UpdateType.POST_ENTITY_UPDATE,
                     isRegistered == EnumEntityPhysicsRegistryState.REGISTERED && usesPhysicsWorld);
         }
-        NeoForge.EVENT_BUS.post(update);
+        MinecraftForge.EVENT_BUS.post(update);
     }
 
     /**
@@ -370,7 +370,7 @@ public abstract class PhysicsEntity<T extends AbstractEntityPhysicsHandler<?, ?>
         simulatePhysics = simulatePhysics && isRegistered == EnumEntityPhysicsRegistryState.REGISTERED;
         preUpdatePhysics(simulatePhysics);
 
-        NeoForge.EVENT_BUS.post(level().isClientSide ? new PhysicsEntityEvent.ClientUpdate(this, PhysicsEntityEvent.UpdateType.PRE_PHYSICS_UPDATE, simulatePhysics) :
+        MinecraftForge.EVENT_BUS.post(level().isClientSide ? new PhysicsEntityEvent.ClientUpdate(this, PhysicsEntityEvent.UpdateType.PRE_PHYSICS_UPDATE, simulatePhysics) :
                 new PhysicsEntityEvent.ServerUpdate(this, PhysicsEntityEvent.UpdateType.PRE_PHYSICS_UPDATE, simulatePhysics));
         profiler.end(Profiler.Profiles.PHY2);
     }
@@ -401,7 +401,7 @@ public abstract class PhysicsEntity<T extends AbstractEntityPhysicsHandler<?, ?>
         simulatePhysics = simulatePhysics && isRegistered == EnumEntityPhysicsRegistryState.REGISTERED;
         postUpdatePhysics(simulatePhysics);
 
-        NeoForge.EVENT_BUS.post(level().isClientSide ? new PhysicsEntityEvent.ClientUpdate(this, PhysicsEntityEvent.UpdateType.POST_PHYSICS_UPDATE, simulatePhysics) :
+        MinecraftForge.EVENT_BUS.post(level().isClientSide ? new PhysicsEntityEvent.ClientUpdate(this, PhysicsEntityEvent.UpdateType.POST_PHYSICS_UPDATE, simulatePhysics) :
                 new PhysicsEntityEvent.ServerUpdate(this, PhysicsEntityEvent.UpdateType.POST_PHYSICS_UPDATE, simulatePhysics));
         profiler.end(Profiler.Profiles.PHY2P);
     }
@@ -578,7 +578,7 @@ public abstract class PhysicsEntity<T extends AbstractEntityPhysicsHandler<?, ?>
 
     @Override
     public boolean hurt(DamageSource damageSource, float amount) {
-        if (NeoForge.EVENT_BUS.post(new PhysicsEntityEvent.Attacked(this, damageSource.getEntity(), damageSource)).isCanceled()) {
+        if (MinecraftForge.EVENT_BUS.post(new PhysicsEntityEvent.Attacked(this, damageSource.getEntity(), damageSource)).isCanceled()) {
             return false;
         }
         // TODO port:1.20.1 - DamageSource#isExplosion replaced by tag-based check.

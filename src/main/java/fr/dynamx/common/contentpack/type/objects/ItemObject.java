@@ -14,7 +14,7 @@ import javax.annotation.Nullable;
  *   - fr.dynamx.api.events.client.BuildSceneGraphEvent.BuildItemScene (Phase 7)
  *   - fr.dynamx.client.renders.scene.node.{ItemNode,SceneNode} (Phase 7)
  *   - fr.dynamx.common.items.DynamXItem (Phase 6)
- *   - net.minecraftforge.common.MinecraftForge.EVENT_BUS - replaced by NeoForge.EVENT_BUS
+ *   - net.minecraftforge.common.MinecraftForge.EVENT_BUS - replaced by MinecraftForge.EVENT_BUS
  *   The createItem() / getSceneGraph() bodies are stubbed and return null until those Phases land.
  */
 public class ItemObject<T extends ItemObject<T>> extends AbstractItemObject<T, T> {
@@ -36,7 +36,7 @@ public class ItemObject<T extends ItemObject<T>> extends AbstractItemObject<T, T
     protected IDynamXItem<T> createItem(InfoList<T> loader) {
         // TODO port:1.20.1 - Original:
         //   CreatePackItemEvent.SimpleItem event = new CreatePackItemEvent.SimpleItem(loader, this);
-        //   NeoForge.EVENT_BUS.post(event);
+        //   MinecraftForge.EVENT_BUS.post(event);
         //   if (event.isOverridden()) return event.getObjectItem();
         //   else return new DynamXItem(this);
         //   Both depend on Phase 5/6.

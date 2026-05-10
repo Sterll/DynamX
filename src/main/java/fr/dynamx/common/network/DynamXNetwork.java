@@ -17,15 +17,15 @@ import fr.dynamx.common.network.sync.MessageSeatsSync;
 import fr.dynamx.common.network.udp.auth.MessageDynamXUdpSettings;
 import fr.dynamx.utils.DynamXConfig;
 import io.netty.buffer.ByteBuf;
-import net.neoforged.fml.LogicalSide;
+import net.minecraftforge.fml.LogicalSide;
 
 /**
  * The DynamX network holding packets registry. <br>
  * In Forge 1.12 this used {@link net.minecraftforge.fml.common.network.simpleimpl.SimpleNetworkWrapper} to register
  * and dispatch messages. In NeoForge 1.20.1 message registration is performed through a
- * {@link net.neoforged.neoforge.network.registration.PayloadRegistrar} listening to
- * {@link net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent}, and dispatch uses
- * {@link net.neoforged.neoforge.network.PacketDistributor}.
+ * {@link net.minecraftforge.network.registration.PayloadRegistrar} listening to
+ * {@link net.minecraftforge.network.event.RegisterPayloadHandlersEvent}, and dispatch uses
+ * {@link net.minecraftforge.network.PacketDistributor}.
  *
  * The legacy registry tables (UDP_PACKETS, getUdpPacketById, getUdpMessageId) are preserved because
  * EncapsulatedUDPPacket still uses them to map packet ids on the UDP wire.
@@ -45,7 +45,7 @@ public class DynamXNetwork {
      * Creates a new {@link IDnxNetworkSystem} for this side and registers all packets. <br>
      * The network instance is stored in DynamXContext (not yet ported in Phase 4b).
      */
-    // TODO port:1.20.1 - Side is now LogicalSide (or net.neoforged.api.distmarker.Dist for client/dedicated).
+    // TODO port:1.20.1 - Side is now LogicalSide (or net.minecraftforge.api.distmarker.Dist for client/dedicated).
     // Server-side DynamXServerNetworkSystem is part of Phase 5b (server network handlers); until then
     // we always return a client network system on logical client and null on server.
     public static IDnxNetworkSystem init(LogicalSide side) {
@@ -192,7 +192,7 @@ public class DynamXNetwork {
 
     /**
      * Convenience dispatch helpers. In 1.20.1 these wrap
-     * {@link net.neoforged.neoforge.network.PacketDistributor}.
+     * {@link net.minecraftforge.network.PacketDistributor}.
      */
     // TODO port:1.20.1 - Wire to PacketDistributor.sendToServer((CustomPacketPayload) msg)
     public static void sendToServer(Object msg) {

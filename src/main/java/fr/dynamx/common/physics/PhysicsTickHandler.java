@@ -19,13 +19,13 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
-import net.neoforged.bus.api.EventPriority;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.LogicalSide;
-import net.neoforged.fml.loading.FMLLoader;
-import net.neoforged.neoforge.event.TickEvent;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
+import net.minecraftforge.eventbus.api.EventPriority;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.LogicalSide;
+import net.minecraftforge.fml.loading.FMLLoader;
+import net.minecraftforge.event.TickEvent;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -90,7 +90,7 @@ public class PhysicsTickHandler {
             }
         }
         // TODO port:1.20.1 - FMLCommonHandler removed; use ServerLifecycleHooks.getCurrentServer().getAllLevels()
-        for (ServerLevel world : net.neoforged.neoforge.server.ServerLifecycleHooks.getCurrentServer().getAllLevels()) {
+        for (ServerLevel world : net.minecraftforge.server.ServerLifecycleHooks.getCurrentServer().getAllLevels()) {
             if (canTickServer(world)) {
                 tickWorldPhysics(event.phase, world);
             }

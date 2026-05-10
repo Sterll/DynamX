@@ -25,8 +25,8 @@ import fr.dynamx.utils.optimization.QuaternionPool;
 import fr.dynamx.utils.optimization.SubClassPool;
 import fr.dynamx.utils.optimization.Vector3fPool;
 import net.minecraft.world.level.Level;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.neoforge.common.NeoForge;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.common.MinecraftForge;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -214,7 +214,7 @@ public abstract class BasePhysicsWorld implements IPhysicsWorld {
 
         // if (false && CmdNetworkConfig.sync_buff)
         //   System.out.println("Took " + (System.currentTimeMillis() - pre) + " ms");
-        NeoForge.EVENT_BUS.post(new PhysicsEvent.StepSimulation(this, DynamXContext.getPhysicsSimulationMode(Dist.DEDICATED_SERVER).getTimeStep()));
+        MinecraftForge.EVENT_BUS.post(new PhysicsEvent.StepSimulation(this, DynamXContext.getPhysicsSimulationMode(Dist.DEDICATED_SERVER).getTimeStep()));
         profiler.end(Profiler.Profiles.BULLET_STEP_SIM);
     }
 

@@ -12,8 +12,8 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LightLayer;
 import net.minecraft.world.level.block.state.BlockState;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
 import org.joml.Matrix4f;
 import org.joml.Quaternionf;
 import org.lwjgl.BufferUtils;
@@ -25,7 +25,7 @@ import java.nio.FloatBuffer;
  *
  * <p>TODO port:1.20.1 -
  * <ul>
- *   <li>{@code org.lwjgl.util.vector.Quaternion} (lwjgl2 vector) is gone; everything is JOML now.
+ *   <li>{@code org.joml.Quaternionf} (lwjgl2 vector) is gone; everything is JOML now.
  *       The legacy {@code GlQuaternionPool} still returns a lwjgl-style class but we no longer
  *       pass it to GlStateManager. Once the pool is refactored to JOML this layer can go.</li>
  *   <li>{@code World} -> {@link Level}, {@code BlockPos.MutableBlockPos.setPos} -> {@code set}.</li>
@@ -48,11 +48,11 @@ public class ClientDynamXUtils {
         return DynamXUtils.toQuaternion(computeInterpolatedGlQuaternion(prevRotation, rotation, step, inverse));
     }
 
-    public static org.lwjgl.util.vector.Quaternion computeInterpolatedGlQuaternion(com.jme3.math.Quaternion prevRotation, com.jme3.math.Quaternion rotation, float step) {
+    public static org.joml.Quaternionf computeInterpolatedGlQuaternion(com.jme3.math.Quaternion prevRotation, com.jme3.math.Quaternion rotation, float step) {
         return computeInterpolatedGlQuaternion(prevRotation, rotation, step, false);
     }
 
-    public static org.lwjgl.util.vector.Quaternion computeInterpolatedGlQuaternion(com.jme3.math.Quaternion prevRotation, com.jme3.math.Quaternion rotation, float step, boolean inverse) {
+    public static org.joml.Quaternionf computeInterpolatedGlQuaternion(com.jme3.math.Quaternion prevRotation, com.jme3.math.Quaternion rotation, float step, boolean inverse) {
         com.jme3.math.Quaternion cache = QuaternionPool.get();
         DynamXMath.slerp(step, prevRotation, rotation, cache);
         if (inverse)
@@ -92,7 +92,7 @@ public class ClientDynamXUtils {
         DynamXContext.getNetwork().sendToServer(new MessageAttachTrailer());
     }
 
-    public static org.lwjgl.util.vector.Quaternion inverseGlQuaternion(org.lwjgl.util.vector.Quaternion quat, org.lwjgl.util.vector.Quaternion result) {
+    public static org.joml.Quaternionf inverseGlQuaternion(org.joml.Quaternionf quat, org.joml.Quaternionf result) {
         float norm = quat.length();
         if (norm > 0.0) {
             float invNorm = 1.0f / norm;

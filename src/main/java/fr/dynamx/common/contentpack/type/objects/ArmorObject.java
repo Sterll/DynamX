@@ -14,9 +14,9 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.entity.EquipmentSlot;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
-import net.neoforged.fml.loading.FMLEnvironment;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
+import net.minecraftforge.fml.loading.FMLEnvironment;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -82,7 +82,7 @@ public class ArmorObject<T extends ArmorObject<T>> extends AbstractItemObject<T,
 
     /**
      * TODO port:1.20.1 - Was ModelObjArmor (Phase 7). Relaxed to Object; the side-only annotation moved
-     *   to NeoForge's net.neoforged.api.distmarker.OnlyIn.
+     *   to NeoForge's net.minecraftforge.api.distmarker.OnlyIn.
      */
     @OnlyIn(Dist.CLIENT)
     protected Object objArmor;

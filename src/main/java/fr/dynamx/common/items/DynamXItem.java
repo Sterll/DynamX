@@ -22,7 +22,7 @@ import java.util.List;
  * TODO port:1.20.1 - Item registration model rewritten in 1.20.1.
  *  - `setRegistryName(...)`, `setTranslationKey(...)`, `setCreativeTab(...)`, `setMaxStackSize(...)` no longer exist on
  *    {@link Item} instances. They must be supplied via {@link Item.Properties} at construction time, and registry names
- *    come from {@link net.neoforged.neoforge.registries.DeferredRegister}. The 1.12 constructors are preserved here
+ *    come from {@link net.minecraftforge.registries.DeferredRegister}. The 1.12 constructors are preserved here
  *    so existing call sites compile, but the actual registration is stubbed and will be wired up in the entry-point
  *    phase.
  *  - `addInformation(...)` is replaced by `appendHoverText(...)` returning {@link Component} instead of {@link String};

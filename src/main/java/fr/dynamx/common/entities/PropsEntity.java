@@ -11,8 +11,8 @@ import fr.dynamx.common.physics.entities.PropPhysicsHandler;
 import fr.dynamx.utils.DynamXConfig;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.level.Level;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.neoforge.common.NeoForge;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.common.MinecraftForge;
 
 import javax.annotation.Nonnull;
 
@@ -62,7 +62,7 @@ public class PropsEntity<T extends PackEntityPhysicsHandler<PropObject<?>, ?>> e
     @Override
     protected final void fireCreateModulesEvent(Dist side) {
         //Don't simplify the generic type, for fml (kept for backwards-compatible call shape)
-        NeoForge.EVENT_BUS.post(new PhysicsEntityEvent.CreateModules<>(PropsEntity.class, this, (java.util.List) moduleList, side));
+        MinecraftForge.EVENT_BUS.post(new PhysicsEntityEvent.CreateModules<>(PropsEntity.class, this, (java.util.List) moduleList, side));
     }
 
     @Override

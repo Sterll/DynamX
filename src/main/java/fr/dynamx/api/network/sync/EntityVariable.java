@@ -2,7 +2,7 @@ package fr.dynamx.api.network.sync;
 
 import io.netty.buffer.ByteBuf;
 import lombok.Getter;
-import net.neoforged.fml.LogicalSide;
+import net.minecraftforge.fml.LogicalSide;
 
 import java.util.Map;
 import java.util.function.BiConsumer;

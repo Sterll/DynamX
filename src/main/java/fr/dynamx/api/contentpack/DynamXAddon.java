@@ -1,6 +1,6 @@
 package fr.dynamx.api.contentpack;
 
-import net.neoforged.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.Dist;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -30,7 +30,7 @@ public @interface DynamXAddon {
 
     /**
      * @return The sides where the addon should be loaded, client and server by default
-     * TODO port:1.20.1 - In NeoForge 1.20.1 Side -> Dist; logical sides are net.neoforged.fml.LogicalSide.
+     * TODO port:1.20.1 - In NeoForge 1.20.1 Side -> Dist; logical sides are net.minecraftforge.fml.LogicalSide.
      * Using Dist here for physical-side annotations on addons.
      */
     Dist[] sides() default {Dist.CLIENT, Dist.DEDICATED_SERVER};

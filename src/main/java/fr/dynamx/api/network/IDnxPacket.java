@@ -2,7 +2,7 @@ package fr.dynamx.api.network;
 
 import io.netty.buffer.ByteBuf;
 import net.minecraft.world.entity.player.Player;
-import net.neoforged.fml.LogicalSide;
+import net.minecraftforge.fml.LogicalSide;
 
 /**
  * Base interface for all DynamX network packets.

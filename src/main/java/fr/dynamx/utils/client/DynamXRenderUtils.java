@@ -9,8 +9,8 @@ import fr.dynamx.utils.maths.DynamXGeometry;
 import net.minecraft.client.gui.Font;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL30;
 
@@ -92,7 +92,7 @@ public class DynamXRenderUtils {
     }
 
     @OnlyIn(Dist.CLIENT)
-    public static void drawNameplate(Font fontRendererIn, String str, float x, float y, float z, org.lwjgl.util.vector.Quaternion rotation, int verticalShift, float viewerYaw, float viewerPitch, boolean isThirdPersonFrontal) {
+    public static void drawNameplate(Font fontRendererIn, String str, float x, float y, float z, org.joml.Quaternionf rotation, int verticalShift, float viewerYaw, float viewerPitch, boolean isThirdPersonFrontal) {
         // TODO port:1.20.1 - same as above.
     }
 

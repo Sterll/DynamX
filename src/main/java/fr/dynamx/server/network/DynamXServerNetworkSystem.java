@@ -10,7 +10,7 @@ import fr.dynamx.common.network.VanillaNetworkHandler;
 import fr.dynamx.server.network.udp.ServerIPAdressRetriever;
 import fr.dynamx.server.network.udp.UdpServerConnectionHandler;
 import fr.dynamx.server.network.udp.UdpServerNetworkHandler;
-import net.neoforged.neoforge.common.NeoForge;
+import net.minecraftforge.common.MinecraftForge;
 
 import javax.annotation.Nullable;
 
@@ -64,7 +64,7 @@ public class DynamXServerNetworkSystem implements IDnxNetworkSystem {
         DynamXMain.log.info(VANILLA_NETWORK.start() ? "Started [" + VANILLA_NETWORK.getType() + "] Server." : "Failed to start [" + VANILLA_NETWORK.getType() + "] Server.");
         if (VANILLA_NETWORK != QUICK_NETWORK)
             DynamXMain.log.info(QUICK_NETWORK.start() ? "Started [" + QUICK_NETWORK.getType() + "] Server." : "Failed to start [" + QUICK_NETWORK.getType() + "] Server.");
-        NeoForge.EVENT_BUS.register(new UdpServerConnectionHandler(QUICK_NETWORK));
+        MinecraftForge.EVENT_BUS.register(new UdpServerConnectionHandler(QUICK_NETWORK));
     }
 
     @Override

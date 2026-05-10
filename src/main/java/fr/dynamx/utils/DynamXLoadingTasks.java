@@ -13,9 +13,9 @@ import fr.dynamx.common.contentpack.sync.PackSyncHandler;
 import fr.dynamx.common.network.packets.MessageSyncConfig;
 import net.minecraft.client.Minecraft;
 import net.minecraft.world.level.Level;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
-import net.neoforged.fml.util.thread.EffectiveSide;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
+import net.minecraftforge.fml.util.thread.EffectiveSide;
 import net.minecraftforge.server.ServerLifecycleHooks;
 
 import java.util.ArrayDeque;

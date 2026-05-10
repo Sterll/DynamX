@@ -3,8 +3,8 @@ package fr.dynamx.client.sound;
 import com.jme3.math.Vector3f;
 import fr.dynamx.api.audio.IDynamXSound;
 import fr.dynamx.utils.DynamXConfig;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
 
 import java.util.ArrayList;
 import java.util.List;

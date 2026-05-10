@@ -1,8 +1,8 @@
 package fr.dynamx.api.events;
 
 import lombok.Getter;
-import net.neoforged.bus.api.Event;
-import net.neoforged.bus.api.ICancellableEvent;
+import net.minecraftforge.eventbus.api.Event;
+import net.minecraftforge.eventbus.api.Cancelable;
 
 /**
  * Model render events.
@@ -12,6 +12,7 @@ import net.neoforged.bus.api.ICancellableEvent;
  *   Fields are typed as Object to keep API surface stable until rendering is reimplemented.
  */
 @Getter
+@Cancelable
 public class DynamXModelRenderEvent extends Event {
     private final EventPhase stage;
     private final Object model;            // TODO port:1.20.1 - was ObjModelRenderer (dropped)
@@ -25,19 +26,19 @@ public class DynamXModelRenderEvent extends Event {
         this.textureId = textureId;
     }
 
-    public static class RenderFullModel extends DynamXModelRenderEvent implements ICancellableEvent {
+    public static class RenderFullModel extends DynamXModelRenderEvent {
         public RenderFullModel(EventPhase stage, Object model, Object textureSupplier, byte textureId) {
             super(stage, model, textureSupplier, textureId);
         }
     }
 
-    public static class RenderMainParts extends DynamXModelRenderEvent implements ICancellableEvent {
+    public static class RenderMainParts extends DynamXModelRenderEvent {
         public RenderMainParts(EventPhase stage, Object model, Object textureSupplier, byte textureId) {
             super(stage, model, textureSupplier, textureId);
         }
     }
 
-    public static class RenderPart extends DynamXModelRenderEvent implements ICancellableEvent {
+    public static class RenderPart extends DynamXModelRenderEvent {
         @Getter
         private final Object objObjectRenderer; // TODO port:1.20.1 - was ObjObjectRenderer (dropped)
 

@@ -17,8 +17,8 @@ import net.minecraft.world.item.ArmorMaterial;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.level.Level;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
 
 import javax.annotation.Nullable;
 import java.util.List;
@@ -145,7 +145,7 @@ public class DynamXItemArmor<T extends ArmorObject<?>> extends ArmorItem impleme
     }
 
     // TODO port:1.20.1 - getArmorTexture / getArmorModel hooks have moved to IClientItemExtensions in NeoForge 1.20.1.
-    //  See net.neoforged.neoforge.client.extensions.common.IClientItemExtensions#getHumanoidArmorModel and
+    //  See net.minecraftforge.client.extensions.common.IClientItemExtensions#getHumanoidArmorModel and
     //  #getArmorTexture. Implementation deferred to the client phase.
     @Nullable
     @OnlyIn(Dist.CLIENT)

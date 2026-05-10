@@ -2,7 +2,7 @@ package fr.dynamx.common.physics.terrain.computing;
 
 import fr.dynamx.api.physics.terrain.IBlockCollisionBehavior;
 import fr.dynamx.api.physics.terrain.ITerrainElement;
-import fr.dynamx.common.DynamX;
+import fr.dynamx.DynamX;
 import fr.dynamx.utils.VerticalChunkPos;
 import fr.dynamx.utils.debug.Profiler;
 import fr.dynamx.utils.optimization.QuaternionPool;

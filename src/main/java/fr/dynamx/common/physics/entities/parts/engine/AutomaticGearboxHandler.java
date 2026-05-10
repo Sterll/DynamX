@@ -10,7 +10,7 @@ import fr.dynamx.utils.DynamXConfig;
 import fr.dynamx.utils.maths.DynamXMath;
 import lombok.RequiredArgsConstructor;
 // TODO port:1.20.1 - Forge Side replaced by NeoForge LogicalSide
-import net.neoforged.fml.LogicalSide;
+import net.minecraftforge.fml.LogicalSide;
 
 @RequiredArgsConstructor
 public abstract class AutomaticGearboxHandler {

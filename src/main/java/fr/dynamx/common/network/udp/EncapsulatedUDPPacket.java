@@ -5,7 +5,7 @@ import fr.dynamx.common.network.DynamXNetwork;
 import fr.dynamx.utils.DynamXConfig;
 import io.netty.buffer.ByteBuf;
 import net.minecraft.world.entity.player.Player;
-import net.neoforged.fml.LogicalSide;
+import net.minecraftforge.fml.LogicalSide;
 
 public class EncapsulatedUDPPacket extends UDPPacket {
     private final IDnxPacket message;

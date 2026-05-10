@@ -7,7 +7,7 @@ import lombok.Setter;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.player.Player;
 
-import javax.vecmath.Vector4f;
+import org.joml.Vector4f;
 
 /**
  * Abstract base class for all DynamX model renderers (GLTF/OBJ).

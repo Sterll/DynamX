@@ -5,9 +5,9 @@ import fr.aym.acslib.services.impl.thrload.DynamXThreadedModLoader;
 import fr.dynamx.api.physics.terrain.ITerrainElement;
 import fr.dynamx.utils.DynamXConstants;
 import fr.dynamx.utils.VerticalChunkPos;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.Mod;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.common.Mod;
 
 import java.util.List;
 import java.util.Map;

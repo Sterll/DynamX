@@ -25,7 +25,7 @@ import org.joml.Matrix4f;
  *   <li>{@code ItemCameraTransforms.TransformType} -> {@link ItemDisplayContext}.</li>
  *   <li>{@code Minecraft.getMinecraft().getRenderItem().renderItem(stack, model.getGuiBaked())}
  *       must be replaced by {@code Minecraft.getInstance().getItemRenderer().renderStatic(stack, ItemDisplayContext.GUI, packedLight, OverlayTexture.NO_OVERLAY, poseStack, bufferSource, level, 0)}.</li>
- *   <li>{@code MinecraftForge.EVENT_BUS.post(...)} -> {@code NeoForge.EVENT_BUS.post(...)}.</li>
+ *   <li>{@code MinecraftForge.EVENT_BUS.post(...)} -> {@code MinecraftForge.EVENT_BUS.post(...)}.</li>
  *   <li>{@code GlStateManager.pushMatrix()/translate/multMatrix/popMatrix} -> {@code PoseStack#pushPose / translate / mulPoseMatrix / popPose}.</li>
  *   <li>{@code ClientDynamXUtils.getMatrixBuffer(transform)} is no longer needed - JOML matrices are
  *       fed directly to {@code PoseStack}/render systems.</li>
@@ -73,9 +73,9 @@ public abstract class AbstractItemNode<C extends IRenderContext, A extends IMode
             Vector3fPool.openPool(SubClassPool.ITEM_RENDER_NODE);
             QuaternionPool.openPool(SubClassPool.ITEM_RENDER_NODE);
             GlQuaternionPool.openPool(SubClassPool.ITEM_RENDER_NODE);
-            // TODO port:1.20.1 - was MinecraftForge.EVENT_BUS.post(...) ; use NeoForge.EVENT_BUS.post
+            // TODO port:1.20.1 - was MinecraftForge.EVENT_BUS.post(...) ; use MinecraftForge.EVENT_BUS.post
             DynamXRenderItemEvent transformEvent = new DynamXRenderItemEvent(context, this, DynamXRenderItemEvent.EventStage.TRANSFORM);
-            // if (!NeoForge.EVENT_BUS.post(transformEvent).isCanceled()) {
+            // if (!MinecraftForge.EVENT_BUS.post(transformEvent).isCanceled()) {
             //     packInfo.applyItemTransforms(renderType, stack, model, transform);
             //     ViewTransformsInfo transformsInfo = packInfo.getViewTransformsInfo(renderType);
             //     if (transformsInfo != null) {
@@ -86,7 +86,7 @@ public abstract class AbstractItemNode<C extends IRenderContext, A extends IMode
             //     }
             // }
             DynamXRenderItemEvent renderEvent = new DynamXRenderItemEvent(context, this, DynamXRenderItemEvent.EventStage.RENDER);
-            // if (!NeoForge.EVENT_BUS.post(renderEvent).isCanceled()) {
+            // if (!MinecraftForge.EVENT_BUS.post(renderEvent).isCanceled()) {
             renderItemModel(context, packInfo, transform);
             // }
             GlQuaternionPool.closePool();

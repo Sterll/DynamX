@@ -3,9 +3,9 @@ package fr.dynamx.api.events;
 import lombok.Getter;
 import lombok.Setter;
 import net.minecraft.world.level.Level;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.bus.api.Event;
-import net.neoforged.bus.api.ICancellableEvent;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.eventbus.api.Event;
+import net.minecraftforge.eventbus.api.Cancelable;
 
 import javax.annotation.Nullable;
 
@@ -20,6 +20,7 @@ import javax.annotation.Nullable;
  * TODO port:1.20.1 - Side -&gt; Dist (physical side; events historically used logical Side).
  */
 @Getter
+@Cancelable
 public class DynamXBlockEvent extends Event {
     private final Dist side;
     @Nullable
@@ -44,7 +45,7 @@ public class DynamXBlockEvent extends Event {
     }
 
     @Getter
-    public static class RenderTileEntity extends DynamXBlockEvent implements ICancellableEvent {
+    public static class RenderTileEntity extends DynamXBlockEvent {
         private final Object renderContext;     // TODO port:1.20.1 - BaseRenderContext.BlockRenderContext
         private final Object sceneNode;         // TODO port:1.20.1 - SceneNode<BlockRenderContext, BlockObject<?>>
         private final Object renderer;          // TODO port:1.20.1 - TESRDynamXBlock<?>

@@ -131,8 +131,8 @@ public class TEDynamXBlock extends BlockEntity implements IDynamXObject, IPackIn
             if (m instanceof IBlockEntityModule.IBlockEntityUpdateListener listener) {
                 boolean isClient = level != null && level.isClientSide;
                 if (listener.listenBlockEntityUpdates(isClient
-                        ? net.neoforged.fml.LogicalSide.CLIENT
-                        : net.neoforged.fml.LogicalSide.SERVER))
+                        ? net.minecraftforge.fml.LogicalSide.CLIENT
+                        : net.minecraftforge.fml.LogicalSide.SERVER))
                     updateEntityListeners.add(listener);
             }
         });

@@ -12,15 +12,15 @@ import fr.dynamx.utils.DynamXConstants;
 import lombok.Getter;
 import lombok.Setter;
 import net.minecraft.resources.ResourceLocation;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
-import net.neoforged.neoforge.common.NeoForge;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
+import net.minecraftforge.common.MinecraftForge;
 
 import java.util.Collections;
 import java.util.List;
 
 /**
- * <p>TODO port:1.20.1 - {@code MinecraftForge.EVENT_BUS} -> {@code NeoForge.EVENT_BUS};
+ * <p>TODO port:1.20.1 - {@code MinecraftForge.EVENT_BUS} -> {@code MinecraftForge.EVENT_BUS};
  * {@code @SideOnly(Side.CLIENT)} -> {@code @OnlyIn(Dist.CLIENT)}; {@code net.minecraft.util.ResourceLocation}
  * -> {@code net.minecraft.resources.ResourceLocation}.</p>
  */
@@ -44,7 +44,7 @@ public class BoatController extends BaseController {
     @Override
     protected void updateControls() {
         if (engine.getEngineProperties() != null) {
-            NeoForge.EVENT_BUS.post(new VehicleEntityEvent.ControllerUpdate<>(entity, this));
+            MinecraftForge.EVENT_BUS.post(new VehicleEntityEvent.ControllerUpdate<>(entity, this));
             int controls = 0;
             if (accelerating)
                 controls = controls | 2;

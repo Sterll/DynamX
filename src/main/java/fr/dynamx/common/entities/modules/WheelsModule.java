@@ -32,11 +32,11 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.block.state.BlockState;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
-import net.neoforged.fml.LogicalSide;
-import net.neoforged.fml.util.thread.EffectiveSide;
-import net.neoforged.neoforge.common.NeoForge;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
+import net.minecraftforge.fml.LogicalSide;
+import net.minecraftforge.fml.util.thread.EffectiveSide;
+import net.minecraftforge.common.MinecraftForge;
 
 import javax.annotation.Nullable;
 import java.util.HashMap;
@@ -127,7 +127,7 @@ public class WheelsModule implements IPhysicsModule<BaseWheeledVehiclePhysicsHan
         }
 
         VehicleEntityEvent.ChangeWheel event = new VehicleEntityEvent.ChangeWheel(EffectiveSide.get(), entity, this, wheelInfos.get(partIndex), info, partIndex);
-        if (NeoForge.EVENT_BUS.post(event)) {
+        if (MinecraftForge.EVENT_BUS.post(event)) {
             return;
         }
 

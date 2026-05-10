@@ -6,7 +6,7 @@ import com.jme3.math.Vector3f;
 import fr.dynamx.api.physics.BulletShapeType;
 import fr.dynamx.api.physics.EnumBulletShapeType;
 import fr.dynamx.api.physics.terrain.ITerrainElement;
-import fr.dynamx.common.DynamX;
+import fr.dynamx.DynamX;
 import fr.dynamx.common.blocks.TEDynamXBlock;
 import fr.dynamx.utils.VerticalChunkPos;
 import fr.dynamx.utils.debug.DynamXDebugOptions;
