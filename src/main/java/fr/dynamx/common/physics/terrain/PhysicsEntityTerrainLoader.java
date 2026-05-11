@@ -41,20 +41,20 @@ public class PhysicsEntityTerrainLoader implements IPhysicsTerrainLoader {
 
     @Override
     public void update(ITerrainManager terrain, Profiler profiler) {
-        if (lastChunkX != entityIn.chunkCoordX || lastChunkY != entityIn.chunkCoordY || lastChunkZ != entityIn.chunkCoordZ) {
+        if (lastChunkX != ((int) Math.floor(entityIn.getX() / 16.0)) || lastChunkY != ((int) Math.floor(entityIn.getY() / 16.0)) || lastChunkZ != ((int) Math.floor(entityIn.getZ() / 16.0))) {
             profiler.start(Profiler.Profiles.DELTA_COMPUTE);
             VerticalChunkPos.Mutable pos = new VerticalChunkPos.Mutable();
             VerticalChunkPos.Mutable prevPos = new VerticalChunkPos.Mutable();
-            int curChunkX = entityIn.chunkCoordX;
-            int curChunkY = entityIn.chunkCoordY;
-            int curChunkZ = entityIn.chunkCoordZ;
+            int curChunkX = ((int) Math.floor(entityIn.getX() / 16.0));
+            int curChunkY = ((int) Math.floor(entityIn.getY() / 16.0));
+            int curChunkZ = ((int) Math.floor(entityIn.getZ() / 16.0));
             for (int i = 0; i < radiusY; i++) { //TODO DEPENDS ON SPEED ?
                 for (int j = 0; j < squareRadiusH; j++) {
                     int dx = (j % radiusH) - radiusHHalf;
                     int dz = (j / radiusH) - radiusHHalf;
-                    pos.setPos(entityIn.chunkCoordX + dx, entityIn.chunkCoordY + i - radiusYHalf, entityIn.chunkCoordZ + dz);
+                    pos.setPos(((int) Math.floor(entityIn.getX() / 16.0)) + dx, ((int) Math.floor(entityIn.getY() / 16.0)) + i - radiusYHalf, ((int) Math.floor(entityIn.getZ() / 16.0)) + dz);
                     prevPos.setPos(lastChunkX + dx, lastChunkY + i - radiusYHalf, lastChunkZ + dz);
-                    //boolean border = isBorderChunkUnsub(entityIn.chunkCoordX - lastChunkX, entityIn.chunkCoordY - lastChunkY, entityIn.chunkCoordZ - lastChunkZ, dx, i - radiusYHalf, dz);
+                    //boolean border = isBorderChunkUnsub(((int) Math.floor(entityIn.getX() / 16.0)) - lastChunkX, ((int) Math.floor(entityIn.getY() / 16.0)) - lastChunkY, ((int) Math.floor(entityIn.getZ() / 16.0)) - lastChunkZ, dx, i - radiusYHalf, dz);
                     if (loadMatrice[i][j] != -1) {
                         //if(border)
                         //    terrain.unsubscribeFromChunk(prevPos.toImmutable());
@@ -73,7 +73,7 @@ public class PhysicsEntityTerrainLoader implements IPhysicsTerrainLoader {
                     if (needsToBeLoaded(entityIn.physicsHandler.getLinearVelocity(), deltaX, deltaY, deltaZ)) {
                         ChunkLoadingTicket.TicketPriority priority = getPriority(entityIn.physicsHandler.getLinearVelocity(), dx, i - radiusYHalf, dz, deltaX, deltaY, deltaZ);
                         loadMatrice[i][j] = (byte) priority.ordinal();
-                        //border = isBorderChunkSub(entityIn.chunkCoordX - lastChunkX, entityIn.chunkCoordY - lastChunkY, entityIn.chunkCoordZ - lastChunkZ, dx, i - radiusYHalf, dz);
+                        //border = isBorderChunkSub(((int) Math.floor(entityIn.getX() / 16.0)) - lastChunkX, ((int) Math.floor(entityIn.getY() / 16.0)) - lastChunkY, ((int) Math.floor(entityIn.getZ() / 16.0)) - lastChunkZ, dx, i - radiusYHalf, dz);
                         //if(border)
                         //mais attention bordel priorités
                         //terrain.subscribeToChunk(pos.toImmutable(), priority, profiler);
@@ -131,7 +131,7 @@ public class PhysicsEntityTerrainLoader implements IPhysicsTerrainLoader {
     public void printReport(PhysicsWorldTerrain terrainManager) {
         System.out.println("ToLoad " + toLoad);
         System.out.println("ToUnload " + toUnLoad);
-        System.out.println(lastChunkX + " " + entityIn.chunkCoordX + " " + lastChunkY + " " + entityIn.chunkCoordY + " " + lastChunkZ + entityIn.chunkCoordZ);
+        System.out.println(lastChunkX + " " + ((int) Math.floor(entityIn.getX() / 16.0)) + " " + lastChunkY + " " + ((int) Math.floor(entityIn.getY() / 16.0)) + " " + lastChunkZ + ((int) Math.floor(entityIn.getZ() / 16.0)));
         StringBuilder strs = new StringBuilder();
         VerticalChunkPos.Mutable pos = new VerticalChunkPos.Mutable();
         for (int i = 0; i < radiusY; i++) {

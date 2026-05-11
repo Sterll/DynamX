@@ -11,7 +11,5 @@ public interface ICollisionsContainer extends INamedObject {
      */
     Vector3f getScaleModifier();
 
-    // TODO port:1.20.1 - ObjectCollisionsHelper is in fr.dynamx.common.contentpack.type (Phase 3b);
-    //   typed as Object until that package is ported.
-    Object getCollisionsHelper();
+    fr.dynamx.common.contentpack.type.ObjectCollisionsHelper getCollisionsHelper();
 }

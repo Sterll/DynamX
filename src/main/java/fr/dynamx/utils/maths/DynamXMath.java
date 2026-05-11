@@ -39,9 +39,8 @@ public class DynamXMath {
     }
 
     public static Quaternion slerp(float scale, Quaternion startValue, Quaternion endValue, Quaternion store) {
-        store.set(startValue);
-        store.slerp(endValue, scale);
-        return store;
+        // TODO port:1.20.1 - Libbulletjme's stripped Quaternion has no slerp(); delegate to jme3utilities MyQuaternion.
+        return jme3utilities.math.MyQuaternion.slerp(scale, startValue, endValue, store);
     }
 
     public static float[] interpolateAngle(float netAngle, float entityAngle, int step) {

@@ -131,11 +131,13 @@ public class WheelsModule implements IPhysicsModule<BaseWheeledVehiclePhysicsHan
             return;
         }
 
-        synchronizedWheelInfos.put(partIndex, event.getNewWheel().getFullName());
-        wheelInfos.put(partIndex, event.getNewWheel());
+        // TODO port:1.20.1 - VehicleEntityEvent.ChangeWheel.getNewWheel() returns Object pending Phase 6.
+        PartWheelInfo newWheel = (PartWheelInfo) event.getNewWheel();
+        synchronizedWheelInfos.put(partIndex, newWheel.getFullName());
+        wheelInfos.put(partIndex, newWheel);
 
         if (wheelsPhysics != null) {
-            wheelsPhysics.getWheelByPartIndex(partIndex).setWheelInfo(event.getNewWheel());
+            wheelsPhysics.getWheelByPartIndex(partIndex).setWheelInfo(newWheel);
         }
 
         if (entity.level().isClientSide) {

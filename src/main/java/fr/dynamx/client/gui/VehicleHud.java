@@ -39,31 +39,34 @@ public class VehicleHud extends GuiFrame {
 
     public VehicleHud(IModuleContainer.ISeatsContainer entity) {
         super(new GuiScaler.Identity());
-        this.riddenEntity = entity.cast();
+        // TODO port:1.20.1 - IModuleContainer.cast() and IVehicleController/Hud methods all return
+        // Object pending Phase 6/7. We cast through to keep the public surface; reflective access
+        // for getSynchronizer()/getControllers().
+        PackPhysicsEntity<?, ?> ent = (PackPhysicsEntity<?, ?>) entity.cast();
+        this.riddenEntity = ent;
         CameraSystem.setupCamera(entity);
         setCssClass("root");
-        List<IVehicleController> controllers = new ArrayList<>(((ClientEntityNetHandler) entity.cast().getSynchronizer()).getControllers());
-        if (MinecraftForge.EVENT_BUS.post(new VehicleEntityEvent.CreateHud(this, styleSheets, entity.getSeats().isLocalPlayerDriving(), this.riddenEntity, controllers)).isCanceled()) {
+        List<IVehicleController> controllers = new ArrayList<>(((ClientEntityNetHandler) ent.getSynchronizer()).getControllers());
+        VehicleEntityEvent.CreateHud event = new VehicleEntityEvent.CreateHud(this, styleSheets,
+                ((fr.dynamx.common.entities.modules.SeatsModule) entity.getSeats()).isLocalPlayerDriving(),
+                this.riddenEntity, controllers);
+        if (MinecraftForge.EVENT_BUS.post(event)) {
             return;
         }
         controllers.forEach(c -> {
             List<ResourceLocation> hudStyle = c.getHudCssStyles();
             if (hudStyle != null)
                 styleSheets.addAll(hudStyle);
-            GuiComponent hud = c.createHud();
+            GuiComponent hud = (GuiComponent) c.createHud();
             if (hud != null) {
                 add(hud);
             }
         });
-        if (!(entity.cast().getSynchronizer() instanceof ClientPhysicsEntitySynchronizer)) {
+        if (!(ent.getSynchronizer() instanceof ClientPhysicsEntitySynchronizer)) {
             return;
         }
-        netWarning = new GuiLabel("") {
-            @Override
-            public void drawTexturedBackground(int mouseX, int mouseY, float partialTicks) {
-                // TODO port:1.20.1 - bind icons texture and call GuiGraphics.blit(GUI_ICONS_LOCATION, x, y, u, v, 10, 8).
-            }
-        };
+        // TODO port:1.20.1 - drawTexturedBackground hook didn't survive the GuiLabel stub. Re-add when GuiLabel is fully ported.
+        netWarning = new GuiLabel("");
         netWarning.setCssId("network_warning");
         netWarning.getStyleCustomizer().setPaddingLeft(14);
         add(netWarning);

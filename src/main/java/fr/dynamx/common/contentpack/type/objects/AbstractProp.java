@@ -83,9 +83,10 @@ public abstract class AbstractProp<T extends AbstractProp<T>> extends AbstractIt
     }
 
     @Override
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings({"unchecked", "rawtypes"})
     public <A extends InteractivePart<?, ?>> List<A> getInteractiveParts() {
-        return (List<A>) getPartsByType(InteractivePart.class);
+        // TODO port:1.20.1 - go through raw List for capture compatibility under 1.20.1 javac.
+        return (List<A>) (List) getPartsByType(InteractivePart.class);
     }
 
     @Override

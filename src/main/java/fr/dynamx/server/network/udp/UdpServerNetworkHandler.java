@@ -158,9 +158,14 @@ public class UdpServerNetworkHandler implements IDnxNetworkHandler {
         return EnumNetworkType.DYNAMX_UDP;
     }
 
+    @SuppressWarnings({"unchecked", "rawtypes"})
     private void vanillaFallback(IDnxPacket packet, ServerPlayer target) {
-        if (target != null && target.connection != null && target.connection.getConnection().isConnected()) {
-            DynamXContext.getNetwork().getVanillaNetwork().sendPacket(packet, EnumPacketTarget.PLAYER, target);
+        // TODO port:1.20.1 - PacketListener.getConnection() -> field access via .connection; sendPacket
+        // generic type is erased via raw cast pending Phase 5 network refactor.
+        if (target != null && target.connection != null && target.connection.connection.isConnected()) {
+            // TODO port:1.20.1 - IDnxNetworkSystem.getVanillaNetwork() returns Object pending Phase 5; cast to VanillaNetworkHandler here.
+            fr.dynamx.common.network.VanillaNetworkHandler vanilla = (fr.dynamx.common.network.VanillaNetworkHandler) DynamXContext.getNetwork().getVanillaNetwork();
+            vanilla.sendPacket(packet, (EnumPacketTarget) EnumPacketTarget.PLAYER, target);
         }
     }
 }

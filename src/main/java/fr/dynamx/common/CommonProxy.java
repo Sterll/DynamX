@@ -101,7 +101,8 @@ public abstract class CommonProxy {
      * Creates the physics world.
      */
     public void initPhysicsWorld(Level world) {
-        int key = dimensionKey(world);
+        // TODO port:1.20.1 - now keyed by ResourceKey<Level>.
+        net.minecraft.resources.ResourceKey<net.minecraft.world.level.Level> key = world.dimension();
         if (DynamXContext.getPhysicsWorldPerDimensionMap().containsKey(key)) {
             DynamXMain.log.warn("Physics world of " + world + " is already loaded ! Keeping the previously loaded world.");
             return;

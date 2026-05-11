@@ -16,6 +16,13 @@ public class MCglTF {
         // TODO port:1.20.1 stub
     }
 
+    /**
+     * Overload accepting a DxModelPath directly; defers to the ResourceLocation form using getModelPath().
+     */
+    public void registerModel(fr.dynamx.api.dxmodel.DxModelPath path) {
+        if (path != null) registerModel(path.getModelPath());
+    }
+
     public void addGltfModelReceiver(IGltfModelReceiver receiver) {
         // TODO port:1.20.1 stub
     }

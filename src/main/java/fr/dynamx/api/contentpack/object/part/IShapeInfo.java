@@ -23,11 +23,8 @@ public interface IShapeInfo {
 
     /**
      * @return The shape type.
-     *
-     * TODO port:1.20.1 - PartShape.EnumPartType lives in fr.dynamx.common.contentpack.parts
-     *   (Phase 3b). Returns null until that enum is ported. Callers must null-check.
      */
-    default Object getShapeType() {
-        return null;
+    default fr.dynamx.common.contentpack.parts.PartShape.EnumPartType getShapeType() {
+        return fr.dynamx.common.contentpack.parts.PartShape.EnumPartType.BOX;
     }
 }

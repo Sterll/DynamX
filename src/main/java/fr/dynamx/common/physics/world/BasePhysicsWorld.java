@@ -27,6 +27,7 @@ import fr.dynamx.utils.optimization.Vector3fPool;
 import net.minecraft.world.level.Level;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.fml.LogicalSide;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -183,7 +184,7 @@ public abstract class BasePhysicsWorld implements IPhysicsWorld {
         //Tick the physics engine
         //long pre = System.currentTimeMillis();
         profiler.start(Profiler.Profiles.BULLET_STEP_SIM);
-        DynamXContext.getPhysicsSimulationMode(Dist.DEDICATED_SERVER).updatePhysicsWorld(dynamicsWorld);
+        DynamXContext.getPhysicsSimulationMode(LogicalSide.SERVER) /* TODO port:1.20.1 - Dist -> LogicalSide */.updatePhysicsWorld(dynamicsWorld);
 
         //Post-tick each entity after the physics engine tick
         //Retrieves the simulated data
@@ -214,7 +215,7 @@ public abstract class BasePhysicsWorld implements IPhysicsWorld {
 
         // if (false && CmdNetworkConfig.sync_buff)
         //   System.out.println("Took " + (System.currentTimeMillis() - pre) + " ms");
-        MinecraftForge.EVENT_BUS.post(new PhysicsEvent.StepSimulation(this, DynamXContext.getPhysicsSimulationMode(Dist.DEDICATED_SERVER).getTimeStep()));
+        MinecraftForge.EVENT_BUS.post(new PhysicsEvent.StepSimulation(this, DynamXContext.getPhysicsSimulationMode(LogicalSide.SERVER) /* TODO port:1.20.1 - Dist -> LogicalSide */.getTimeStep()));
         profiler.end(Profiler.Profiles.BULLET_STEP_SIM);
     }
 

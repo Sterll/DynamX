@@ -32,4 +32,17 @@ public abstract class GuiFrame extends GuiPanel {
         // TODO port:1.20.1 stub - return a dummy Screen
         return new Screen(Component.literal("Stub")) {};
     }
+
+    // TODO port:1.20.1 stub - width/height accessors used by gui drawing code.
+    public int getWidth() { return mc.getWindow() != null ? mc.getWindow().getGuiScaledWidth() : 0; }
+    public int getHeight() { return mc.getWindow() != null ? mc.getWindow().getGuiScaledHeight() : 0; }
+
+    // TODO port:1.20.1 stub - debug panel toggle used by NewGuiDnxDebug.
+    public void setEnableDebugPanel(boolean enabled) {}
+
+    // TODO port:1.20.1 stub - tick hook used by HUD panels.
+    public boolean tick() { return true; }
+
+    // TODO port:1.20.1 stub - gui close hook used by GuiSlopesConfig.
+    public void guiClose() {}
 }

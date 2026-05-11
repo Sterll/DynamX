@@ -53,7 +53,8 @@ public class BlockNode<A extends BlockObject<?>> extends AbstractItemNode<BaseRe
 
     @Override
     public void render(BaseRenderContext.BlockRenderContext context, A packInfo, Matrix4f parentTransform) {
-        if (context.getTileEntity() != null && context.getTileEntity().getBlockType() instanceof DynamXBlock) {
+        // TODO port:1.20.1 - getBlockType() removed; use BlockEntity.getBlockState().getBlock().
+        if (context.getTileEntity() != null && context.getTileEntity().getBlockState().getBlock() instanceof DynamXBlock) {
             transform.identity();
             Vector3fPool.openPool();
             QuaternionPool.openPool();

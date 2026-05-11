@@ -34,7 +34,13 @@ public class DynamXLoadingTasks {
         public void accept(TaskContext taskContext) {
             ContentPackLoader.reload(DynamXMain.resourcesDirectory, taskContext != TaskContext.CLIENT || taskContext.isSinglePlayer());
             if (taskContext.isClient()) { //Dedicated server
-                DynamXContext.getDxModelRegistry().getItemRenderer().refreshItemInfos();
+                // TODO port:1.20.1 - DxModelRegistry.getItemRenderer() returns Object pending Phase 7 ObjItemModelLoader port.
+                Object itemRenderer = DynamXContext.getDxModelRegistry().getItemRenderer();
+                if (itemRenderer != null) {
+                    try {
+                        itemRenderer.getClass().getMethod("refreshItemInfos").invoke(itemRenderer);
+                    } catch (Exception ignored) {}
+                }
                 if (taskContext == TaskContext.CLIENT && !taskContext.isSinglePlayer()) {
                     PackSyncHandler.requestPackSync();
                 } else if (taskContext != TaskContext.MC_INIT) {

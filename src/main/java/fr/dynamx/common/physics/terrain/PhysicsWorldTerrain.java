@@ -233,7 +233,7 @@ public class PhysicsWorldTerrain implements ITerrainManager {
                     }
                 } else {
                     if (collisions.getChunkState().areComputedElementsAdded()) {
-                        DynamX.LOGGER.fatal("[0x2] Chunk is already added " + collisions + " " + collisions.getChunkState() + " " + ticket);
+                        DynamX.LOGGER.error("[0x2] Chunk is already added " + collisions + " " + collisions.getChunkState() + " " + ticket);
                         ChunkGraph c = ChunkGraph.getAt(ticket.getPos());
                         if (c != null) {
                             System.out.println("Graph will be print :");
@@ -248,7 +248,7 @@ public class PhysicsWorldTerrain implements ITerrainManager {
                     collisions.addToBulletWorld(physicsWorld, Profiler.get());
                 }
             } else { //If it was already added
-                DynamX.LOGGER.fatal("[0x1] Found an invalid ticket state " + ticket + ". Send your log to Aym' ! 0x2", new IllegalStateException("Chunk " + collisions + " already loaded ! UnloadQueue " + terrainState.getUnloadQueue() + " Loaded " + terrainState.getLoadedTerrain()));
+                DynamX.LOGGER.error("[0x1] Found an invalid ticket state " + ticket + ". Send your log to Aym' ! 0x2", new IllegalStateException("Chunk " + collisions + " already loaded ! UnloadQueue " + terrainState.getUnloadQueue() + " Loaded " + terrainState.getLoadedTerrain()));
                 ChunkGraph c = ChunkGraph.getAt(ticket.getPos());
                 if (c != null) {
                     System.out.println("Graph will be print :");
@@ -261,7 +261,7 @@ public class PhysicsWorldTerrain implements ITerrainManager {
                 }
             }
         } else { //Incorrect ticket state (not loaded)
-            DynamX.LOGGER.fatal("Found an invalid ticket state " + ticket + ". Send your log to Aym' ! 0 x1", new IllegalStateException("Bad ticket state " + ticket));
+            DynamX.LOGGER.error("Found an invalid ticket state " + ticket + ". Send your log to Aym' ! 0 x1", new IllegalStateException("Bad ticket state " + ticket));
             ChunkGraph c = ChunkGraph.getAt(ticket.getPos());
             if (c != null) {
                 System.out.println("Graph will be print :");

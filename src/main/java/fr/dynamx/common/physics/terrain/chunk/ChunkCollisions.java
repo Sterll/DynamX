@@ -3,6 +3,7 @@ package fr.dynamx.common.physics.terrain.chunk;
 import com.jme3.bullet.objects.PhysicsRigidBody;
 import com.jme3.math.Vector3f;
 import fr.dynamx.DynamX;
+import fr.dynamx.common.DynamXMain;
 import fr.dynamx.api.physics.IPhysicsWorld;
 import fr.dynamx.api.physics.terrain.ITerrainCache;
 import fr.dynamx.api.physics.terrain.ITerrainElement;
@@ -510,7 +511,8 @@ public class ChunkCollisions implements VerticalChunkPos.VerticalChunkPosContain
      * Called when the chunk is updated, to wake neighbor {@link PhysicsEntity} from sleeping
      */
     private void updateNearEntities() {
-        DynamX.proxy.scheduleTask(mcWorld, () -> {
+        // TODO port:1.20.1 - DynamX.proxy -> DynamXMain.proxy (entry-point class refactor).
+        DynamXMain.proxy.scheduleTask(mcWorld, () -> {
             try {
                 // TODO port:1.20.1 - Chunk.getEntityLists() removed in 1.20.1; entities are tracked at level scale via PersistentEntitySectionManager
                 // Use ServerLevel.getEntities to query entities in an AABB around the chunk region

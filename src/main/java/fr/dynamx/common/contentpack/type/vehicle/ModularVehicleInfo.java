@@ -243,8 +243,6 @@ public class ModularVehicleInfo extends AbstractItemObject<ModularVehicleInfo, M
 
     @Override
     public void addModules(Object entity, Object modules) {
-        // TODO port:1.20.1 - Original signature took (PackPhysicsEntity<?,?>, ModuleListBuilder).
-        //   Both relaxed to Object (Phase 6).
         getSubProperties().forEach(sub -> sub.addModules(entity, modules));
         getAllParts().forEach(sub -> sub.addModules(entity, modules));
         getLightSources().values().forEach(compoundLight -> compoundLight.addModules(entity, modules));
@@ -266,9 +264,10 @@ public class ModularVehicleInfo extends AbstractItemObject<ModularVehicleInfo, M
     }
 
     @Override
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings({"unchecked", "rawtypes"})
     public <A extends InteractivePart<?, ?>> List<A> getInteractiveParts() {
-        return (List<A>) getPartsByType(InteractivePart.class);
+        // TODO port:1.20.1 - go through raw List for capture compatibility under 1.20.1 javac.
+        return (List<A>) (List) getPartsByType(InteractivePart.class);
     }
 
     @Override
@@ -296,10 +295,12 @@ public class ModularVehicleInfo extends AbstractItemObject<ModularVehicleInfo, M
         return lightSources.get(objectName);
     }
 
+    // TODO port:1.20.1 - MaterialVariantsInfo.variantsMap holds Object placeholders until TextureVariantData is ported (Phase 7).
+    //   The original .getName() call lived on TextureVariantData; values are currently plain String names (see MaterialVariantsInfo.appendTo).
     public byte getIdForVariant(String variantName) {
         if (variants != null) {
             for (byte i = 0; i < variants.getVariantsMap().size(); i++) {
-                if (variants.getVariantsMap().get(i).getName().equalsIgnoreCase(variantName))
+                if (String.valueOf(variants.getVariantsMap().get(i)).equalsIgnoreCase(variantName))
                     return i;
             }
         }
@@ -308,14 +309,14 @@ public class ModularVehicleInfo extends AbstractItemObject<ModularVehicleInfo, M
 
     public String getVariantName(byte variantId) {
         if (variants != null) {
-            return variants.getVariantsMap().getOrDefault(variantId, variants.getDefaultVariant()).getName();
+            return String.valueOf(variants.getVariantsMap().getOrDefault(variantId, variants.getDefaultVariant()));
         }
         return "default";
     }
 
     @Override
     public String getIconFileName(byte metadata) {
-        return variants != null ? variants.getVariantsMap().get(metadata).getName() : super.getIconFileName(metadata);
+        return variants != null ? String.valueOf(variants.getVariantsMap().get(metadata)) : super.getIconFileName(metadata);
     }
 
     /**
@@ -342,7 +343,7 @@ public class ModularVehicleInfo extends AbstractItemObject<ModularVehicleInfo, M
         // TODO port:1.20.1 - Original used TextureVariantData (Phase 7). MaterialVariantsInfo holds the
         //   name list which is enough for translation keys; we look up the variant by id.
         String name = variants != null && variants.getVariantsMap().containsKey((byte) itemMeta)
-                ? variants.getVariantsMap().get((byte) itemMeta).getName().toLowerCase()
+                ? String.valueOf(variants.getVariantsMap().get((byte) itemMeta)).toLowerCase()
                 : "";
         return super.getTranslationKey(item, itemMeta) + "_" + name;
     }
@@ -352,7 +353,7 @@ public class ModularVehicleInfo extends AbstractItemObject<ModularVehicleInfo, M
         if (itemMeta == 0)
             return super.getTranslatedName(item, itemMeta);
         String name = variants != null && variants.getVariantsMap().containsKey((byte) itemMeta)
-                ? variants.getVariantsMap().get((byte) itemMeta).getName()
+                ? String.valueOf(variants.getVariantsMap().get((byte) itemMeta))
                 : "";
         return super.getTranslatedName(item, itemMeta) + " " + name;
     }

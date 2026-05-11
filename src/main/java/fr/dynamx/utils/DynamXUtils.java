@@ -3,7 +3,8 @@ package fr.dynamx.utils;
 import com.google.common.base.Predicates;
 import com.jme3.math.Quaternion;
 import com.jme3.math.Vector3f;
-import de.javagl.jgltf.dynamx.model.NodeModel;
+// TODO port:1.20.1 - de.javagl.jgltf.dynamx.model package not available in 1.20.1 dependency set;
+// methods that consumed NodeModel are stubbed to Object below.
 import fr.dynamx.DynamX;
 import fr.dynamx.api.contentpack.ContentPackType;
 import fr.dynamx.api.contentpack.object.IPackInfoReloadListener;
@@ -159,10 +160,6 @@ public class DynamXUtils {
         return Vector3fPool.get((float) pos.getX(), (float) pos.getY(), (float) pos.getZ());
     }
 
-    public static Vector3f toVector3f(org.joml.Vector3f pos) {
-        return Vector3fPool.get(pos.x, pos.y, pos.z);
-    }
-
     public static org.joml.Vector3f toVector3f(Vector3f pos) {
         return new org.joml.Vector3f(pos.x, pos.y, pos.z);
     }
@@ -177,7 +174,8 @@ public class DynamXUtils {
     }
 
     public static Quaternionf toQuaternion(org.joml.Quaternionf quat) {
-        return new Quaternionf(quat.getX(), quat.getY(), quat.getZ(), quat.getW());
+        // TODO port:1.20.1 - JOML Quaternionf exposes x/y/z/w as public fields, not getX/getY/...
+        return new Quaternionf(quat.x, quat.y, quat.z, quat.w);
     }
 
     public static Vector3f getPositionEyes(Entity entity) {
@@ -426,10 +424,12 @@ public class DynamXUtils {
 
     public static void hotswapWorldPackInfos(Level w) {
         DynamX.LOGGER.info("Hot-swapping pack infos in models and spawn entities/tile entities in world " + w);
-        // TODO port:1.20.1 loadedEntityList/loadedTileEntityList removed; iterate via Level#getAllEntities and per-chunk block entities
-        for (Entity e : w.getEntities().getAll()) {
-            if (e instanceof IPackInfoReloadListener)
-                ((IPackInfoReloadListener) e).onPackInfosReloaded();
+        // TODO port:1.20.1 loadedEntityList removed; iterate via ServerLevel's getEntities() or use the broader getAllEntities API.
+        if (w instanceof net.minecraft.server.level.ServerLevel sl) {
+            for (Entity e : sl.getAllEntities()) {
+                if (e instanceof IPackInfoReloadListener)
+                    ((IPackInfoReloadListener) e).onPackInfosReloaded();
+            }
         }
         // TODO port:1.20.1 no global block-entity list in 1.20; reloading existing block entities requires chunk iteration
         if (w.isClientSide)
@@ -488,9 +488,9 @@ public class DynamXUtils {
         if (forceCenter || modelData.getFormat() == EnumDxModelFormats.OBJ) {
             return allowPartCenter ? modelData.getMeshCenter(objectName, new Vector3f()) : null;
         } else if (modelData.getFormat() == EnumDxModelFormats.GLTF) {
-            NodeModel nodeModel = ((GltfModelData) modelData).getNodeModel(objectName);
-            float[] trans = nodeModel.getTranslation();
-            return trans == null ? null : new Vector3f(trans[0], trans[1], trans[2]);
+            // TODO port:1.20.1 - NodeModel-based GLTF position resolution is disabled until the
+            // jgltf-dynamx dependency is repackaged for 1.20.1; return null to skip the lookup.
+            return null;
         }
         return null;
     }
@@ -507,11 +507,7 @@ public class DynamXUtils {
     public static Quaternion readPartRotation(DxModelData modelData, String objectName) {
         if (modelData.getFormat() != EnumDxModelFormats.GLTF || !modelData.getMeshNames().contains(objectName.toLowerCase()))
             return null;
-        NodeModel nodeModel = ((GltfModelData) modelData).getNodeModel(objectName);
-        float[] rot = nodeModel.getRotation();
-        if (rot != null) {
-            return new Quaternion(rot[0], rot[1], rot[2], rot[3]);
-        }
+        // TODO port:1.20.1 - NodeModel-based GLTF rotation resolution disabled (see readPartPosition).
         return null;
     }
 
@@ -537,14 +533,43 @@ public class DynamXUtils {
         tooltip.add(ChatFormatting.GOLD + I18n.get("dynamx.item.description", itemInfo.getDescription()));
         tooltip.add(ChatFormatting.DARK_PURPLE + I18n.get("dynamx.item.pack", itemInfo.getPackName()));
 
-        if (itemInfo.getMaxVariantId() <= 1) {
+        // TODO port:1.20.1 - cast to IModelTextureVariantsSupplier; AbstractItemObject is not yet
+        // declared to implement it in the ported version of IModelPackObject.
+        fr.dynamx.api.dxmodel.IModelTextureVariantsSupplier variants = (fr.dynamx.api.dxmodel.IModelTextureVariantsSupplier) (Object) itemInfo;
+        if (variants.getMaxVariantId() <= 1) {
             return;
         }
-        String variantName = itemInfo.getMainObjectVariantNameOrDefault(itemVariant, null);
+        String variantName = variants.getMainObjectVariantNameOrDefault(itemVariant, null);
         if (variantName == null) {
             tooltip.add(ChatFormatting.RED + "Texture not found, check your pack errors");
             return;
         }
         tooltip.add(ChatFormatting.GREEN + I18n.get("dynamx.item.variant", variantName));
+    }
+
+    /**
+     * Reads a UTF-8 string from a ByteBuf using a length-prefixed encoding (int length + bytes).
+     * TODO port:1.20.1 - simple stand-alone helper to replace the legacy ByteBufUtils.readUTF8String wrapper.
+     */
+    public static String readUtf8String(io.netty.buffer.ByteBuf in) {
+        int len = in.readInt();
+        if (len < 0) return null;
+        byte[] bytes = new byte[len];
+        in.readBytes(bytes);
+        return new String(bytes, java.nio.charset.StandardCharsets.UTF_8);
+    }
+
+    /**
+     * Writes a UTF-8 string to a ByteBuf using the length-prefixed encoding accepted by readUtf8String.
+     * TODO port:1.20.1 - paired with readUtf8String above.
+     */
+    public static void writeUtf8String(io.netty.buffer.ByteBuf out, String s) {
+        if (s == null) {
+            out.writeInt(-1);
+            return;
+        }
+        byte[] bytes = s.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        out.writeInt(bytes.length);
+        out.writeBytes(bytes);
     }
 }

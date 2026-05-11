@@ -143,7 +143,8 @@ public class ClientDebugSystem {
     private static void disableShapeDebug(BasePart<?> basePart) {
         if (basePart == null || basePart.getDebugOption() == null)
             return;
-        basePart.getDebugOption().disable();
+        // TODO port:1.20.1 - BasePart.getDebugOption returns Object pending part-API typing pass.
+        ((fr.dynamx.utils.debug.DynamXDebugOption) basePart.getDebugOption()).disable();
     }
 
     /**

@@ -12,6 +12,6 @@ public class PhysicsEntityException extends RuntimeException {
     }
 
     private static String getEntityDetails(PhysicsEntity<?> entity) {
-        return entity + " ( " + entity.getClass() + ")[is_reg=" + entity.isRegistered + ", phyWorld=" + entity.usesPhysicsWorld() + ", phyHand=" + entity.physicsHandler + ", existed=" + entity.ticksExisted + ", phyPos=" + entity.physicsPosition + "]";
+        return entity + " ( " + entity.getClass() + ")[is_reg=" + entity.isRegistered + ", phyWorld=" + entity.usesPhysicsWorld() + ", phyHand=" + entity.physicsHandler + ", existed=" + entity.tickCount /* TODO port:1.20.1 - ticksExisted -> tickCount */ + ", phyPos=" + entity.physicsPosition + "]";
     }
 }

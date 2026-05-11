@@ -125,13 +125,14 @@ public class KeyHandler {
             if (KEY_LOCK_DOOR.consumeClick()) {
                 Entity entity = mc.player.getVehicle();
                 if (entity instanceof BaseVehicleEntity && entity instanceof IModuleContainer.IDoorContainer && ((IModuleContainer.IDoorContainer) entity).getDoors() != null) {
-                    BasePartSeat<?, ?> seat = ((IModuleContainer.ISeatsContainer) entity).getSeats().getRidingSeat(MC.player);
+                    // TODO port:1.20.1 - IModuleContainer typed as Object pending entity port.
+                    BasePartSeat<?, ?> seat = ((fr.dynamx.common.entities.modules.SeatsModule) ((IModuleContainer.ISeatsContainer) entity).getSeats()).getRidingSeat(MC.player);
                     if (seat == null)
                         return;
                     PartDoor door = seat.getLinkedPartDoor();
                     if (door == null)
                         return;
-                    DoorsModule doors = ((IModuleContainer.IDoorContainer) entity).getDoors();
+                    DoorsModule doors = (DoorsModule) ((IModuleContainer.IDoorContainer) entity).getDoors();
                     DynamXContext.getNetwork().sendToServer(new MessageChangeDoorState((BaseVehicleEntity<?>) entity, doors.getInverseCurrentState(door.getId()), door.getId()));
                 }
             }

@@ -49,7 +49,10 @@ public class GuiComponent {
     public void add(GuiComponent component) {}
     public void removeAllChildren() {}
 
-    public Object getLayout() { return new StubLayout(); }
+    public StubLayout getLayout() { return new StubLayout(); }
+
+    // TODO port:1.20.1 stub - tick hook used by HUD panels.
+    public boolean tick() { return true; }
 
     @FunctionalInterface
     public interface ClickListener {

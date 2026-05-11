@@ -15,7 +15,7 @@ import javax.annotation.Nullable;
  *   that interface is in the dxmodel package (already in api/dxmodel). Re-add the extension once we confirm
  *   the package layout. For now we drop the extension to keep the type self-contained.
  */
-public interface IModelPackObject {
+public interface IModelPackObject extends fr.dynamx.api.contentpack.object.INamedObject {
     /**
      * @return The model location of this object
      */

@@ -88,7 +88,8 @@ public class DynamXContext {
 
     private static final Map<ResourceLocation, DxModelData> DX_MODEL_DATA_CACHE = new HashMap<>();
 
-    private static final Map<Integer, IPhysicsWorld> PHYSICS_WORLD_PER_DIMENSION = new HashMap<>();
+    // TODO port:1.20.1 - keyed by ResourceKey<Level> instead of integer dim id.
+    private static final Map<net.minecraft.resources.ResourceKey<net.minecraft.world.level.Level>, IPhysicsWorld> PHYSICS_WORLD_PER_DIMENSION = new HashMap<>();
 
     protected static void initNetwork() {
         // TODO port:1.20.1 - DynamXNetwork.init now takes a LogicalSide derived from FMLEnvironment.dist.
@@ -116,7 +117,8 @@ public class DynamXContext {
      * @return The local physics world
      */
     public static IPhysicsWorld getPhysicsWorld(Level world) {
-        return getPhysicsWorldPerDimensionMap().get(CommonProxyDimensionAccessor.dimensionKey(world));
+        // TODO port:1.20.1 - now keyed by ResourceKey<Level>.
+        return getPhysicsWorldPerDimensionMap().get(world.dimension());
     }
 
     /**
@@ -127,7 +129,8 @@ public class DynamXContext {
         return dxModelRegistry;
     }
 
-    public static Map<Integer, IPhysicsWorld> getPhysicsWorldPerDimensionMap() {
+    // TODO port:1.20.1 - keyed by ResourceKey<Level> instead of integer dim id in 1.20.1.
+    public static Map<net.minecraft.resources.ResourceKey<net.minecraft.world.level.Level>, IPhysicsWorld> getPhysicsWorldPerDimensionMap() {
         return PHYSICS_WORLD_PER_DIMENSION;
     }
 
@@ -180,11 +183,14 @@ public class DynamXContext {
      * shim from this class. Once {@code PHYSICS_WORLD_PER_DIMENSION} is re-keyed to
      * {@code ResourceKey<Level>}, this can go.
      */
+    /**
+     * Tiny accessor exposing the package-protected {@link CommonProxy#dimensionKey(Level)} static
+     * shim. Cannot use override because the original is static; a subclass is used purely for
+     * package-visibility access until {@code PHYSICS_WORLD_PER_DIMENSION} is re-keyed.
+     */
     private static final class CommonProxyDimensionAccessor extends CommonProxy {
-        static int dimensionKey(Level world) {
-            return CommonProxy.dimensionKey(world);
-        }
-
+        // TODO port:1.20.1 - kept only so this class lives in the right package; once
+        // PHYSICS_WORLD_PER_DIMENSION is keyed by ResourceKey<Level>, drop this entirely.
         @Override
         public boolean ownsSimulation(PhysicsEntity<?> entity) {
             return false;

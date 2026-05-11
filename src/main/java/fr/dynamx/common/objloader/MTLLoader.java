@@ -5,4 +5,8 @@ public class MTLLoader {
     public void uploadTextures() {
         // TODO port:1.20.1 stub
     }
+
+    public void loadTextures() {
+        // TODO port:1.20.1 stub
+    }
 }

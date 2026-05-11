@@ -37,9 +37,11 @@ public interface ISubInfoTypeOwner<T extends ISubInfoTypeOwner<?>> extends IName
     /**
      * @return The ISubInfoType matching to the given clazz, or null
      */
+    // TODO port:1.20.1 - Relaxed type bound (was {@code A extends ISubInfoType<T>}) so call sites
+    // holding a wildcard reference can still query by class without capture-conversion failure.
     @Nullable
     @SuppressWarnings("unchecked")
-    default <A extends ISubInfoType<T>> A getSubPropertyByType(Class<A> clazz) {
+    default <A extends ISubInfoType<?>> A getSubPropertyByType(Class<A> clazz) {
         return (A) this.getSubProperties().stream().filter(p -> clazz.equals(p.getClass())).findFirst().orElseGet(() -> null);
     }
 

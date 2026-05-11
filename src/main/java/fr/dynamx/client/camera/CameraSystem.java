@@ -125,8 +125,11 @@ public class CameraSystem {
     }
 
     public static void setupCamera(IModuleContainer.ISeatsContainer entity) {
-        zoomLevel = entity.cast().getPackInfo() instanceof ModularVehicleInfo ? ((ModularVehicleInfo) entity.cast().getPackInfo()).getDefaultZoomLevel() : 4;
-        CameraMode mode = entity.getSeats().getPreferredCameraMode();
+        // TODO port:1.20.1 - IModuleContainer.cast() returns Object pending Phase 6 entity port.
+        //   Cast to PackPhysicsEntity to access getPackInfo(); seats helper is also typed as Object.
+        fr.dynamx.common.entities.PackPhysicsEntity<?, ?> ent = (fr.dynamx.common.entities.PackPhysicsEntity<?, ?>) entity.cast();
+        zoomLevel = ent.getPackInfo() instanceof ModularVehicleInfo ? ((ModularVehicleInfo) ent.getPackInfo()).getDefaultZoomLevel() : 4;
+        CameraMode mode = ((fr.dynamx.common.entities.modules.SeatsModule) entity.getSeats()).getPreferredCameraMode();
         if (!preferredCameraMode.containsKey(mode))
             preferredCameraMode.put(mode, mode);
         cameraMode = preferredCameraMode.get(mode);
@@ -144,7 +147,8 @@ public class CameraSystem {
                 cameraMode = CameraMode.AUTO;
                 break;
         }
-        preferredCameraMode.put(entity.getSeats().getPreferredCameraMode(), cameraMode);
+        // TODO port:1.20.1 - cast to SeatsModule (Object placeholder in IModuleContainer).
+        preferredCameraMode.put(((fr.dynamx.common.entities.modules.SeatsModule) entity.getSeats()).getPreferredCameraMode(), cameraMode);
         return cameraMode;
     }
 

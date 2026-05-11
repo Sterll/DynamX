@@ -18,4 +18,18 @@ public interface ISerializable {
     default void readFromNBT(DeserializedData data) {
         // TODO port:1.20.1 stub
     }
+
+    /**
+     * Returns the ordered objects to be serialized into NBT.
+     */
+    default Object[] getObjectsToSave() {
+        return new Object[0];
+    }
+
+    /**
+     * Populates this instance from previously-saved data (sequential reader).
+     */
+    default void populateWithSavedObjects(DeserializedData objects) {
+        // no-op default
+    }
 }

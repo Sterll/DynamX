@@ -93,10 +93,11 @@ public class ClientDynamXUtils {
     }
 
     public static org.joml.Quaternionf inverseGlQuaternion(org.joml.Quaternionf quat, org.joml.Quaternionf result) {
-        float norm = quat.length();
+        // TODO port:1.20.1 - JOML Quaternionf has no length()/getX(); use lengthSquared() and public x/y/z/w fields.
+        float norm = (float) Math.sqrt(quat.lengthSquared());
         if (norm > 0.0) {
             float invNorm = 1.0f / norm;
-            result.set(-quat.getX() * invNorm, -quat.getY() * invNorm, -quat.getZ() * invNorm, quat.getW() * invNorm);
+            result.set(-quat.x * invNorm, -quat.y * invNorm, -quat.z * invNorm, quat.w * invNorm);
         }
         return result;
     }

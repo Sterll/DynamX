@@ -383,12 +383,13 @@ public class GLMesh implements jme3utilities.lbj.Mesh {
             float oldU = textureCoordinates.get(startPosition);
             float oldV = textureCoordinates.get(startPosition + 1);
 
-            float newU = uCoefficients.getW()
-                    + uCoefficients.getX() * oldU
-                    + uCoefficients.getY() * oldV;
-            float newV = vCoefficients.getW()
-                    + vCoefficients.getX() * oldU
-                    + vCoefficients.getY() * oldV;
+            // TODO port:1.20.1 - JOML Vector4f exposes public x/y/z/w fields (no getters).
+            float newU = uCoefficients.w
+                    + uCoefficients.x * oldU
+                    + uCoefficients.y * oldV;
+            float newV = vCoefficients.w
+                    + vCoefficients.x * oldU
+                    + vCoefficients.y * oldV;
 
             textureCoordinates.put(startPosition, newU);
             textureCoordinates.put(startPosition + 1, newV);

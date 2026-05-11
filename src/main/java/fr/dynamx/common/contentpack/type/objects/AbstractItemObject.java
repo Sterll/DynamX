@@ -176,9 +176,17 @@ public abstract class AbstractItemObject<T extends AbstractItemObject<?, ?>, A e
         drawableParts.add(part);
     }
 
-    @Override
+    // TODO port:1.20.1 - @Override removed; canRenderPart lives on IModelTextureVariantsSupplier
+    // which AbstractItemObject does not (yet) declare in its interface chain.
     public boolean canRenderPart(String partName) {
         return !renderedParts.contains(partName);
+    }
+
+    // TODO port:1.20.1 - Mirror of IModelTextureVariantsSupplier#getMainObjectVariantName(byte) for
+    // callers that have an AbstractItemObject reference. Returns "default" until variants are wired
+    // (Phase 7 - TextureVariantData).
+    public String getMainObjectVariantName(byte variantId) {
+        return "default";
     }
 
     @Override

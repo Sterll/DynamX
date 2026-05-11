@@ -321,13 +321,17 @@ public abstract class ModularPhysicsEntity<T extends AbstractEntityPhysicsHandle
         super.positionRider(passenger, callback);
     }
 
+    // TODO port:1.20.1 - getControllingPassenger() return type narrowed to @Nullable LivingEntity in 1.20.1.
     @Nullable
     @Override
-    public Entity getControllingPassenger() {
+    public net.minecraft.world.entity.LivingEntity getControllingPassenger() {
         if (this instanceof IModuleContainer.ISeatsContainer && ((IModuleContainer.ISeatsContainer) this).getSeats() != null) {
             try {
                 Object seats = ((IModuleContainer.ISeatsContainer) this).getSeats();
-                return (Entity) seats.getClass().getMethod("getControllingPassenger").invoke(seats);
+                Object res = seats.getClass().getMethod("getControllingPassenger").invoke(seats);
+                if (res instanceof net.minecraft.world.entity.LivingEntity le) {
+                    return le;
+                }
             } catch (Exception ignored) {
             }
         }
@@ -341,8 +345,8 @@ public abstract class ModularPhysicsEntity<T extends AbstractEntityPhysicsHandle
     }
 
     @Override
-    public void onRemovedFromLevel() {
-        super.onRemovedFromLevel();
+    public void onRemovedFromWorld() {
+        super.onRemovedFromWorld();
         moduleList.forEach(IPhysicsModule::onRemovedFromWorld);
     }
 

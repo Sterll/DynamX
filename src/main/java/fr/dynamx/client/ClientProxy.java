@@ -124,8 +124,8 @@ public class ClientProxy extends CommonProxy {
     @Override
     public Level getServerWorld() {
         // TODO port:1.20.1 - ServerLifecycleHooks.getCurrentServer() instead of FMLCommonHandler.
-        if (net.minecraftforge.fml.server.ServerLifecycleHooks.getCurrentServer() != null) {
-            return net.minecraftforge.fml.server.ServerLifecycleHooks.getCurrentServer().overworld();
+        if (net.minecraftforge.server.ServerLifecycleHooks.getCurrentServer() != null) {
+            return net.minecraftforge.server.ServerLifecycleHooks.getCurrentServer().overworld();
         }
         return null;
     }
@@ -138,7 +138,7 @@ public class ClientProxy extends CommonProxy {
     @Override
     public <T extends AbstractEntityPhysicsHandler<?, ?>> PhysicsEntitySynchronizer<? extends PhysicsEntity<T>> getNetHandlerForEntity(PhysicsEntity<T> tPhysicsEntity) {
         if (tPhysicsEntity.level().isClientSide) {
-            if (net.minecraftforge.fml.server.ServerLifecycleHooks.getCurrentServer() != null) {
+            if (net.minecraftforge.server.ServerLifecycleHooks.getCurrentServer() != null) {
                 return new SPPhysicsEntitySynchronizer<>(tPhysicsEntity, LogicalSide.CLIENT);
             } else {
                 return new ClientPhysicsEntitySynchronizer<>(tPhysicsEntity);

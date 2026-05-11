@@ -246,7 +246,7 @@ public class RagdollEntity extends ModularPhysicsEntity<RagdollPhysics<?>> imple
     }
 
     @Override
-    public void onRemovedFromLevel() {
+    public void onRemovedFromWorld() {
         if (handledPlayer != null) {
             // TODO port:1.20.1 - Player#eyeHeight is gone in 1.20.1 (eye height is computed from pose).
             // Player#sendPlayerAbilities -> ServerPlayer#onUpdateAbilities; we let the player resume normal eye-height
@@ -258,7 +258,7 @@ public class RagdollEntity extends ModularPhysicsEntity<RagdollPhysics<?>> imple
             }
         }
         handler.onRemovedFromWorld();
-        super.onRemovedFromLevel();
+        super.onRemovedFromWorld();
     }
 
     @Override

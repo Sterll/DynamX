@@ -53,6 +53,11 @@ public class DynamXErrorManager {
         errorManager.addError(pack, errorCategory, genericType, errorLevel, object, message, exception, priority);
     }
 
+    // TODO port:1.20.1 - Overload for LogicalSide call sites; maps to Dist.
+    public static void printErrors(net.minecraftforge.fml.LogicalSide side, ErrorLevel minLevel) {
+        printErrors(side == net.minecraftforge.fml.LogicalSide.CLIENT ? Dist.CLIENT : Dist.DEDICATED_SERVER, minLevel);
+    }
+
     public static void printErrors(Dist side, ErrorLevel minLevel) {
         if(errorManager.getAllErrors().values().stream().anyMatch(e -> e.getHighestErrorLevel().ordinal() >= minLevel.ordinal())) {
             DynamX.LOGGER.error("==== DynamX loading errors ====");

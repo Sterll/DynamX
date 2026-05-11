@@ -65,13 +65,13 @@ public class RagdollPhysics<T extends RagdollEntity> extends EntityPhysicsHandle
     @Override
     public void addToWorld() {
         // chest is already in bodyParts super.addToWorld();
-        bodyParts.values().forEach(physicsRigidBody -> DynamXContext.getPhysicsWorld(getHandledEntity().world).addCollisionObject(physicsRigidBody));
+        bodyParts.values().forEach(physicsRigidBody -> DynamXContext.getPhysicsWorld(getHandledEntity().level()/* TODO port:1.20.1 - .world -> .level() */).addCollisionObject(physicsRigidBody));
     }
 
     @Override
     public void removeFromWorld() {
         // chest is already in bodyParts super.removePhysicsEntity();
-        bodyParts.values().forEach(physicsRigidBody -> DynamXContext.getPhysicsWorld(getHandledEntity().world).removeCollisionObject(physicsRigidBody));
+        bodyParts.values().forEach(physicsRigidBody -> DynamXContext.getPhysicsWorld(getHandledEntity().level()/* TODO port:1.20.1 - .world -> .level() */).removeCollisionObject(physicsRigidBody));
     }
 
     @Override

@@ -8,6 +8,9 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.fml.LogicalSide;
+
+// TODO port:1.20.1 - Helper to translate LogicalSide (server/client logical) to Dist (physical jar side).
 import net.minecraftforge.eventbus.api.Event;
 import net.minecraftforge.eventbus.api.Cancelable;
 
@@ -33,6 +36,11 @@ public class VehicleEntityEvent extends Event {
     public VehicleEntityEvent(Dist side, Object vehicleEntity) {
         this.entity = vehicleEntity;
         this.side = side;
+    }
+
+    // TODO port:1.20.1 - LogicalSide variant kept for the legacy call-site signature; mapped to Dist.
+    public VehicleEntityEvent(LogicalSide side, Object vehicleEntity) {
+        this(side == LogicalSide.CLIENT ? Dist.CLIENT : Dist.DEDICATED_SERVER, vehicleEntity);
     }
 
     /**
@@ -84,6 +92,10 @@ public class VehicleEntityEvent extends Event {
             this.module = module;
             this.seat = seat;
         }
+
+        public EntityMount(LogicalSide side, Entity entityMounted, Object vehicleEntity, Object module, Object seat) {
+            this(side == LogicalSide.CLIENT ? Dist.CLIENT : Dist.DEDICATED_SERVER, entityMounted, vehicleEntity, module, seat);
+        }
     }
 
     /**
@@ -102,6 +114,10 @@ public class VehicleEntityEvent extends Event {
             this.entityDismounted = entityDismounted;
             this.module = module;
             this.seat = seat;
+        }
+
+        public EntityDismount(LogicalSide side, Entity entityDismounted, Object vehicleEntity, Object module, Object seat) {
+            this(side == LogicalSide.CLIENT ? Dist.CLIENT : Dist.DEDICATED_SERVER, entityDismounted, vehicleEntity, module, seat);
         }
     }
 
@@ -147,7 +163,13 @@ public class VehicleEntityEvent extends Event {
         @Getter
         private final List<Object> controllers; // TODO port:1.20.1 - List<IVehicleController>
 
-        public CreateHud(Object vehicleHUD, List<ResourceLocation> styleSheets, boolean isPlayerDriving, Object vehicleEntity, List<Object> controllers) {
+        // TODO port:1.20.1 - relaxed controllers to List<?> so callers can pass either List<IVehicleController> or List<Object>.
+        @SuppressWarnings({"unchecked", "rawtypes"})
+        public CreateHud(Object vehicleHUD, List<ResourceLocation> styleSheets, boolean isPlayerDriving, Object vehicleEntity, List<?> controllers) {
+            this(vehicleHUD, styleSheets, isPlayerDriving, vehicleEntity, (List<Object>) (List) controllers, true);
+        }
+
+        private CreateHud(Object vehicleHUD, List<ResourceLocation> styleSheets, boolean isPlayerDriving, Object vehicleEntity, List<Object> controllers, boolean unused) {
             super(Dist.CLIENT, vehicleEntity);
             this.vehicleHud = vehicleHUD;
             this.styleSheets = styleSheets;
@@ -192,6 +214,10 @@ public class VehicleEntityEvent extends Event {
             this.wheelPartId = wheelPartId;
             this.oldWheel = oldWheel;
             this.newWheel = newWheel;
+        }
+
+        public ChangeWheel(LogicalSide side, Object vehicleEntity, Object wheelsModule, Object oldWheel, Object newWheel, byte wheelPartId) {
+            this(side == LogicalSide.CLIENT ? Dist.CLIENT : Dist.DEDICATED_SERVER, vehicleEntity, wheelsModule, oldWheel, newWheel, wheelPartId);
         }
     }
 

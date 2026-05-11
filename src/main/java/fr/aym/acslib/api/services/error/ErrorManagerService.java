@@ -3,7 +3,7 @@ package fr.aym.acslib.api.services.error;
 
 import fr.aym.acslib.api.ACsService;
 import net.minecraft.resources.ResourceLocation;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.Logger; // TODO port:1.20.1 - switched to slf4j to match Minecraft 1.20.1 logger.
 
 import java.util.Collection;
 import java.util.Collections;
@@ -47,6 +47,15 @@ public class ErrorManagerService implements ACsService {
 
     public void printErrors(Logger logger, List<ErrorCategory> categories, ErrorLevel minLevel) {
         // TODO port:1.20.1 stub
+    }
+
+    /**
+     * Clears all errors for the given category.
+     * TODO port:1.20.1 - kept as best-effort stub: the current implementation does not store
+     * which category an error belongs to in the map keys, so we clear everything.
+     */
+    public void clear(ErrorCategory category) {
+        errors.clear();
     }
 
     public static <K> Map<K, List<ErrorData>> groupBy(Collection<ErrorData> errorList, Function<ErrorData, K> keyExtractor) {

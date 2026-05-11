@@ -5,44 +5,22 @@ import net.minecraft.core.Direction;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraftforge.eventbus.api.IEventBus;
-import net.minecraftforge.attachment.AttachmentType;
-import net.minecraftforge.registries.DeferredRegister;
-import net.minecraftforge.registries.NeoForgeRegistries;
-
-import java.util.function.Supplier;
 
 /**
  * Thin holder for the chunk DynamX data attachment.
  *
- * <p>In 1.12 this was an {@code ICapabilitySerializable<NBTBase>} that wrapped a single instance.
- * In 1.20.1 NeoForge, per-chunk data is provided by {@link AttachmentType} registered via a
- * {@link DeferredRegister}. We keep the same file name and the same {@code DYNAMX_CHUNK_DATA_CAPABILITY}
- * public field so the rest of the codebase can keep referring to it 1:1.
+ * TODO port:1.20.1 - Originally this used Forge 1.20.5+ DataAttachment API (net.minecraftforge.attachment).
+ * In NeoForge 1.20.1 the canonical pattern is Capabilities; for Phase 1 we keep a compile-only stub
+ * with no-op getters so the rest of the codebase still compiles. Real migration to Capabilities is
+ * a Phase 5+ task. Until then, get(LevelChunk) returns null.
  */
 public class DynamXChunkDataProvider {
     /**
-     * DeferredRegister for attachment types. Must be registered with the mod event bus during
-     * mod construction; see {@link #register(IEventBus)}.
-     */
-    public static final DeferredRegister<AttachmentType<?>> ATTACHMENT_TYPES =
-            DeferredRegister.create(NeoForgeRegistries.Keys.ATTACHMENT_TYPES, DynamXConstants.ID);
-
-    /**
-     * The attachment type holding the {@link DynamXChunkData} for a chunk.
-     */
-    public static final Supplier<AttachmentType<DynamXChunkData>> DYNAMX_CHUNK_DATA_ATTACHMENT =
-            ATTACHMENT_TYPES.register("chunkaabb",
-                    () -> AttachmentType.builder(DynamXChunkDataStorage::createEmpty)
-                            .serialize(DynamXChunkDataStorage.CODEC)
-                            .build());
-
-    /**
      * Legacy-compatible field kept to preserve call sites that referenced the old
-     * {@code DYNAMX_CHUNK_DATA_CAPABILITY} constant. Resolved at attachment-resolution time via
-     * {@link #get(LevelChunk)}.
+     * {@code DYNAMX_CHUNK_DATA_CAPABILITY} constant.
      *
      * TODO port:1.20.1 - Several callers use {@code chunk.getCapability(DYNAMX_CHUNK_DATA_CAPABILITY, null)}.
-     * Migrate them to {@link #get(LevelChunk)} once Phase 5+ porting is done.
+     * Migrate them to {@link #get(LevelChunk)} once Capabilities wiring is in place.
      */
     public static final Object DYNAMX_CHUNK_DATA_CAPABILITY = null;
 
@@ -55,10 +33,13 @@ public class DynamXChunkDataProvider {
     }
 
     /**
-     * Helper accessor: returns the {@link DynamXChunkData} for the given chunk, creating it if missing.
+     * Helper accessor: returns the {@link DynamXChunkData} for the given chunk.
+     *
+     * TODO port:1.20.1 - Returns null until Capabilities migration is done.
      */
     public static DynamXChunkData get(LevelChunk chunk) {
-        return chunk.getData(DYNAMX_CHUNK_DATA_ATTACHMENT.get());
+        // TODO port:1.20.1 - Needs Capabilities migration; returns null for now.
+        return null;
     }
 
     /**
@@ -72,9 +53,11 @@ public class DynamXChunkDataProvider {
     }
 
     /**
-     * Registers the attachment {@link DeferredRegister} onto the mod event bus.
+     * Registers the attachment {@link net.minecraftforge.registries.DeferredRegister} onto the mod event bus.
+     *
+     * TODO port:1.20.1 - No-op for now; will hook Capabilities registration later.
      */
     public static void register(IEventBus modEventBus) {
-        ATTACHMENT_TYPES.register(modEventBus);
+        // no-op stub
     }
 }

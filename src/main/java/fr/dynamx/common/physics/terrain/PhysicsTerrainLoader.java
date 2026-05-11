@@ -65,7 +65,7 @@ public class PhysicsTerrainLoader {
                 chk.getTicket().incrStatusIndex(); //Invalidate other loading processes
                 Vector3fPool.openPool();
                 collision.loadCollisionsAsync(manager, manager.getCache(), chk.getTicket(), Vector3fPool.get(lookingAt.x * 16, lookingAt.y * 16, lookingAt.z * 16)).exceptionally(e -> {
-                    DynamX.LOGGER.fatal("Failed to async-load chunk {}", chk.getTicket(), e);
+                    DynamX.LOGGER.error("Failed to async-load chunk {}", chk.getTicket(), e);
                     return null;
                 });
                 Vector3fPool.closePool();
@@ -80,7 +80,7 @@ public class PhysicsTerrainLoader {
                 }
             }
         } catch (Exception e1) {
-            DynamX.LOGGER.fatal("Chunk error at {}", lookingAt, e1);
+            DynamX.LOGGER.error("Chunk error at {}", lookingAt, e1);
         }
     }
 }

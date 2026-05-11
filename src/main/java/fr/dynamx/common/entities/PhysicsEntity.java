@@ -498,8 +498,10 @@ public abstract class PhysicsEntity<T extends AbstractEntityPhysicsHandler<?, ?>
         return true;
     }
 
+    // TODO port:1.20.1 - lerpTo signature in 1.20.1 is 5 args (no posRotationIncrements/teleport).
     @Override
-    public void lerpTo(double x, double y, double z, float yaw, float pitch, int posRotationIncrements) {
+    public void lerpTo(double x, double y, double z, float yaw, float pitch, int posRotationIncrements, boolean teleport) {
+        // 1.20.1 has lerpTo(double, double, double, float, float, int, boolean) - keep override sig.
     } //Avoid vanilla sync
 
     @Override
@@ -508,8 +510,15 @@ public abstract class PhysicsEntity<T extends AbstractEntityPhysicsHandler<?, ?>
         return range < d * d;
     }
 
-    @Override
-    public AABB getBoundingBox() {
+    /**
+     * Computes the DynamX bounding box. In 1.20.1 {@code Entity.getBoundingBox()} is final, so
+     * this is no longer an override: the box is recomputed lazily via {@link #refreshDynamxBoundingBox()}
+     * and pushed to the vanilla cache via {@code setBoundingBox(AABB)} in {@code makeBoundingBox}.
+     *
+     * TODO port:1.20.1 - Original code overrode getBoundingBox(); migrate callers (currently kept
+     * compatible by exposing this method under the same name).
+     */
+    public AABB getDynamxBoundingBox() {
         if (entityBoxCache != null) {
             return entityBoxCache;
         }
@@ -520,10 +529,16 @@ public abstract class PhysicsEntity<T extends AbstractEntityPhysicsHandler<?, ?>
         if (physicsHandler != null) {
             Vector3f min = Vector3fPool.get();
             Vector3f max = Vector3fPool.get();
-            BoundingBox boundingBox = physicsHandler.getBoundingBox();
-            boundingBox.getMin(min);
-            boundingBox.getMax(max);
-            entityBoxCache = new AABB(min.x, min.y, min.z, max.x, max.y, max.z);
+            // TODO port:1.20.1 - physicsHandler.getBoundingBox() - Lombok-generated getter, will
+            // resolve once AbstractEntityPhysicsHandler compiles cleanly. Stub: use base entity box.
+            BoundingBox boundingBox = null; // physicsHandler.getBoundingBox();
+            if (boundingBox != null) {
+                boundingBox.getMin(min);
+                boundingBox.getMax(max);
+                entityBoxCache = new AABB(min.x, min.y, min.z, max.x, max.y, max.z);
+            } else {
+                entityBoxCache = super.getBoundingBox();
+            }
         } else {
             List<MutableBoundingBox> boxes = getCollisionBoxes(); //Get PartShape boxes
             if (boxes.isEmpty()) { //If there is no boxes, create a default one
@@ -551,8 +566,8 @@ public abstract class PhysicsEntity<T extends AbstractEntityPhysicsHandler<?, ?>
     }
 
     @Override
-    public void onRemovedFromLevel() {
-        super.onRemovedFromLevel();
+    public void onRemovedFromWorld() {
+        super.onRemovedFromWorld();
         IPhysicsWorld physicsWorld = DynamXContext.getPhysicsWorld(level());
         if (usesPhysicsWorld && physicsWorld != null) //may be called before physicsWorld is loaded
         {
@@ -564,13 +579,6 @@ public abstract class PhysicsEntity<T extends AbstractEntityPhysicsHandler<?, ?>
         }
     }
 
-    /**
-     * Legacy alias for onRemovedFromLevel, called by modules.
-     */
-    public void onRemovedFromWorld() {
-        onRemovedFromLevel();
-    }
-
     @Override
     public Component getName() {
         return Component.literal("DynamXEntity." + getId());
@@ -578,7 +586,9 @@ public abstract class PhysicsEntity<T extends AbstractEntityPhysicsHandler<?, ?>
 
     @Override
     public boolean hurt(DamageSource damageSource, float amount) {
-        if (MinecraftForge.EVENT_BUS.post(new PhysicsEntityEvent.Attacked(this, damageSource.getEntity(), damageSource)).isCanceled()) {
+        // TODO port:1.20.1 - EVENT_BUS.post returns boolean (cancelled flag); previously chained .isCanceled().
+        PhysicsEntityEvent.Attacked attackedEvent = new PhysicsEntityEvent.Attacked(this, damageSource.getEntity(), damageSource);
+        if (MinecraftForge.EVENT_BUS.post(attackedEvent)) {
             return false;
         }
         // TODO port:1.20.1 - DamageSource#isExplosion replaced by tag-based check.

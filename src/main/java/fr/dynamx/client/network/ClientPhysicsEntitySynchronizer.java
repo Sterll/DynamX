@@ -64,8 +64,10 @@ public class ClientPhysicsEntitySynchronizer<T extends PhysicsEntity<?>> extends
         super.onDataReceived(msg);
     }
 
+    // TODO port:1.20.1 - parent PhysicsEntitySynchronizer typed profiler as Object pending Phase 5 port.
     @Override
-    public void onPrePhysicsTick(Profiler profiler) {
+    public void onPrePhysicsTick(Object profilerObj) {
+        Profiler profiler = (Profiler) profilerObj;
         controllers.forEach(IVehicleController::update);
         if (getSimulationHolder().ownsPhysics(LogicalSide.CLIENT) || true) {
             readReceivedPackets();
@@ -103,7 +105,8 @@ public class ClientPhysicsEntitySynchronizer<T extends PhysicsEntity<?>> extends
     }
 
     @Override
-    public void onPostPhysicsTick(Profiler profiler) {
+    public void onPostPhysicsTick(Object profilerObj) {
+        Profiler profiler = (Profiler) profilerObj;
         entity.postUpdatePhysicsWrapper(profiler, usePhysicsThisTick);
     }
 

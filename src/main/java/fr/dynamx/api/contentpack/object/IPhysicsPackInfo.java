@@ -19,9 +19,7 @@ public interface IPhysicsPackInfo extends ICollisionsContainer, IModelPackObject
 
     /**
      * Adds modules to the given entity.
-     *
-     * TODO port:1.20.1 - PackPhysicsEntity / ModuleListBuilder live in not-yet-ported packages
-     *   (Phase 6); typed as Object until those are ported.
+     * TODO port:1.20.1 - kept loose Object signature for now to match ISubInfoType.addModules; tighten in Phase 6 entity port.
      */
     void addModules(Object entity, Object modules);
 

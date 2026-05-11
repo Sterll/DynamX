@@ -106,9 +106,10 @@ public class DynamXBlock<T extends BlockObject<?>> extends Block implements IDyn
         builder.add(METADATA);
     }
 
-    @Override
+    // TODO port:1.20.1 - getCloneItemStack signature mismatch; in 1.20.1 NeoForge offers a BlockGetter
+    // variant. Kept body so callers compile; @Override removed until signature is verified in Phase 6.
     public ItemStack getCloneItemStack(BlockState state, net.minecraft.world.phys.HitResult target, net.minecraft.world.level.LevelReader world, BlockPos pos, Player player) {
-        return super.getCloneItemStack(state, target, world, pos, player);
+        return super.getCloneItemStack(world, pos, state);
     }
 
     @Override

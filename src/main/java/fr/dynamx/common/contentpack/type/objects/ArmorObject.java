@@ -167,7 +167,8 @@ public class ArmorObject<T extends ArmorObject<T>> extends AbstractItemObject<T,
         String slotName = slot != null ? slot.getName().toLowerCase() : "armor";
         if (itemMeta == 0 || getVariants() == null)
             return super.getTranslationKey(item, itemMeta) + "_" + slotName;
-        return super.getTranslationKey(item, itemMeta) + "_" + slotName + "_" + getVariants().getVariant((byte) itemMeta).getName();
+        // TODO port:1.20.1 - getVariant returns Object pending TextureVariantData port.
+        return super.getTranslationKey(item, itemMeta) + "_" + slotName + "_" + String.valueOf(getVariants().getVariant((byte) itemMeta));
     }
 
     @Override
@@ -194,7 +195,7 @@ public class ArmorObject<T extends ArmorObject<T>> extends AbstractItemObject<T,
         }
         if (itemMeta == 0 || getVariants() == null)
             return prefix + " " + super.getTranslatedName(item, itemMeta);
-        return prefix + " " + super.getTranslatedName(item, itemMeta) + "_" + getVariants().getVariant((byte) itemMeta).getName();
+        return prefix + " " + super.getTranslatedName(item, itemMeta) + "_" + String.valueOf(getVariants().getVariant((byte) itemMeta));
     }
 
     /**

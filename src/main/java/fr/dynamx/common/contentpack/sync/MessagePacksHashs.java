@@ -1,6 +1,8 @@
 package fr.dynamx.common.contentpack.sync;
 
 import fr.dynamx.DynamX;
+import fr.dynamx.api.network.EnumNetworkType;
+import fr.dynamx.api.network.IDnxPacket;
 import io.netty.buffer.ByteBuf;
 
 import java.nio.charset.StandardCharsets;
@@ -25,7 +27,7 @@ import java.util.Map;
  *   length-prefixed UTF-8 byte arrays so we do not depend on Forge's ByteBufUtils) and stub
  *   the handler classes.
  */
-public class MessagePacksHashs {
+public class MessagePacksHashs implements IDnxPacket {
     private Map<String, Map<String, byte[]>> objects;
 
     public MessagePacksHashs() {
@@ -42,8 +44,9 @@ public class MessagePacksHashs {
     /**
      * TODO port:1.20.1 - Was EnumNetworkType.VANILLA_TCP. Phase 6 will reintroduce the channel.
      */
-    public Object getPreferredNetwork() {
-        return "VANILLA_TCP";
+    @Override
+    public EnumNetworkType getPreferredNetwork() {
+        return EnumNetworkType.VANILLA_TCP;
     }
 
     /**

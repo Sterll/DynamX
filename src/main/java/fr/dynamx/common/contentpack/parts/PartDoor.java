@@ -82,12 +82,8 @@ public class PartDoor extends InteractivePart<Object, ModularVehicleInfo> implem
     @PackFileProperty(configNames = "AttachStrength", required = false, defaultValue = "400")
     protected int attachStrength = 400;
 
-    /**
-     * TODO port:1.20.1 - axisToUse was DynamXPhysicsHelper.EnumPhysicsAxis (fr.dynamx.utils.physics,
-     *   not yet ported). Relaxed to Object until that enum is ported.
-     */
     @PackFileProperty(configNames = "Axis", required = false, defaultValue = "Y_ROT")
-    protected Object axisToUse;
+    protected fr.dynamx.utils.physics.DynamXPhysicsHelper.EnumPhysicsAxis axisToUse;
     @PackFileProperty(configNames = "OpenedDoorAngleLimit", required = false, defaultValue = "0 0")
     protected Vector2f openLimit = new Vector2f();
     @PackFileProperty(configNames = "ClosedDoorAngleLimit", required = false, defaultValue = "0 0")

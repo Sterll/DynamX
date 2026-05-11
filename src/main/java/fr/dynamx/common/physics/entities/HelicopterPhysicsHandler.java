@@ -60,7 +60,7 @@ public class HelicopterPhysicsHandler<A extends HelicopterEntity<?>> extends Bas
             } else if (module.isTurningRight()) {
                 roll(1);
             } else if (module.isHandBraking()) {
-                Quaternion targetRotation = DynamXGeometry.rotationYawToQuaternion(getHandledEntity().rotationYaw);
+                Quaternion targetRotation = DynamXGeometry.rotationYawToQuaternion(getHandledEntity().getYRot()/* TODO port:1.20.1 */);
                 setPhysicsRotation(DynamXMath.slerp(0.05f, getRotation(), targetRotation, getRotation()));
             }
         }
@@ -68,7 +68,7 @@ public class HelicopterPhysicsHandler<A extends HelicopterEntity<?>> extends Bas
     }
 
     public void updateMovement() {
-        Vector3f gravity = DynamXContext.getPhysicsWorld(getHandledEntity().world).getDynamicsWorld().getGravity(Vector3fPool.get());
+        Vector3f gravity = DynamXContext.getPhysicsWorld(getHandledEntity().level()/* TODO port:1.20.1 - .world -> .level() */).getDynamicsWorld().getGravity(Vector3fPool.get());
         if (module.isEngineStarted()) {
             setForceActivation(true);
 

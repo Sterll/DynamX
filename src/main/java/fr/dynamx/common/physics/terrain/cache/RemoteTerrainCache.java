@@ -192,7 +192,7 @@ public class RemoteTerrainCache implements ITerrainCache {
                 }
             } catch (Exception e) {
                 if (!HAD_THE_ERROR) {
-                    DynamX.LOGGER.fatal("Cannot unserialize terrain element at " + pos, e);
+                    DynamX.LOGGER.error("Cannot unserialize terrain element at " + pos, e);
                     HAD_THE_ERROR = true;
                 }
                 elements = new ArrayList<>(); //Mark the error

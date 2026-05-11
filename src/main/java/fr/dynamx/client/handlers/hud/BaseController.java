@@ -60,7 +60,8 @@ public abstract class BaseController implements IVehicleController {
     @Override
     @OnlyIn(Dist.CLIENT)
     public void update() {
-        if (((IModuleContainer.ISeatsContainer) entity).getSeats().isLocalPlayerDriving()) {
+        // TODO port:1.20.1 - SeatsContainer.getSeats() returns Object pending entity port.
+        if (((fr.dynamx.common.entities.modules.SeatsModule) ((IModuleContainer.ISeatsContainer) entity).getSeats()).isLocalPlayerDriving()) {
             accelerating = MC.options.keyUp.isDown();
             reversing = MC.options.keyDown.isDown();
             turningLeft = MC.options.keyLeft.isDown();
