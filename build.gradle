@@ -69,7 +69,15 @@ repositories {
 dependencies {
     minecraft "net.neoforged:forge:${minecraft_version}-${neoforge_version}"
 
+    // libbulletjme: embed inside the jar (JarJar) so the mod module loader can see it.
+    // ForgeGradle 6's 'implementation' deps don't reach the mod runtime classpath. JarJar both
+    // pins the version for the module loader and inlines the artifact into the produced jar.
     implementation "com.github.stephengold:Libbulletjme:${libbulletjme_version}"
+    jarJar(group: 'com.github.stephengold', name: 'Libbulletjme', version: "[${libbulletjme_version},)") {
+        jarJar.pin(it, libbulletjme_version)
+    }
+
+    // joml ships with NeoForge 1.20.1, but pin it for compileOnly anyway.
     implementation "org.joml:joml:${joml_version}"
 
     annotationProcessor 'org.spongepowered:mixin:0.8.5:processor'
@@ -118,6 +126,12 @@ jar {
     }
     finalizedBy 'reobfJar'
 }
+
+// Ensure JarJar embedding runs as part of the build.
+tasks.named('jarJar').configure {
+    enabled = true
+}
+assemble.dependsOn tasks.named('jarJar')
 
 publishing {
     publications {

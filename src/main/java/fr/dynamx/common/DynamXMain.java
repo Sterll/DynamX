@@ -130,12 +130,14 @@ public class DynamXMain {
         //   DeferredRegister<EntityType<?>>.
         // TODO port:1.20.1 - MenuType registration replaces NetworkRegistry.registerGuiHandler.
 
-        // TODO port:1.20.1 - proxy.init() registers PhysicsTickHandler which references
-        //   com.jme3.bullet.collision.PhysicsCollisionObject. ForgeGradle 6 puts implementation
-        //   deps OFF the mod runtime classpath, so libbulletjme is invisible to the module loader.
-        //   Fix path: declare libbulletjme via JarJar / jarJar { dependency 'com.github.stephengold:Libbulletjme' }
-        //   or migrate to `additionalRuntimeClasspath`. Until that's wired, calling proxy.init()
-        //   crashes COMMON_SETUP with NoClassDefFoundError. Keeping preInit() only (no bullet refs).
+        // TODO port:1.20.1 - proxy.init() registers PhysicsTickHandler which loads
+        //   com.jme3.bullet.collision.PhysicsCollisionObject. The libbulletjme jar IS embedded
+        //   in production jars via JarJar (META-INF/jarjar/Libbulletjme-*.jar), but in dev
+        //   (runServer/runClient) ForgeGradle 6 isolates the mod's source set from project
+        //   'implementation' deps inside SecureModularJar - the mod's class loader can't see
+        //   the lib. Fix path: investigate FG6 runs.lazyToken('minecraft_classpath') /
+        //   modlauncher.mods config to add libbulletjme to the GAME layer in dev. Keeping
+        //   preInit() only until that's resolved.
         if (proxy != null) {
             try {
                 proxy.preInit();
