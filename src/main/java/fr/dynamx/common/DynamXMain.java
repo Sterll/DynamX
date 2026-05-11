@@ -90,8 +90,14 @@ public class DynamXMain {
         instance = this;
         log.info(NAME + " version " + VERSION + "-" + VERSION_TYPE + " is running, by Yanis and Aym'");
 
-        // TODO port:1.20.1 - resolve proxy via FMLEnvironment.dist (Client/Server proxy classes
-        //   are still being ported).
+        try {
+            proxy = net.minecraftforge.fml.loading.FMLEnvironment.dist.isClient()
+                    ? (CommonProxy) Class.forName("fr.dynamx.client.ClientProxy").getDeclaredConstructor().newInstance()
+                    : (CommonProxy) Class.forName("fr.dynamx.server.ServerProxy").getDeclaredConstructor().newInstance();
+        } catch (Throwable t) {
+            log.error("Failed to instantiate DynamX proxy; running without one (many features will be no-ops)", t);
+        }
+
         // TODO port:1.20.1 - port the FMLConstructionEvent body: bullet engine install, MPS init,
         //   ACsLib threaded loading service, addons init, schedulePacksInit().
 
@@ -124,9 +130,18 @@ public class DynamXMain {
         //   DeferredRegister<EntityType<?>>.
         // TODO port:1.20.1 - MenuType registration replaces NetworkRegistry.registerGuiHandler.
 
+        // TODO port:1.20.1 - proxy.init() registers PhysicsTickHandler which references
+        //   com.jme3.bullet.collision.PhysicsCollisionObject. ForgeGradle 6 puts implementation
+        //   deps OFF the mod runtime classpath, so libbulletjme is invisible to the module loader.
+        //   Fix path: declare libbulletjme via JarJar / jarJar { dependency 'com.github.stephengold:Libbulletjme' }
+        //   or migrate to `additionalRuntimeClasspath`. Until that's wired, calling proxy.init()
+        //   crashes COMMON_SETUP with NoClassDefFoundError. Keeping preInit() only (no bullet refs).
         if (proxy != null) {
-            proxy.preInit();
-            proxy.init();
+            try {
+                proxy.preInit();
+            } catch (Throwable t) {
+                log.error("DynamX proxy.preInit() failed", t);
+            }
         }
     }
 
