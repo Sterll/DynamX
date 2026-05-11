@@ -5,9 +5,6 @@ import fr.aym.acslib.services.impl.thrload.DynamXThreadedModLoader;
 import fr.dynamx.api.physics.terrain.ITerrainElement;
 import fr.dynamx.utils.DynamXConstants;
 import fr.dynamx.utils.VerticalChunkPos;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.common.Mod;
 
 import java.util.List;
 import java.util.Map;
@@ -22,7 +19,8 @@ import java.util.concurrent.Executors;
  * that have not been ported yet (Phase 7/8). The class skeleton (including the static slopes preview
  * terrain loader registration) is preserved so other modules can reference it; rendering body is stubbed.
  */
-@Mod.EventBusSubscriber(modid = DynamXConstants.ID, value = Dist.CLIENT)
+// TODO port:1.20.1 - @Mod.EventBusSubscriber(modid = DynamXConstants.ID, value = Dist.CLIENT) removed;
+// re-enable once worldRender() is implemented against a real Forge event type (RenderLevelStageEvent).
 public class SlopePreviewer {
     private static final ExecutorService POOL = Executors.newSingleThreadExecutor(new DynamXThreadedModLoader.DefaultThreadFactory("SlopesPreviewer"));
 
@@ -38,7 +36,6 @@ public class SlopePreviewer {
         // DynamXTerrainApi.addCustomTerrainLoader(slopesPreviewer);
     }
 
-    @SubscribeEvent
     public static void worldRender(Object event) {
         // TODO port:1.20.1 - re-implement against RenderLevelStageEvent + modern Tesselator pipeline once client port lands.
     }

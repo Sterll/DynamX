@@ -110,9 +110,9 @@ public class ClientDebugSystem {
      * <p>TODO port:1.20.1 - replace with {@code RenderGuiOverlayEvent.Post} listening on the
      * {@code VanillaGuiOverlay.HOTBAR} layer. Use the event's {@code GuiGraphics} for text rendering.</p>
      */
-    @SubscribeEvent
     @OnlyIn(Dist.CLIENT)
     public static void overlay(/* RenderGuiOverlayEvent.Post */ Object event) {
+        // TODO port:1.20.1 - @SubscribeEvent removed; restore once parameter is a real Event subtype.
         // TODO port:1.20.1 - body fully stubbed pending RenderGuiOverlayEvent integration.
         // Original logic: draws "Drawing debug", entity count, physics-tick bars, network-activity panel
         // on the top-right of the HUD using fontRenderer + Profiler data.
@@ -127,8 +127,8 @@ public class ClientDebugSystem {
      * {@code RenderType} for line/box draws. {@code GlStateManager} immediate-mode is gone.</p>
      */
     @OnlyIn(Dist.CLIENT)
-    @SubscribeEvent(priority = EventPriority.HIGHEST)
     public static void worldRender(/* RenderLevelStageEvent */ Object event) {
+        // TODO port:1.20.1 - @SubscribeEvent(priority = EventPriority.HIGHEST) removed; restore once parameter is a real Event subtype.
         prevRigidBodyStatesIndex = (byte) (ClientDebugSystem.curRigidBodyStatesIndex - 1);
         if (prevRigidBodyStatesIndex < 0)
             prevRigidBodyStatesIndex = 1;

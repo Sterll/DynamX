@@ -59,10 +59,9 @@ public class HelicopterController extends BaseController {
      * for the heli needs to be read from {@code MovementInputUpdateEvent} or directly polled
      * from {@code Minecraft.getInstance().mouseHandler}.</p>
      */
-    @SubscribeEvent
     @OnlyIn(Dist.CLIENT)
     public static void tickMouse(/* InputEvent.MouseScrollingEvent */ Object event) {
-        // TODO port:1.20.1 - stubbed.
+        // TODO port:1.20.1 - @SubscribeEvent removed; restore once parameter is a real Event subtype.
     }
 
     @Override

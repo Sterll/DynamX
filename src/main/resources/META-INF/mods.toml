@@ -15,15 +15,15 @@ logoFile = "dynamx.png"
 config = "mixins.dynamxmod.json"
 
 [[dependencies.${mod_id}]]
-modId = "neoforge"
-type = "required"
+modId = "forge"
+mandatory = true
 versionRange = "${neoforge_version_range}"
 ordering = "NONE"
 side = "BOTH"
 
 [[dependencies.${mod_id}]]
 modId = "minecraft"
-type = "required"
+mandatory = true
 versionRange = "${minecraft_version_range}"
 ordering = "NONE"
 side = "BOTH"
