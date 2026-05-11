@@ -130,19 +130,12 @@ public class DynamXMain {
         //   DeferredRegister<EntityType<?>>.
         // TODO port:1.20.1 - MenuType registration replaces NetworkRegistry.registerGuiHandler.
 
-        // TODO port:1.20.1 - proxy.init() registers PhysicsTickHandler which loads
-        //   com.jme3.bullet.collision.PhysicsCollisionObject. The libbulletjme jar IS embedded
-        //   in production jars via JarJar (META-INF/jarjar/Libbulletjme-*.jar), but in dev
-        //   (runServer/runClient) ForgeGradle 6 isolates the mod's source set from project
-        //   'implementation' deps inside SecureModularJar - the mod's class loader can't see
-        //   the lib. Fix path: investigate FG6 runs.lazyToken('minecraft_classpath') /
-        //   modlauncher.mods config to add libbulletjme to the GAME layer in dev. Keeping
-        //   preInit() only until that's resolved.
         if (proxy != null) {
             try {
                 proxy.preInit();
+                proxy.init();
             } catch (Throwable t) {
-                log.error("DynamX proxy.preInit() failed", t);
+                log.error("DynamX proxy init failed", t);
             }
         }
     }

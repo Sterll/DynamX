@@ -57,6 +57,20 @@ minecraft {
 
 sourceSets.main.resources.srcDirs += ['src/generated/resources']
 
+// Custom configuration: libs that must reach the mod's runtime module layer in dev (runServer/runClient).
+// ForgeGradle 6 isolates the mod source set from project 'implementation' deps inside SecureModularJar,
+// so libs like libbulletjme aren't visible to the mod class loader. Adding them to FG6's
+// 'minecraftLibrary'-equivalent classpath via a custom config + minecraft.runs hookup fixes this.
+configurations {
+    library
+    implementation.extendsFrom(library)
+}
+minecraft.runs.configureEach {
+    lazyToken('minecraft_classpath') {
+        configurations.library.copyRecursive().resolve().collect { it.absolutePath }.join(File.pathSeparator)
+    }
+}
+
 repositories {
     mavenCentral()
     maven { url = 'https://maven.neoforged.net/releases' }
@@ -69,10 +83,10 @@ repositories {
 dependencies {
     minecraft "net.neoforged:forge:${minecraft_version}-${neoforge_version}"
 
-    // libbulletjme: embed inside the jar (JarJar) so the mod module loader can see it.
-    // ForgeGradle 6's 'implementation' deps don't reach the mod runtime classpath. JarJar both
-    // pins the version for the module loader and inlines the artifact into the produced jar.
-    implementation "com.github.stephengold:Libbulletjme:${libbulletjme_version}"
+    // libbulletjme: declared on the custom 'library' config so it lands on the mod's runtime
+    // module layer in dev (extends implementation for compile-time too). Also embedded via JarJar
+    // into the production *-all.jar so released builds carry it.
+    library "com.github.stephengold:Libbulletjme:${libbulletjme_version}"
     jarJar(group: 'com.github.stephengold', name: 'Libbulletjme', version: "[${libbulletjme_version},)") {
         jarJar.pin(it, libbulletjme_version)
     }

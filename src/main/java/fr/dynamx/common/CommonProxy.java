@@ -59,8 +59,8 @@ public abstract class CommonProxy {
      * @return The server world (overworld), if loaded
      */
     public Level getServerWorld() {
-        // TODO port:1.20.1 - replace with ServerLifecycleHooks.getCurrentServer().overworld().
-        return null;
+        net.minecraft.server.MinecraftServer server = net.minecraftforge.server.ServerLifecycleHooks.getCurrentServer();
+        return server != null ? server.overworld() : null;
     }
 
     /**
