@@ -164,9 +164,27 @@ public class CommonEventHandler {
 
     @SubscribeEvent
     public void onTick(net.minecraftforge.event.TickEvent.ServerTickEvent event) {
+        if (event.phase != net.minecraftforge.event.TickEvent.Phase.END) {
+            return;
+        }
+        fr.dynamx.common.handlers.TaskScheduler.tick();
         // TODO port:1.20.1 - reset aboveGroundTickCount on ServerGamePacketListenerImpl for
         // walking players to suppress kicks; the fields are private so this requires an
         // access transformer or a dedicated mixin accessor (paired with MixinNetHandlerPlayServer).
+    }
+
+    @SubscribeEvent
+    public void onEntityLeaveLevel(net.minecraftforge.event.entity.EntityLeaveLevelEvent event) {
+        if (event.getLevel().isClientSide) {
+            return;
+        }
+        if (event.getEntity() instanceof Player player) {
+            fr.dynamx.common.physics.player.PlayerPhysicsHandler handler =
+                    fr.dynamx.common.DynamXContext.getPlayerToCollision().get(player);
+            if (handler != null) {
+                handler.removeFromWorld(true, player.level());
+            }
+        }
     }
 
     @SubscribeEvent

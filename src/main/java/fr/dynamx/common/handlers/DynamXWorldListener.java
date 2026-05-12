@@ -19,9 +19,10 @@ public class DynamXWorldListener {
      */
     public void onEntityRemoved(Entity entityIn) {
         if (entityIn instanceof Player player) {
-            if (DynamXContext.getPlayerToCollision().containsKey(player)) {
-                // TODO port:1.20.1 - PlayerPhysicsHandler API not ported yet; once available:
-                // DynamXContext.getPlayerToCollision().get(player).removeFromWorld(true, player.level());
+            fr.dynamx.common.physics.player.PlayerPhysicsHandler handler =
+                    DynamXContext.getPlayerToCollision().get(player);
+            if (handler != null) {
+                handler.removeFromWorld(true, player.level());
             }
         }
     }

@@ -81,10 +81,8 @@ public class TaskScheduler {
 
         @Override
         public void run() {
-            // TODO port:1.20.1 - target.connection.getConnection().isConnected() & entity.getSynchronizer() depend on
-            // Phase 5 (network sync). Method body kept compilable.
-            if (target.connection != null) {
-                // entity.getSynchronizer().resyncEntity(target);
+            if (target.connection != null && target.connection.connection.isConnected() && entity.getSynchronizer() != null) {
+                entity.getSynchronizer().resyncEntity(target);
             } else {
                 DynamXMain.log.warn("Skipping resync item of " + entity + " for " + target + " : player not connected");
             }
