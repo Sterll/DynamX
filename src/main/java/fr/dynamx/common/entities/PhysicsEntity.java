@@ -529,9 +529,7 @@ public abstract class PhysicsEntity<T extends AbstractEntityPhysicsHandler<?, ?>
         if (physicsHandler != null) {
             Vector3f min = Vector3fPool.get();
             Vector3f max = Vector3fPool.get();
-            // TODO port:1.20.1 - physicsHandler.getBoundingBox() - Lombok-generated getter, will
-            // resolve once AbstractEntityPhysicsHandler compiles cleanly. Stub: use base entity box.
-            BoundingBox boundingBox = null; // physicsHandler.getBoundingBox();
+            BoundingBox boundingBox = physicsHandler.getBoundingBox();
             if (boundingBox != null) {
                 boundingBox.getMin(min);
                 boundingBox.getMax(max);
