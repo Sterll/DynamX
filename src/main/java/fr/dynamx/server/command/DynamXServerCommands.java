@@ -63,15 +63,23 @@ public class DynamXServerCommands {
     }
 
     /**
-     * NeoForge entry point: forwards to every sub-command's {@link ISubCommand#register(CommandDispatcher)}.
+     * NeoForge entry point: builds a single {@code /dynamx} literal and attaches every sub-command
+     * that has a Brigadier wiring via {@link ISubCommand#buildBrigadier()}.
      */
     @SubscribeEvent
     public void registerCommands(RegisterCommandsEvent event) {
-        // TODO port:1.20.1 - Brigadier port: build a single literal("dynamx") node, then attach all
-        //   sub-commands as children using their register(dispatcher) hooks.
-        CommandDispatcher<CommandSourceStack> dispatcher = event.getDispatcher();
+        com.mojang.brigadier.builder.LiteralArgumentBuilder<CommandSourceStack> root =
+                net.minecraft.commands.Commands.literal("dynamx")
+                        .requires(src -> src.hasPermission(2));
         for (ISubCommand cmd : commands.values()) {
-            cmd.register(dispatcher);
+            com.mojang.brigadier.builder.LiteralArgumentBuilder<CommandSourceStack> sub = cmd.buildBrigadier();
+            if (sub != null) {
+                root = root.then(sub);
+            }
+        }
+        event.getDispatcher().register(root);
+        for (ISubCommand cmd : commands.values()) {
+            cmd.register(event.getDispatcher());
         }
     }
 

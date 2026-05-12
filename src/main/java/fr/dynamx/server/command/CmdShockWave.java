@@ -40,7 +40,15 @@ public class CmdShockWave implements ISubCommand {
     }
 
     @Override
-    public void register(CommandDispatcher<CommandSourceStack> dispatcher) {
-        // TODO port:1.20.1 - Brigadier port: literal("shockwave").then(argument("force", FloatArgumentType.floatArg())).executes(...).
+    public com.mojang.brigadier.builder.LiteralArgumentBuilder<CommandSourceStack> buildBrigadier() {
+        return net.minecraft.commands.Commands.literal(getName())
+                .then(net.minecraft.commands.Commands.argument("force",
+                                com.mojang.brigadier.arguments.FloatArgumentType.floatArg())
+                        .executes(ctx -> {
+                            explosionForce = com.mojang.brigadier.arguments.FloatArgumentType.getFloat(ctx, "force");
+                            final float f = explosionForce;
+                            ctx.getSource().sendSuccess(() -> Component.literal("Set force to " + f), false);
+                            return 1;
+                        }));
     }
 }

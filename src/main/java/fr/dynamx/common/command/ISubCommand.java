@@ -40,6 +40,15 @@ public interface ISubCommand {
         // TODO port:1.20.1 - Brigadier port: attach sub-command on the dispatcher.
     }
 
+    /**
+     * Returns a Brigadier literal sub-node to attach under {@code /dynamx}, or {@code null} if this
+     * sub-command has no Brigadier wiring yet. Used by {@code DynamXServerCommands} to build the
+     * unified {@code /dynamx <name> ...} command tree.
+     */
+    default com.mojang.brigadier.builder.LiteralArgumentBuilder<CommandSourceStack> buildBrigadier() {
+        return null;
+    }
+
     default void getTabCompletions(MinecraftServer server, CommandSourceStack sender, String[] args, @Nullable BlockPos targetPos, List<String> r) {
     }
 
