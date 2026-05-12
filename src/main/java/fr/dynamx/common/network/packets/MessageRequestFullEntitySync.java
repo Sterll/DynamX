@@ -2,6 +2,7 @@ package fr.dynamx.common.network.packets;
 
 import fr.dynamx.api.network.EnumNetworkType;
 import fr.dynamx.common.entities.PhysicsEntity;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
 
 public class MessageRequestFullEntitySync extends PhysicsEntityMessage<MessageRequestFullEntitySync> {
@@ -25,7 +26,10 @@ public class MessageRequestFullEntitySync extends PhysicsEntityMessage<MessageRe
 
     @Override
     protected void processMessageServer(PhysicsEntityMessage<?> message, PhysicsEntity<?> entity, Player player) {
-        // TODO port:1.20.1 - Re-port using ServerPlayer#connection#getConnection#isConnected and
-        // entity.getSynchronizer().resyncEntity((ServerPlayer) player) once PhysicsEntitySynchronizer wiring is finalized.
+        if (player instanceof ServerPlayer serverPlayer && serverPlayer.connection != null
+                && serverPlayer.connection.connection.isConnected()
+                && entity.getSynchronizer() != null) {
+            entity.getSynchronizer().resyncEntity(serverPlayer);
+        }
     }
 }

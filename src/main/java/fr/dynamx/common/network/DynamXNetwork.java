@@ -251,4 +251,8 @@ public class DynamXNetwork {
     public static void sendToAll(IDnxPacket msg) {
         CHANNEL.send(net.minecraftforge.network.PacketDistributor.ALL.noArg(), msg);
     }
+
+    public static void sendToAllTracking(IDnxPacket msg, net.minecraft.world.entity.Entity entity) {
+        CHANNEL.send(net.minecraftforge.network.PacketDistributor.TRACKING_ENTITY.with(() -> entity), msg);
+    }
 }

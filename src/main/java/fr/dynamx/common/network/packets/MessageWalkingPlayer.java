@@ -1,8 +1,13 @@
 package fr.dynamx.common.network.packets;
 
 import com.jme3.math.Vector3f;
+import fr.dynamx.common.DynamXContext;
 import fr.dynamx.common.entities.PhysicsEntity;
+import fr.dynamx.common.network.DynamXNetwork;
+import fr.dynamx.common.physics.player.WalkingOnPlayerController;
 import io.netty.buffer.ByteBuf;
+import net.minecraft.core.Direction;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
 
 public class MessageWalkingPlayer extends PhysicsEntityMessage<MessageWalkingPlayer> {
@@ -41,12 +46,31 @@ public class MessageWalkingPlayer extends PhysicsEntityMessage<MessageWalkingPla
 
     @Override
     protected void processMessageClient(PhysicsEntityMessage<?> message, PhysicsEntity<?> entity, Player player) {
-        // TODO port:1.20.1 - Re-port using level().getEntity, EnumFacing → Direction.from3DDataValue,
-        // entity.walkingOnPlayers, DynamXContext.getWalkingPlayers, WalkingOnPlayerController.
+        apply((MessageWalkingPlayer) message, entity);
     }
 
     @Override
     protected void processMessageServer(PhysicsEntityMessage<?> message, PhysicsEntity<?> entity, Player player) {
-        // TODO port:1.20.1 - Same as client + re-broadcast via DynamXContext.getNetwork().sendToClientFromOtherThread.
+        MessageWalkingPlayer m = (MessageWalkingPlayer) message;
+        apply(m, entity);
+        DynamXNetwork.sendToAllTracking(m, entity);
+    }
+
+    private static void apply(MessageWalkingPlayer m, PhysicsEntity<?> entity) {
+        Entity target = entity.level().getEntity(m.playerId);
+        if (!(target instanceof Player walking)) {
+            return;
+        }
+        if (m.face == -1) {
+            WalkingOnPlayerController controller = entity.walkingOnPlayers.remove(walking);
+            if (controller != null) {
+                DynamXContext.getWalkingPlayers().remove(walking);
+            }
+            return;
+        }
+        Direction direction = Direction.from3DDataValue(m.face);
+        WalkingOnPlayerController controller = new WalkingOnPlayerController(walking, entity, direction, m.offset);
+        entity.walkingOnPlayers.put(walking, controller);
+        DynamXContext.getWalkingPlayers().put(walking, entity);
     }
 }

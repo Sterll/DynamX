@@ -41,8 +41,12 @@ public class MessageForcePlayerPos extends PhysicsEntityMessage<MessageForcePlay
 
     @Override
     protected void processMessageClient(PhysicsEntityMessage<?> message, PhysicsEntity<?> entity, Player player) {
-        // TODO port:1.20.1 - Body relies on PhysicsEntity.physicsHandler, physicsPosition,
-        // physicsRotation, Minecraft#ingameGUI#setOverlayMessage (renamed in 1.20). Restore in Phase 5b.
+        MessageForcePlayerPos m = (MessageForcePlayerPos) message;
+        entity.physicsPosition.set(m.rightPos);
+        entity.physicsRotation.set(m.rotation);
+        if (entity.physicsHandler != null) {
+            entity.physicsHandler.updatePhysicsState(m.rightPos, m.rotation, m.linearVel, m.rotationalVel);
+        }
     }
 
     @Override
