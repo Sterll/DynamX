@@ -42,8 +42,11 @@ public class CmdOpenDebugGui implements ISubCommand {
     }
 
     @Override
-    public void register(CommandDispatcher<CommandSourceStack> dispatcher) {
-        // TODO port:1.20.1 - Brigadier port: literal("debug_gui").executes(...).
+    public com.mojang.brigadier.builder.LiteralArgumentBuilder<CommandSourceStack> buildBrigadier() {
+        return net.minecraft.commands.Commands.literal(getName()).executes(ctx -> {
+            execute(ctx.getSource().getServer(), ctx.getSource(), new String[]{getName()});
+            return 1;
+        });
     }
 
     @OnlyIn(Dist.CLIENT)
