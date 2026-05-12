@@ -11,10 +11,13 @@ import fr.dynamx.utils.optimization.GlQuaternionPool;
 import fr.dynamx.utils.optimization.QuaternionPool;
 import fr.dynamx.utils.optimization.SubClassPool;
 import fr.dynamx.utils.optimization.Vector3fPool;
+import net.minecraft.client.renderer.LevelRenderer;
 import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.entity.EntityRenderer;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.phys.AABB;
 import net.minecraftforge.common.MinecraftForge;
 
 import javax.annotation.Nullable;
@@ -91,8 +94,7 @@ public abstract class RenderPhysicsEntity<T extends PhysicsEntity<?>> extends En
 
         BaseRenderContext.EntityRenderContext context = getRenderContext(entity);
         if (context == null) {
-            // TODO port:1.20.1 - was: renderOffsetAABB(entity.getEntityBoundingBox(), x - entity.lastTickPosX, ...);
-            // Reauthor a missing-model fallback on top of LevelRenderer.renderLineBox.
+            renderMissingModelFallback(entity, poseStack, bufferSource);
             return;
         }
         // The engine already pre-translated the PoseStack to (entity.x - cameraX, ...) so we use 0,0,0
@@ -123,6 +125,18 @@ public abstract class RenderPhysicsEntity<T extends PhysicsEntity<?>> extends En
         Vector3fPool.closePool();
         QuaternionPool.closePool();
         GlQuaternionPool.closePool();
+    }
+
+    /**
+     * Fallback used when {@link #getRenderContext(PhysicsEntity)} returns null (no model bound).
+     * Draws a wireframe over the entity's bounding box plus a magenta box around the physics
+     * collision shape extents so spawned vehicles remain visible while the DxModelRegistry
+     * pipeline is being ported.
+     */
+    private void renderMissingModelFallback(T entity, PoseStack poseStack, MultiBufferSource bufferSource) {
+        AABB box = entity.getBoundingBox().move(-entity.getX(), -entity.getY(), -entity.getZ());
+        LevelRenderer.renderLineBox(poseStack, bufferSource.getBuffer(RenderType.lines()),
+                box, 1.0f, 0.2f, 0.8f, 1.0f);
     }
 
     public void spawnParticles(T physicsEntity, BaseRenderContext.EntityRenderContext context) {
