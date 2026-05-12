@@ -7,6 +7,8 @@ import net.minecraft.server.network.ServerGamePacketListenerImpl;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
+import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Redirect;
 
 /**
  * Patches the server game-packet listener to disable "moving too quickly"/"moved wrongly" warnings
@@ -41,18 +43,24 @@ public class MixinNetHandlerPlayServer {
     @Unique
     private int dynamX$overrideReachDistance;
 
-    // TODO port:1.20.1 - re-redirect isChangingDimension() in handleMovePlayer to silence the
-    //   "moving too quickly"/"moved wrongly" spam when DynamXContext.getWalkingPlayers() contains
-    //   the moving player.
+    /**
+     * Suppresses vanilla "moved too quickly" / "moved wrongly" warnings (and the teleport-back they
+     * trigger) when the player is walking on a DynamX vehicle. Both guards in
+     * {@code handleMovePlayer} short-circuit when {@code isChangingDimension()} returns true; we
+     * piggy-back on that path for walking players.
+     */
+    @Redirect(method = "handleMovePlayer",
+            at = @At(value = "INVOKE",
+                    target = "Lnet/minecraft/server/level/ServerPlayer;isChangingDimension()Z"),
+            remap = DynamXConstants.REMAP)
+    private boolean dynamX$skipMovementChecks(ServerPlayer self) {
+        if (DynamXContext.getWalkingPlayers().containsKey(self)) {
+            return true;
+        }
+        return self.isChangingDimension();
+    }
 
     // TODO port:1.20.1 - re-inject into handlePlayerAction to override reach distance for
     //   DynamXBlock interactions (vanilla 1.20.1 no longer uses an attribute for reach;
     //   it's NeoForgeMod.BLOCK_REACH).
-
-    @SuppressWarnings("unused")
-    private void dynamX$walkingPlayerHook() {
-        // intentionally empty - placeholder so DynamXContext import stays valid until
-        // the redirects are re-implemented.
-        DynamXContext.getWalkingPlayers().containsKey(this.player);
-    }
 }
