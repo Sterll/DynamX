@@ -3,7 +3,10 @@ package fr.dynamx.common.items;
 import fr.dynamx.api.contentpack.object.render.IResourcesOwner;
 import fr.dynamx.common.items.tools.ItemWrench;
 import fr.dynamx.utils.DynamXConstants;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.Item;
+import net.minecraftforge.registries.ForgeRegistries;
+import net.minecraftforge.registries.RegisterEvent;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -69,11 +72,32 @@ public class DynamXItemRegistry {
     }
 
     /**
-     * TODO port:1.20.1 - {@code RegistryEvent.Register<Item>} no longer exists. The DeferredRegister model registers
-     *  items eagerly when their suppliers run. This method is kept as a no-op stub so legacy call sites compile.
+     * Registers every item collected through {@link #add(Item)} with the item registry.
+     *
+     * <p>Items already registered (e.g. tools wired via {@code DynamXItems} {@code DeferredRegister}) are
+     * skipped to avoid duplicate registration. Content-pack items get a registry id of the form
+     * {@code dynamxmod:<json-name>}.
      */
-    public static void injectItems(Object event) {
-        // TODO port:1.20.1 - Implement via DeferredRegister in the entry-point phase.
+    public static void injectItems(RegisterEvent event) {
+        if (!event.getRegistryKey().equals(ForgeRegistries.Keys.ITEMS)) {
+            return;
+        }
+        for (IResourcesOwner owner : ITEMS) {
+            Item item = owner.getItem();
+            if (item == null) {
+                continue;
+            }
+            ResourceLocation existing = ForgeRegistries.ITEMS.getKey(item);
+            if (existing != null && ForgeRegistries.ITEMS.containsKey(existing)) {
+                continue;
+            }
+            String name = owner.getJsonName(0).toLowerCase();
+            ResourceLocation id = new ResourceLocation(DynamXConstants.ID, name);
+            if (ForgeRegistries.ITEMS.containsKey(id)) {
+                continue;
+            }
+            event.register(ForgeRegistries.Keys.ITEMS, id, () -> item);
+        }
     }
 
     public static void registerItemBlock(Object block) {

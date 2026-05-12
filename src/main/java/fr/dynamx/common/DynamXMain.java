@@ -145,8 +145,31 @@ public class DynamXMain {
         // TODO port:1.20.1 - port the FMLConstructionEvent body: MPS init,
         //   ACsLib threaded loading service, addons init, schedulePacksInit().
 
+        // Content pack discovery has to run BEFORE RegisterEvent fires so that pack-defined items
+        // (cars/boats/props/...) can be registered into the Forge items registry. The legacy code
+        // did this from FMLConstructionEvent which 1.20.1 collapsed into mod-construction.
+        try {
+            java.io.File gameDir = net.minecraftforge.fml.loading.FMLPaths.GAMEDIR.get().toFile();
+            resourcesDirectory = gameDir;
+            java.io.File packsDir = fr.dynamx.common.contentpack.ContentPackLoader.init(gameDir, "DynamXResourcePacks");
+            fr.dynamx.utils.optimization.Vector3fPool.openPool(
+                    fr.dynamx.utils.optimization.SubClassPool.PACK_MODEL_LOAD);
+            try {
+                fr.dynamx.common.contentpack.ContentPackLoader.reload(packsDir, true);
+            } finally {
+                fr.dynamx.utils.optimization.Vector3fPool.closePool();
+            }
+        } catch (Throwable t) {
+            log.error("DynamX content pack loading failed", t);
+        }
+
         modBus.addListener(this::commonSetup);
         modBus.addListener(this::loadComplete);
+
+        // RegisterEvent listener that registers content-pack-loaded items collected through
+        // DynamXItemRegistry.add(...) into the items registry. DeferredRegister-backed tools are
+        // skipped via a duplicate-key check inside injectItems(event).
+        modBus.addListener(fr.dynamx.common.items.DynamXItemRegistry::injectItems);
 
         // DeferredRegister wiring for all DynamX content (items, blocks, block entities, entities, creative tabs).
         fr.dynamx.common.core.DynamXItems.register(modBus);
@@ -188,23 +211,8 @@ public class DynamXMain {
         //   (ModLoadingContext.get().registerConfig(...)).
         DynamXContext.initNetwork();
 
-        // Content pack discovery: scan the "DynamXResourcePacks" folder under the game directory
-        // and load every folder/zip/.dnxpack inside it. Replaces the legacy schedulePacksInit()
-        // path that ran through ACsLib's ThreadedLoadingService.
-        try {
-            java.io.File gameDir = net.minecraftforge.fml.loading.FMLPaths.GAMEDIR.get().toFile();
-            resourcesDirectory = gameDir;
-            java.io.File packsDir = fr.dynamx.common.contentpack.ContentPackLoader.init(gameDir, "DynamXResourcePacks");
-            fr.dynamx.utils.optimization.Vector3fPool.openPool(
-                    fr.dynamx.utils.optimization.SubClassPool.PACK_MODEL_LOAD);
-            try {
-                fr.dynamx.common.contentpack.ContentPackLoader.reload(packsDir, true);
-            } finally {
-                fr.dynamx.utils.optimization.Vector3fPool.closePool();
-            }
-        } catch (Throwable t) {
-            log.error("DynamX content pack loading failed", t);
-        }
+        // Content pack discovery has moved to the mod constructor so RegisterEvent can see the
+        // loaded items. See DynamXMain#DynamXMain(IEventBus).
 
         if (proxy != null) {
             try {
