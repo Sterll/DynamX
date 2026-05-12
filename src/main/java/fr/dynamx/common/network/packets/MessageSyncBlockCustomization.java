@@ -3,9 +3,17 @@ package fr.dynamx.common.network.packets;
 import com.jme3.math.Vector3f;
 import fr.dynamx.api.network.EnumNetworkType;
 import fr.dynamx.api.network.IDnxPacket;
+import fr.dynamx.common.blocks.TEDynamXBlock;
 import fr.dynamx.utils.DynamXUtils;
 import io.netty.buffer.ByteBuf;
 import net.minecraft.core.BlockPos;
+import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraftforge.fml.LogicalSide;
 
 public class MessageSyncBlockCustomization implements IDnxPacket {
 
@@ -38,10 +46,27 @@ public class MessageSyncBlockCustomization implements IDnxPacket {
         relativeRotation = DynamXUtils.readVector3f(buf);
     }
 
-    public static void handle(MessageSyncBlockCustomization message /*, IPayloadContext ctx */) {
-        // TODO port:1.20.1 - TEDynamXBlock not yet ported (Phase block-entities). Re-port using
-        // level().getBlockEntity, BlockState markCollisionsDirty equivalent, setBlock invalidation,
-        // ServerPlayer#hasPermissions(4) for permission check.
+    @Override
+    public void handleUDPReceive(Player context, LogicalSide side) {
+        if (side != LogicalSide.SERVER || !(context instanceof ServerPlayer player) || context.level() == null) {
+            return;
+        }
+        Level level = player.level();
+        BlockEntity be = level.getBlockEntity(blockPos);
+        if (!(be instanceof TEDynamXBlock te)) {
+            return;
+        }
+        if (!player.hasPermissions(4)) {
+            player.sendSystemMessage(Component.literal("You're not allowed to do this"));
+            return;
+        }
+        te.setRelativeTranslation(relativeTranslation);
+        te.setRelativeScale(relativeScale);
+        te.setRelativeRotation(relativeRotation);
+        te.setChanged();
+        te.markCollisionsDirty(true);
+        BlockState state = level.getBlockState(blockPos);
+        level.sendBlockUpdated(blockPos, state, state, 4);
     }
 
     @Override
