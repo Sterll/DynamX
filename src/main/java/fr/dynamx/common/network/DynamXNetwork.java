@@ -176,12 +176,30 @@ public class DynamXNetwork {
             CHANNEL.messageBuilder(message, id++, direction)
                     .encoder((msg, buf) -> msg.toBytes(buf))
                     .decoder(buf -> newPacket(message, buf))
-                    .consumerMainThread((msg, ctx) -> {
-                        // TODO port:1.20.1 - per-packet handle() dispatch; most handlers are still stubbed.
-                        // Each Message* class should expose a static handle(packet, ctx) and have it
-                        // invoked here once ported. For now we just acknowledge so the channel doesn't
-                        // crash on receipt.
-                        ctx.get().setPacketHandled(true);
+                    .consumerMainThread((msg, ctxSupplier) -> {
+                        net.minecraftforge.network.NetworkEvent.Context ctx = ctxSupplier.get();
+                        try {
+                            net.minecraft.world.entity.player.Player player;
+                            LogicalSide receiveSide;
+                            if (ctx.getDirection().getReceptionSide().isServer()) {
+                                player = ctx.getSender();
+                                receiveSide = LogicalSide.SERVER;
+                            } else {
+                                player = net.minecraftforge.fml.DistExecutor.safeCallWhenOn(
+                                        net.minecraftforge.api.distmarker.Dist.CLIENT,
+                                        () -> ClientNetworkBridge::getLocalPlayer);
+                                receiveSide = LogicalSide.CLIENT;
+                            }
+                            // PhysicsEntityMessage subclasses already implement handleUDPReceive
+                            // via processMessage; other packets default to a no-op until ported.
+                            msg.handleUDPReceive(player, receiveSide);
+                        } catch (UnsupportedOperationException expected) {
+                            // Packet hasn't been ported yet — drop silently.
+                        } catch (Throwable t) {
+                            org.apache.logging.log4j.LogManager.getLogger("DynamX")
+                                    .error("Failed to handle packet " + message.getSimpleName(), t);
+                        }
+                        ctx.setPacketHandled(true);
                     })
                     .add();
         }
