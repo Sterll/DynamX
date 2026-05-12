@@ -137,17 +137,81 @@ public class ArmorObject<T extends ArmorObject<T>> extends AbstractItemObject<T,
     @Override
     @SuppressWarnings({"unchecked", "rawtypes"})
     public IDynamXItem<T>[] createItems(InfoList<T> loader) {
-        // TODO port:1.20.1 - Original used ItemArmor.ArmorMaterial + EnumHelper.addArmorMaterial(...)
-        //   (removed in 1.20.1) and DynamXItemArmor (Phase 6). Building items requires the new
-        //   ArmorMaterial / Holder<ArmorMaterial> registry plus the DynamXItemArmor port.
-        //   Stub: leaves items empty and logs a fatal error if no armor slot was configured, mirroring
-        //   the legacy validation.
+        // 1.20.1: ItemArmor + EnumHelper.addArmorMaterial are gone. We build a per-pack
+        // ArmorMaterial implementation from the pack-file fields (Durability, Enchantability,
+        // DamageReduction, EquipSound, Toughness) and create one DynamXItemArmor per configured
+        // slot. DamageReduction order in pack files is [feet, legs, chest, head] (legacy mapping).
         List<IDynamXItem<T>> owners = new ArrayList<>();
+        net.minecraft.world.item.ArmorMaterial material = buildArmorMaterial();
+        if (armorFoot != null)
+            owners.add((IDynamXItem) new fr.dynamx.common.items.DynamXItemArmor((ArmorObject) this, material, EquipmentSlot.FEET));
+        if (armorLegs != null)
+            owners.add((IDynamXItem) new fr.dynamx.common.items.DynamXItemArmor((ArmorObject) this, material, EquipmentSlot.LEGS));
+        if (armorBody != null || armorArms != null)
+            owners.add((IDynamXItem) new fr.dynamx.common.items.DynamXItemArmor((ArmorObject) this, material, EquipmentSlot.CHEST));
+        if (armorHead != null)
+            owners.add((IDynamXItem) new fr.dynamx.common.items.DynamXItemArmor((ArmorObject) this, material, EquipmentSlot.HEAD));
         if (owners.isEmpty())
             DynamXErrorManager.addPackError(getPackName(), "armor_error", ErrorLevel.FATAL, getName(),
-                    "Armor items cannot be created yet (Phase 6 not ported)");
+                    "Armor " + getFullName() + " has no slot configured (ArmorHead/Body/Arms/Legs/Foot)");
         this.items = owners.toArray(new IDynamXItem[0]);
         return this.items;
+    }
+
+    /**
+     * Builds an {@link net.minecraft.world.item.ArmorMaterial} from this armor's pack-file fields.
+     * The legacy code obtained one through {@code EnumHelper.addArmorMaterial}; 1.20.1 only requires
+     * an interface implementation, so we synthesize one per armor.
+     */
+    private net.minecraft.world.item.ArmorMaterial buildArmorMaterial() {
+        final String materialName = (getPackName() + "." + getName()).toLowerCase().replace('.', '_');
+        final int dur = durability;
+        final int ench = enchantibility;
+        final float tough = toughness;
+        final SoundEvent equipSound = sound;
+        final int[] reductions = reductionAmount != null && reductionAmount.length >= 4
+                ? reductionAmount : new int[]{1, 2, 3, 1};
+        return new net.minecraft.world.item.ArmorMaterial() {
+            @Override
+            public int getDurabilityForType(net.minecraft.world.item.ArmorItem.Type type) {
+                // Legacy multiplied the base durability per slot like vanilla materials do.
+                int[] multipliers = {13, 15, 16, 11};
+                return dur * multipliers[type.ordinal()];
+            }
+
+            @Override
+            public int getDefenseForType(net.minecraft.world.item.ArmorItem.Type type) {
+                // Pack DamageReduction is stored as [feet, legs, chest, head]; ArmorItem.Type
+                // ordering is HELMET, CHESTPLATE, LEGGINGS, BOOTS.
+                switch (type) {
+                    case BOOTS: return reductions[0];
+                    case LEGGINGS: return reductions[1];
+                    case CHESTPLATE: return reductions[2];
+                    case HELMET: return reductions[3];
+                    default: return 0;
+                }
+            }
+
+            @Override
+            public int getEnchantmentValue() { return ench; }
+
+            @Override
+            public SoundEvent getEquipSound() { return equipSound; }
+
+            @Override
+            public net.minecraft.world.item.crafting.Ingredient getRepairIngredient() {
+                return net.minecraft.world.item.crafting.Ingredient.EMPTY;
+            }
+
+            @Override
+            public String getName() { return materialName; }
+
+            @Override
+            public float getToughness() { return tough; }
+
+            @Override
+            public float getKnockbackResistance() { return 0f; }
+        };
     }
 
     @Override
@@ -198,11 +262,11 @@ public class ArmorObject<T extends ArmorObject<T>> extends AbstractItemObject<T,
         return prefix + " " + super.getTranslatedName(item, itemMeta) + "_" + String.valueOf(getVariants().getVariant((byte) itemMeta));
     }
 
-    /**
-     * TODO port:1.20.1 - Helper that originally cast item to DynamXItemArmor and read its armorType.
-     *   Without DynamXItemArmor (Phase 6) we cannot resolve the slot; returns null.
-     */
+    @SuppressWarnings({"rawtypes"})
     private EquipmentSlot getSlotFor(IDynamXItem<T> item) {
+        if (item instanceof fr.dynamx.common.items.DynamXItemArmor) {
+            return ((fr.dynamx.common.items.DynamXItemArmor) item).armorType;
+        }
         return null;
     }
 

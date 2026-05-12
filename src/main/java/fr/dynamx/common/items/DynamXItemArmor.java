@@ -38,7 +38,7 @@ public class DynamXItemArmor<T extends ArmorObject<?>> extends ArmorItem impleme
     protected final int textureNum;
     protected T armorInfo;
     // Preserves the legacy armor slot field name for downstream code that referenced `armorType`.
-    protected final EquipmentSlot armorType;
+    public final EquipmentSlot armorType;
 
     public DynamXItemArmor(T armorInfo, ArmorMaterial material, EquipmentSlot armorType) {
         super(material, slotToType(armorType), new Properties());
