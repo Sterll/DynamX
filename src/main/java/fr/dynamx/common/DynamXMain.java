@@ -188,11 +188,23 @@ public class DynamXMain {
         //   (ModLoadingContext.get().registerConfig(...)).
         DynamXContext.initNetwork();
 
-        // TODO port:1.20.1 - register items (ItemShockWave / ItemSlopes / ItemRagdoll) via
-        //   DeferredRegister<Item>.
-        // TODO port:1.20.1 - register entities (CarEntity, TrailerEntity, ...) via
-        //   DeferredRegister<EntityType<?>>.
-        // TODO port:1.20.1 - MenuType registration replaces NetworkRegistry.registerGuiHandler.
+        // Content pack discovery: scan the "DynamXResourcePacks" folder under the game directory
+        // and load every folder/zip/.dnxpack inside it. Replaces the legacy schedulePacksInit()
+        // path that ran through ACsLib's ThreadedLoadingService.
+        try {
+            java.io.File gameDir = net.minecraftforge.fml.loading.FMLPaths.GAMEDIR.get().toFile();
+            resourcesDirectory = gameDir;
+            java.io.File packsDir = fr.dynamx.common.contentpack.ContentPackLoader.init(gameDir, "DynamXResourcePacks");
+            fr.dynamx.utils.optimization.Vector3fPool.openPool(
+                    fr.dynamx.utils.optimization.SubClassPool.PACK_MODEL_LOAD);
+            try {
+                fr.dynamx.common.contentpack.ContentPackLoader.reload(packsDir, true);
+            } finally {
+                fr.dynamx.utils.optimization.Vector3fPool.closePool();
+            }
+        } catch (Throwable t) {
+            log.error("DynamX content pack loading failed", t);
+        }
 
         if (proxy != null) {
             try {
