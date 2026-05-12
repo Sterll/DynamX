@@ -1,14 +1,17 @@
 package fr.dynamx.common.handlers;
 
 import com.jme3.math.Vector3f;
+import fr.dynamx.common.entities.PhysicsEntity;
 import fr.dynamx.common.items.tools.ItemSlopes;
 import fr.dynamx.common.network.DynamXNetwork;
+import fr.dynamx.common.network.packets.MessageHandleExplosion;
 import fr.dynamx.common.network.packets.MessageSyncConfig;
 import fr.dynamx.utils.DynamXConstants;
 import fr.dynamx.utils.optimization.Vector3fPool;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.ChunkPos;
@@ -17,7 +20,11 @@ import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.event.entity.player.PlayerInteractEvent;
+import net.minecraftforge.event.level.ExplosionEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
+
+import java.util.ArrayList;
+import java.util.List;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -74,8 +81,23 @@ public class CommonEventHandler {
         // once physics world is plugged back in.
     }
 
-    public void onExplosion(Object event) {
-        // TODO port:1.20.1 - ExplosionEvent.Detonate + MessageHandleExplosion (Phase 5).
+    @SubscribeEvent
+    public void onExplosion(ExplosionEvent.Detonate event) {
+        if (event.getLevel().isClientSide) {
+            return;
+        }
+        List<Entity> affected = new ArrayList<>();
+        for (Entity e : event.getAffectedEntities()) {
+            if (e instanceof PhysicsEntity<?>) {
+                affected.add(e);
+            }
+        }
+        if (affected.isEmpty()) {
+            return;
+        }
+        Vec3 pos = event.getExplosion().getPosition();
+        Vector3f explosionPos = new Vector3f((float) pos.x, (float) pos.y, (float) pos.z);
+        DynamXNetwork.sendToAll(new MessageHandleExplosion(explosionPos, affected));
     }
 
     public void onWorldLoad(Object event) {
