@@ -3,9 +3,16 @@ package fr.dynamx.common.network.packets;
 import com.jme3.math.Vector3f;
 import fr.dynamx.api.network.EnumNetworkType;
 import fr.dynamx.api.network.IDnxPacket;
+import fr.dynamx.common.entities.PhysicsEntity;
+import fr.dynamx.common.network.ClientNetworkBridge;
 import fr.dynamx.utils.DynamXUtils;
+import fr.dynamx.utils.physics.DynamXPhysicsHelper;
 import io.netty.buffer.ByteBuf;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.player.Player;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.fml.DistExecutor;
+import net.minecraftforge.fml.LogicalSide;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -50,8 +57,20 @@ public class MessageHandleExplosion implements IDnxPacket {
         }
     }
 
-    public static void handle(MessageHandleExplosion message /*, IPayloadContext ctx */) {
-        // TODO port:1.20.1 - Body needs Minecraft.getInstance().level.getEntity, PhysicsEntity check,
-        // DynamXPhysicsHelper.createExplosion. Re-port in Phase 5b/8.
+    @Override
+    public void handleUDPReceive(Player context, LogicalSide side) {
+        if (side != LogicalSide.CLIENT) {
+            return;
+        }
+        Player local = DistExecutor.safeCallWhenOn(Dist.CLIENT, () -> ClientNetworkBridge::getLocalPlayer);
+        if (local == null || local.level() == null) {
+            return;
+        }
+        for (Integer id : entityIdList) {
+            Entity e = local.level().getEntity(id);
+            if (e instanceof PhysicsEntity<?> pe) {
+                DynamXPhysicsHelper.createExplosion(pe, explosionPosition, 5.0D);
+            }
+        }
     }
 }
