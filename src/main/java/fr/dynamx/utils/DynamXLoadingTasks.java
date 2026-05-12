@@ -146,6 +146,13 @@ public class DynamXLoadingTasks {
     }
 
     /**
+     * @return True if a reload of {@code type} is currently in flight (i.e. {@link #endTask} is expected).
+     */
+    public static boolean isReloading(Consumer<TaskContext> type) {
+        return reloadCallbacks.containsKey(type);
+    }
+
+    /**
      * Reload contexts
      */
     public enum TaskContext {

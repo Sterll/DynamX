@@ -2,9 +2,13 @@ package fr.dynamx.common.network.packets;
 
 import fr.dynamx.api.network.EnumNetworkType;
 import fr.dynamx.api.network.IDnxPacket;
+import fr.dynamx.common.items.tools.ItemSlopes;
 import io.netty.buffer.ByteBuf;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
+import net.minecraftforge.fml.LogicalSide;
 
 public class MessageSlopesConfigGui implements IDnxPacket {
     private CompoundTag serializedConfig;
@@ -35,8 +39,14 @@ public class MessageSlopesConfigGui implements IDnxPacket {
         fb.writeNbt(serializedConfig);
     }
 
-    public static void handle(MessageSlopesConfigGui message /*, IPayloadContext ctx */) {
-        // TODO port:1.20.1 - Original wrote NBT "ptconfig" into the player's held ItemSlopes stack.
-        // Re-port using Player#getMainHandItem and stack.getOrCreateTag once ItemSlopes is ported.
+    @Override
+    public void handleUDPReceive(Player context, LogicalSide side) {
+        if (side != LogicalSide.SERVER || context == null) {
+            return;
+        }
+        ItemStack stack = context.getMainHandItem();
+        if (stack.getItem() instanceof ItemSlopes) {
+            stack.getOrCreateTag().put("ptconfig", serializedConfig);
+        }
     }
 }

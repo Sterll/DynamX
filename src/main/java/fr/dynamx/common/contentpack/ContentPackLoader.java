@@ -303,7 +303,9 @@ public class ContentPackLoader {
             scheduleLanguageRefresh();
         }
         PackSyncHandler.computeAll();
-        fr.dynamx.utils.DynamXLoadingTasks.endTask(fr.dynamx.utils.DynamXLoadingTasks.PACK);
+        if (fr.dynamx.utils.DynamXLoadingTasks.isReloading(fr.dynamx.utils.DynamXLoadingTasks.PACK)) {
+            fr.dynamx.utils.DynamXLoadingTasks.endTask(fr.dynamx.utils.DynamXLoadingTasks.PACK);
+        }
     }
 
     private static void loadPack(String loadingPack, File contentPack, ContentPackType packType, String suffix, PackFile packInfo, List<PackFile> packFiles) {

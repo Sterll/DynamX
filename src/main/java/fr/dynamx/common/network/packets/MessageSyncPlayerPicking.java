@@ -3,6 +3,8 @@ package fr.dynamx.common.network.packets;
 import fr.dynamx.api.network.EnumNetworkType;
 import fr.dynamx.api.network.IDnxPacket;
 import io.netty.buffer.ByteBuf;
+import net.minecraft.world.entity.player.Player;
+import net.minecraftforge.fml.LogicalSide;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -39,8 +41,11 @@ public class MessageSyncPlayerPicking implements IDnxPacket {
         return map;
     }
 
-    public static void handle(MessageSyncPlayerPicking message /*, IPayloadContext ctx */) {
-        // TODO port:1.20.1 - DynamXContext.setPlayerPickingObjects(message.map) once DynamXContext is ported (Phase 4b).
+    @Override
+    public void handleUDPReceive(Player context, LogicalSide side) {
+        if (side == LogicalSide.CLIENT) {
+            fr.dynamx.common.DynamXContext.setPlayerPickingObjects(map);
+        }
     }
 
     @Override

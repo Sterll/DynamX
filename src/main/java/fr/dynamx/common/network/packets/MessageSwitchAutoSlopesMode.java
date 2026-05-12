@@ -3,6 +3,8 @@ package fr.dynamx.common.network.packets;
 import fr.dynamx.api.network.EnumNetworkType;
 import fr.dynamx.api.network.IDnxPacket;
 import io.netty.buffer.ByteBuf;
+import net.minecraft.world.entity.player.Player;
+import net.minecraftforge.fml.LogicalSide;
 
 public class MessageSwitchAutoSlopesMode implements IDnxPacket {
     public int mode;
@@ -29,21 +31,10 @@ public class MessageSwitchAutoSlopesMode implements IDnxPacket {
         buf.writeInt(mode);
     }
 
-    /**
-     * Legacy nested Handler retained.
-     */
-    public static class Handler {
-        public static void handle(MessageSwitchAutoSlopesMode message /*, IPayloadContext ctx */) {
-            handleClient(message);
-        }
-
-        private static void handleClient(MessageSwitchAutoSlopesMode message) {
-            // TODO port:1.20.1 - ContentPackLoader.PLACE_SLOPES = message.mode == 1; — ContentPackLoader is ported.
-            try {
-                fr.dynamx.common.contentpack.ContentPackLoader.PLACE_SLOPES = message.mode == 1;
-            } catch (Throwable t) {
-                // TODO port:1.20.1 - ContentPackLoader.PLACE_SLOPES field may not yet exist.
-            }
+    @Override
+    public void handleUDPReceive(Player context, LogicalSide side) {
+        if (side == LogicalSide.CLIENT) {
+            fr.dynamx.common.contentpack.ContentPackLoader.PLACE_SLOPES = mode == 1;
         }
     }
 }
