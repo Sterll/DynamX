@@ -125,7 +125,9 @@ public class RotatedCollisionHandlerImpl implements IRotatedCollisionHandler {
 
     @SuppressWarnings("unused")
     private boolean shouldHandleCollision(Entity entity) {
-        // TODO port:1.20.1 - PhysicsEntity check restored once entities are fully wired.
+        if (entity instanceof fr.dynamx.common.entities.PhysicsEntity) {
+            return false;
+        }
         if (compiledIgnorePatterns == null) {
             compiledIgnorePatterns = new HashSet<>();
             for (String pattern : DynamXConfig.ignoreCollisionEntities) {
