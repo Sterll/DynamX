@@ -213,12 +213,22 @@ public class CommonEventHandler {
         }
     }
 
-    public void onVehicleMount(Object event) {
-        // TODO port:1.20.1 - VehicleEntityEvent.EntityMount (Phase 6 entities).
+    @SubscribeEvent
+    public void onVehicleMount(fr.dynamx.api.events.VehicleEntityEvent.EntityMount event) {
+        fr.dynamx.common.physics.player.PlayerPhysicsHandler handler =
+                fr.dynamx.common.DynamXContext.getPlayerToCollision().get(event.getEntityMounted());
+        if (handler != null) {
+            handler.removeFromWorld(false, event.getEntityMounted().level());
+        }
     }
 
-    public void onVehicleDismount(Object event) {
-        // TODO port:1.20.1 - VehicleEntityEvent.EntityDismount (Phase 6 entities).
+    @SubscribeEvent
+    public void onVehicleDismount(fr.dynamx.api.events.VehicleEntityEvent.EntityDismount event) {
+        fr.dynamx.common.physics.player.PlayerPhysicsHandler handler =
+                fr.dynamx.common.DynamXContext.getPlayerToCollision().get(event.getEntityDismounted());
+        if (handler != null) {
+            handler.addToWorld();
+        }
     }
 
     /**
