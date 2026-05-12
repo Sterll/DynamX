@@ -1,12 +1,19 @@
 package fr.dynamx.common.handlers;
 
+import com.jme3.math.Vector3f;
+import fr.dynamx.common.items.tools.ItemSlopes;
 import fr.dynamx.utils.DynamXConstants;
+import fr.dynamx.utils.optimization.Vector3fPool;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.Vec3;
+import net.minecraftforge.event.entity.player.PlayerInteractEvent;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -76,12 +83,35 @@ public class CommonEventHandler {
         // TODO port:1.20.1 - LevelEvent.Unload; clear physics world.
     }
 
-    public void onRightClickBlock(Object event) {
-        // TODO port:1.20.1 - PlayerInteractEvent.RightClickBlock + ItemSlopes.fixPos (Phase 4b/items).
+    @SubscribeEvent
+    public void onRightClickBlock(PlayerInteractEvent.RightClickBlock event) {
+        Player player = event.getEntity();
+        if (player == null) {
+            return;
+        }
+        if (event.getItemStack().getItem() instanceof ItemSlopes slopes) {
+            if (!player.isShiftKeyDown()) {
+                Vec3 hit = event.getHitVec() != null ? event.getHitVec().getLocation() : player.getEyePosition(1.0F);
+                Vector3fPool.openPool();
+                try {
+                    Vector3f pos = ItemSlopes.fixPos(event.getLevel(), hit);
+                    slopes.clickedWith(event.getLevel(), player, event.getHand(), pos);
+                } finally {
+                    Vector3fPool.closePool();
+                }
+            }
+        }
     }
 
-    public void onRightClick(Object event) {
-        // TODO port:1.20.1 - PlayerInteractEvent.RightClickItem; clear slopes memory.
+    @SubscribeEvent
+    public void onRightClick(PlayerInteractEvent.RightClickItem event) {
+        Player player = event.getEntity();
+        if (player == null) {
+            return;
+        }
+        if (player.isShiftKeyDown() && event.getItemStack().getItem() instanceof ItemSlopes slopes) {
+            slopes.clearMemory(event.getLevel(), player, event.getItemStack());
+        }
     }
 
     public void onTick(Object event) {
