@@ -17,8 +17,8 @@ public class ItemBoat extends ItemModularEntity {
 
     @Override
     public Object getSpawnEntity(Level worldIn, Player playerIn, Vector3f pos, float spawnRotation, int metadata) {
-        // TODO port:1.20.1 - BoatEntity not yet ported (Phase 6); returning null stub.
-        // return new BoatEntity<>(getInfo().getFullName(), worldIn, pos.subtractLocal(0, 1, 0), spawnRotation, metadata);
-        return null;
+        return new fr.dynamx.common.entities.vehicles.BoatEntity<>(
+                fr.dynamx.common.core.DynamXEntities.BOAT.get(),
+                getInfo().getFullName(), worldIn, pos.subtractLocal(0, 1, 0), spawnRotation, metadata);
     }
 }

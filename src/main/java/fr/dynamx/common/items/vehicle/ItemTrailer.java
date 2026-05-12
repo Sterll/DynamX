@@ -17,8 +17,8 @@ public class ItemTrailer extends ItemModularEntity {
 
     @Override
     public Object getSpawnEntity(Level worldIn, Player playerIn, Vector3f pos, float spawnRotation, int metadata) {
-        // TODO port:1.20.1 - TrailerEntity not yet ported (Phase 6); returning null stub.
-        // return new TrailerEntity<>(getInfo().getFullName(), worldIn, pos, spawnRotation, metadata);
-        return null;
+        return new fr.dynamx.common.entities.vehicles.TrailerEntity<>(
+                fr.dynamx.common.core.DynamXEntities.TRAILER.get(),
+                getInfo().getFullName(), worldIn, pos, spawnRotation, metadata);
     }
 }

@@ -17,8 +17,8 @@ public class ItemHelicopter extends ItemModularEntity {
 
     @Override
     public Object getSpawnEntity(Level worldIn, Player playerIn, Vector3f pos, float spawnRotation, int metadata) {
-        // TODO port:1.20.1 - HelicopterEntity not yet ported (Phase 6); returning null stub.
-        // return new HelicopterEntity<>(getInfo().getFullName(), worldIn, pos, spawnRotation, metadata);
-        return null;
+        return new fr.dynamx.common.entities.vehicles.HelicopterEntity<>(
+                fr.dynamx.common.core.DynamXEntities.HELICOPTER.get(),
+                getInfo().getFullName(), worldIn, pos, spawnRotation, metadata);
     }
 }

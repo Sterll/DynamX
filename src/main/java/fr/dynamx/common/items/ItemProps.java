@@ -62,9 +62,9 @@ public class ItemProps<T extends PropObject<T>> extends DynamXItemSpawner<T> {
 
     @Override
     public Object getSpawnEntity(Level worldIn, Player playerIn, Vector3f pos, float spawnRotation, int metadata) {
-        // TODO port:1.20.1 - PropsEntity not yet ported (Phase 6); returning null stub.
-        return null;
-        // return new PropsEntity<>(getInfo().getFullName(), worldIn, pos, spawnRotation, metadata);
+        return new fr.dynamx.common.entities.PropsEntity<>(
+                fr.dynamx.common.core.DynamXEntities.PROP.get(),
+                getInfo().getFullName(), worldIn, pos, spawnRotation, metadata);
     }
 
     // TODO port:1.20.1 - getSubItems removed; populate creative tabs via CreativeModeTabRegistryEvent.

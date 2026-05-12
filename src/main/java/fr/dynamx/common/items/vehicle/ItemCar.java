@@ -17,9 +17,9 @@ public class ItemCar extends ItemModularEntity {
 
     @Override
     public Object getSpawnEntity(Level worldIn, Player playerIn, Vector3f pos, float spawnRotation, int metadata) {
-        // TODO port:1.20.1 - CarEntity not yet ported (Phase 6); returning null stub.
-        // return new CarEntity<>(getInfo().getFullName(), worldIn, pos, spawnRotation, metadata);
-        return null;
+        return new fr.dynamx.common.entities.vehicles.CarEntity<>(
+                fr.dynamx.common.core.DynamXEntities.CAR.get(),
+                getInfo().getFullName(), worldIn, pos, spawnRotation, metadata);
     }
 
     public static ItemCar getItemForCar(ModularVehicleInfo info) {

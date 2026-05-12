@@ -2,14 +2,21 @@ package fr.dynamx.common.items;
 
 import com.jme3.math.Vector3f;
 import fr.dynamx.common.contentpack.type.objects.AbstractItemObject;
+import fr.dynamx.utils.DynamXUtils;
 import fr.dynamx.utils.optimization.Vector3fPool;
+import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.stats.Stats;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.InteractionResultHolder;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.EntityHitResult;
+import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 
 import javax.annotation.Nonnull;
@@ -44,43 +51,33 @@ public abstract class DynamXItemSpawner<T extends AbstractItemObject<T, ?>> exte
     @Nonnull
     public InteractionResultHolder<ItemStack> use(@Nonnull Level worldIn, Player playerIn, @Nonnull InteractionHand hand) {
         ItemStack itemstack = playerIn.getItemInHand(hand);
-        if (hand == InteractionHand.MAIN_HAND) {
-            // TODO port:1.20.1 - DynamXUtils.rayTraceEntitySpawn(...) not yet ported.
-            //  Once available, replicate the legacy raycast (block/entity hit, snow-layer drop, hitVec spawn).
-            //  Until then we fall through with a PASS result.
-            /*
-            HitResult raytraceresult = DynamXUtils.rayTraceEntitySpawn(worldIn, playerIn, hand);
-            if (raytraceresult == null) {
-                return InteractionResultHolder.pass(itemstack);
-            }
-            if (raytraceresult.getType() == HitResult.Type.BLOCK || raytraceresult.getType() == HitResult.Type.ENTITY) {
-                BlockPos blockpos;
-                Vec3 hitVec = raytraceresult.getLocation();
-                if (raytraceresult instanceof EntityHitResult) {
-                    blockpos = ((EntityHitResult) raytraceresult).getEntity().blockPosition();
-                } else {
-                    blockpos = ((BlockHitResult) raytraceresult).getBlockPos();
-                }
-
-                if (worldIn.getBlockState(blockpos).getBlock() == Blocks.SNOW) {
-                    blockpos = blockpos.below();
-                }
-
-                if (!spawnEntity(itemstack, worldIn, playerIn, hitVec)) {
-                    return InteractionResultHolder.fail(itemstack);
-                }
-
-                if (!playerIn.getAbilities().instabuild) {
-                    itemstack.shrink(1);
-                }
-
-                playerIn.awardStat(Stats.ITEM_USED.get(this));
-            }
-            return InteractionResultHolder.success(itemstack);
-            */
+        if (hand != InteractionHand.MAIN_HAND) {
+            return InteractionResultHolder.fail(itemstack);
+        }
+        HitResult raytraceresult = DynamXUtils.rayTraceEntitySpawn(worldIn, playerIn, hand);
+        if (raytraceresult == null || raytraceresult.getType() == HitResult.Type.MISS) {
             return InteractionResultHolder.pass(itemstack);
         }
-        return InteractionResultHolder.fail(itemstack);
+        BlockPos blockpos;
+        Vec3 hitVec = raytraceresult.getLocation();
+        if (raytraceresult instanceof EntityHitResult entityHit) {
+            blockpos = entityHit.getEntity().blockPosition();
+        } else if (raytraceresult instanceof BlockHitResult blockHit) {
+            blockpos = blockHit.getBlockPos();
+        } else {
+            return InteractionResultHolder.pass(itemstack);
+        }
+        if (worldIn.getBlockState(blockpos).getBlock() == Blocks.SNOW) {
+            blockpos = blockpos.below();
+        }
+        if (!spawnEntity(itemstack, worldIn, playerIn, hitVec)) {
+            return InteractionResultHolder.fail(itemstack);
+        }
+        if (!playerIn.getAbilities().instabuild) {
+            itemstack.shrink(1);
+        }
+        playerIn.awardStat(Stats.ITEM_USED.get(this));
+        return InteractionResultHolder.success(itemstack);
     }
 
     public boolean spawnEntity(ItemStack itemStackIn, Level worldIn, Player playerIn, Vec3 blockPos) {
