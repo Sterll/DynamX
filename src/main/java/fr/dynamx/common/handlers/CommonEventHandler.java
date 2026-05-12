@@ -64,12 +64,21 @@ public class CommonEventHandler {
         }
     }
 
-    public void onDisconnect(Object event) {
-        // TODO port:1.20.1 - PlayerEvent.PlayerLoggedOutEvent + ServerPhysicsSyncManager (Phase 5/9).
+    @SubscribeEvent
+    public void onDisconnect(PlayerEvent.PlayerLoggedOutEvent event) {
+        Player player = event.getEntity();
+        if (player != null) {
+            fr.dynamx.server.network.ServerPhysicsSyncManager.onDisconnect(player);
+        }
     }
 
-    public void onStartTracking(Object event) {
-        // TODO port:1.20.1 - PlayerEvent.StartTracking + resync packets (Phase 5).
+    @SubscribeEvent
+    public void onStartTracking(net.minecraftforge.event.entity.player.PlayerEvent.StartTracking event) {
+        if (event.getTarget() instanceof fr.dynamx.common.entities.PhysicsEntity<?> entity
+                && event.getEntity() instanceof ServerPlayer serverPlayer
+                && entity.getSynchronizer() != null) {
+            entity.getSynchronizer().resyncEntity(serverPlayer);
+        }
     }
 
     /**
