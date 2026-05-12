@@ -72,6 +72,15 @@ public class DynamXItemRegistry {
     }
 
     /**
+     * Live, unmodifiable view of every pack item collected via {@link #add(Item)}.
+     * Used by {@link fr.dynamx.common.core.DynamXCreativeTabs} to populate creative tabs after
+     * {@link RegisterEvent} has flushed each item into the Forge registry.
+     */
+    public static List<IResourcesOwner> getItems() {
+        return java.util.Collections.unmodifiableList(ITEMS);
+    }
+
+    /**
      * Registers every item collected through {@link #add(Item)} with the item registry.
      *
      * <p>Items already registered (e.g. tools wired via {@code DynamXItems} {@code DeferredRegister}) are
