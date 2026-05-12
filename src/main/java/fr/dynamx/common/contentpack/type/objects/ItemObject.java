@@ -33,14 +33,9 @@ public class ItemObject<T extends ItemObject<T>> extends AbstractItemObject<T, T
     }
 
     @Override
+    @SuppressWarnings({"unchecked", "rawtypes"})
     protected IDynamXItem<T> createItem(InfoList<T> loader) {
-        // TODO port:1.20.1 - Original:
-        //   CreatePackItemEvent.SimpleItem event = new CreatePackItemEvent.SimpleItem(loader, this);
-        //   MinecraftForge.EVENT_BUS.post(event);
-        //   if (event.isOverridden()) return event.getObjectItem();
-        //   else return new DynamXItem(this);
-        //   Both depend on Phase 5/6.
-        return null;
+        return new fr.dynamx.common.items.DynamXItem(this);
     }
 
     @Override

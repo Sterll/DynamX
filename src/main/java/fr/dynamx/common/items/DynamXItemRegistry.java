@@ -82,22 +82,43 @@ public class DynamXItemRegistry {
         if (!event.getRegistryKey().equals(ForgeRegistries.Keys.ITEMS)) {
             return;
         }
+        org.apache.logging.log4j.Logger log = org.apache.logging.log4j.LogManager.getLogger("DynamX");
+        int registered = 0;
         for (IResourcesOwner owner : ITEMS) {
             Item item = owner.getItem();
             if (item == null) {
                 continue;
             }
+            // ForgeRegistries.ITEMS.getKey(item) falls back to "minecraft:air" for unregistered
+            // items in 1.20.1, so compare the round-tripped value to know whether this exact item
+            // already owns a slot in the registry.
             ResourceLocation existing = ForgeRegistries.ITEMS.getKey(item);
-            if (existing != null && ForgeRegistries.ITEMS.containsKey(existing)) {
+            if (existing != null && ForgeRegistries.ITEMS.getValue(existing) == item) {
                 continue;
             }
-            String name = owner.getJsonName(0).toLowerCase();
-            ResourceLocation id = new ResourceLocation(DynamXConstants.ID, name);
+            String rawName;
+            try {
+                rawName = owner.getJsonName(0);
+            } catch (Throwable t) {
+                log.error("Failed to derive json name for {}", item, t);
+                continue;
+            }
+            String name = rawName.toLowerCase().replace('.', '_');
+            ResourceLocation id;
+            try {
+                id = new ResourceLocation(DynamXConstants.ID, name);
+            } catch (net.minecraft.ResourceLocationException e) {
+                log.error("Invalid registry id derived from '{}' for item {}", name, item, e);
+                continue;
+            }
             if (ForgeRegistries.ITEMS.containsKey(id)) {
+                log.warn("Duplicate registry id {} for item {} - skipping", id, item);
                 continue;
             }
             event.register(ForgeRegistries.Keys.ITEMS, id, () -> item);
+            registered++;
         }
+        log.info("injectItems: registered {} pack item(s) out of {} owners", registered, ITEMS.size());
     }
 
     public static void registerItemBlock(Object block) {

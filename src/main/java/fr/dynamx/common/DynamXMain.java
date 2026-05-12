@@ -145,31 +145,60 @@ public class DynamXMain {
         // TODO port:1.20.1 - port the FMLConstructionEvent body: MPS init,
         //   ACsLib threaded loading service, addons init, schedulePacksInit().
 
-        // Content pack discovery has to run BEFORE RegisterEvent fires so that pack-defined items
-        // (cars/boats/props/...) can be registered into the Forge items registry. The legacy code
-        // did this from FMLConstructionEvent which 1.20.1 collapsed into mod-construction.
+        // Content pack discovery: only the resource-pack scan and the gamedir handle are safe to
+        // grab here. Item construction (`new ItemCar(...)` etc.) goes through `Item.<init>` which
+        // calls `BuiltInRegistries.ITEM.createIntrusiveHolder(...)` and the items registry is frozen
+        // outside the RegisterEvent window. The full pack reload therefore runs from the items
+        // RegisterEvent listener below so all pack items are built while the registry is open.
         try {
             java.io.File gameDir = net.minecraftforge.fml.loading.FMLPaths.GAMEDIR.get().toFile();
             resourcesDirectory = gameDir;
-            java.io.File packsDir = fr.dynamx.common.contentpack.ContentPackLoader.init(gameDir, "DynamXResourcePacks");
-            fr.dynamx.utils.optimization.Vector3fPool.openPool(
-                    fr.dynamx.utils.optimization.SubClassPool.PACK_MODEL_LOAD);
-            try {
-                fr.dynamx.common.contentpack.ContentPackLoader.reload(packsDir, true);
-            } finally {
-                fr.dynamx.utils.optimization.Vector3fPool.closePool();
-            }
+            fr.dynamx.common.contentpack.ContentPackLoader.init(gameDir, "DynamXResourcePacks");
         } catch (Throwable t) {
-            log.error("DynamX content pack loading failed", t);
+            log.error("DynamX content pack discovery failed", t);
         }
 
         modBus.addListener(this::commonSetup);
         modBus.addListener(this::loadComplete);
 
-        // RegisterEvent listener that registers content-pack-loaded items collected through
-        // DynamXItemRegistry.add(...) into the items registry. DeferredRegister-backed tools are
-        // skipped via a duplicate-key check inside injectItems(event).
-        modBus.addListener(fr.dynamx.common.items.DynamXItemRegistry::injectItems);
+        // Items RegisterEvent listener: reload content packs (building pack items along the way)
+        // and then register everything collected in DynamXItemRegistry into the Forge items registry.
+        // Both steps must happen while the items registry is open.
+        modBus.addListener((net.minecraftforge.registries.RegisterEvent event) -> {
+            if (!event.getRegistryKey().equals(net.minecraftforge.registries.ForgeRegistries.Keys.ITEMS)) {
+                return;
+            }
+            try {
+                java.io.File packsDir = new java.io.File(resourcesDirectory, "DynamXResourcePacks");
+                fr.dynamx.utils.optimization.Vector3fPool.openPool(
+                        fr.dynamx.utils.optimization.SubClassPool.PACK_MODEL_LOAD);
+                try {
+                    fr.dynamx.common.contentpack.ContentPackLoader.reload(packsDir, true);
+                } finally {
+                    fr.dynamx.utils.optimization.Vector3fPool.closePool();
+                }
+            } catch (Throwable t) {
+                log.error("DynamX content pack loading failed", t);
+            }
+            try {
+                java.util.Map<net.minecraft.resources.ResourceLocation,
+                        fr.aym.acslib.api.services.error.LocatedErrorList> allErrors =
+                                fr.dynamx.utils.errors.DynamXErrorManager.getErrorManager().getAllErrors();
+                int total = allErrors.values().stream().mapToInt(l -> l.getErrors().size()).sum();
+                if (total > 0) {
+                    log.warn("DynamX content packs reported {} loading error(s); enable debug logging on " +
+                            "fr.dynamx.errors for the full list", total);
+                    if (log.isDebugEnabled()) {
+                        allErrors.forEach((loc, list) -> list.getErrors().forEach(err ->
+                                log.debug("[pack {}] {} {} {} {}", loc, err.getLevel(),
+                                        err.getGenericType(), err.getObject(), err.getMessage())));
+                    }
+                }
+            } catch (Throwable t) {
+                log.error("Failed to inspect DynamX pack errors", t);
+            }
+            fr.dynamx.common.items.DynamXItemRegistry.injectItems(event);
+        });
 
         // DeferredRegister wiring for all DynamX content (items, blocks, block entities, entities, creative tabs).
         fr.dynamx.common.core.DynamXItems.register(modBus);

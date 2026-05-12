@@ -3,25 +3,28 @@ package fr.dynamx.common.contentpack.type.vehicle;
 import fr.aym.acslib.api.services.error.ErrorLevel;
 import fr.dynamx.common.contentpack.parts.PartRotor;
 import fr.dynamx.common.contentpack.parts.PartWheel;
+import fr.dynamx.common.items.ItemModularEntity;
+import fr.dynamx.common.items.vehicle.ItemBoat;
+import fr.dynamx.common.items.vehicle.ItemCar;
+import fr.dynamx.common.items.vehicle.ItemHelicopter;
+import fr.dynamx.common.items.vehicle.ItemTrailer;
 import fr.dynamx.utils.errors.DynamXErrorManager;
 
 import java.util.List;
 
 /**
- * TODO port:1.20.1 - Original referenced fr.dynamx.common.items.DynamXItemSpawner and the
- *   ItemCar / ItemBoat / ItemHelicopter / ItemTrailer item classes (fr.dynamx.common.items.vehicle).
- *   These live in Phase 6 (items). The getSpawnItem method now returns Object and constructs
- *   nothing; concrete validators throw UnsupportedOperationException for getSpawnItem until
- *   Phase 6 is ported.
+ * Type-specific validators for {@link ModularVehicleInfo}. Each implementation builds the
+ * dedicated spawner item (car/boat/helicopter/trailer) and runs the post-load consistency checks
+ * that surface fatal pack errors.
  */
 public interface VehicleValidator {
     default void initProperties(ModularVehicleInfo info) {
     }
 
     /**
-     * @return The item used to spawn the vehicle. TODO port:1.20.1 - typed as Object pending Phase 6.
+     * @return The item used to spawn the vehicle described by {@code info}.
      */
-    Object getSpawnItem(ModularVehicleInfo info);
+    ItemModularEntity getSpawnItem(ModularVehicleInfo info);
 
     void validate(ModularVehicleInfo info);
 
@@ -31,9 +34,8 @@ public interface VehicleValidator {
 
     VehicleValidator CAR_VALIDATOR = new VehicleValidator() {
         @Override
-        public Object getSpawnItem(ModularVehicleInfo info) {
-            // TODO port:1.20.1 - return ItemCar.getItemForCar(info) once items are ported.
-            throw new UnsupportedOperationException("ItemCar not ported (Phase 6)");
+        public ItemModularEntity getSpawnItem(ModularVehicleInfo info) {
+            return ItemCar.getItemForCar(info);
         }
 
         @Override
@@ -49,9 +51,8 @@ public interface VehicleValidator {
     };
     VehicleValidator TRAILER_VALIDATOR = new VehicleValidator() {
         @Override
-        public Object getSpawnItem(ModularVehicleInfo info) {
-            // TODO port:1.20.1 - return new ItemTrailer(info) once items are ported.
-            throw new UnsupportedOperationException("ItemTrailer not ported (Phase 6)");
+        public ItemModularEntity getSpawnItem(ModularVehicleInfo info) {
+            return new ItemTrailer(info);
         }
 
         @Override
@@ -69,9 +70,8 @@ public interface VehicleValidator {
         }
 
         @Override
-        public Object getSpawnItem(ModularVehicleInfo info) {
-            // TODO port:1.20.1 - return new ItemBoat(info) once items are ported.
-            throw new UnsupportedOperationException("ItemBoat not ported (Phase 6)");
+        public ItemModularEntity getSpawnItem(ModularVehicleInfo info) {
+            return new ItemBoat(info);
         }
 
         @Override
@@ -98,9 +98,8 @@ public interface VehicleValidator {
         }
 
         @Override
-        public Object getSpawnItem(ModularVehicleInfo info) {
-            // TODO port:1.20.1 - return new ItemHelicopter(info) once items are ported.
-            throw new UnsupportedOperationException("ItemHelicopter not ported (Phase 6)");
+        public ItemModularEntity getSpawnItem(ModularVehicleInfo info) {
+            return new ItemHelicopter(info);
         }
 
         @Override

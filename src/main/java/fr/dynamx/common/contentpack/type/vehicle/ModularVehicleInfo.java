@@ -235,10 +235,9 @@ public class ModularVehicleInfo extends AbstractItemObject<ModularVehicleInfo, M
     }
 
     @Override
+    @SuppressWarnings({"unchecked", "rawtypes"})
     public IDynamXItem<ModularVehicleInfo> createItem(InfoList<ModularVehicleInfo> loader) {
-        // TODO port:1.20.1 - Original posted CreatePackItemEvent.VehicleItem then fell back to
-        //   validator.getSpawnItem(this). Both depend on Phase 5/6.
-        return null;
+        return (IDynamXItem) validator.getSpawnItem(this);
     }
 
     @Override

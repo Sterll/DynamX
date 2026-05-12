@@ -168,10 +168,9 @@ public class PropObject<T extends PropObject<T>> extends AbstractProp<T> impleme
     }
 
     @Override
+    @SuppressWarnings({"unchecked", "rawtypes"})
     public IDynamXItem<T> createItem(InfoList<T> loader) {
-        // TODO port:1.20.1 - Original posted CreatePackItemEvent.PropsItem then fell back to new ItemProps(this).
-        //   Both depend on Phase 5 (events) / Phase 6 (items).
-        return null;
+        return (IDynamXItem<T>) new fr.dynamx.common.items.ItemProps((PropObject) this);
     }
 
     @Override
