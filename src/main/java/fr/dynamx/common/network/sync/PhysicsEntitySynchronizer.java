@@ -102,9 +102,17 @@ public abstract class PhysicsEntitySynchronizer<T extends PhysicsEntity<?>> {
     }
 
     public void resyncEntity(ServerPlayer target) {
-        // TODO port:1.20.1 - Re-port using DynamXContext.getNetwork().getVanillaNetwork()
-        // .sendPacket(new MessagePhysicsEntitySync(...), EnumPacketTarget.PLAYER, target).
-        // Seats sync + joint sync also depend on Phase 7/8. Stubbed.
+        PooledHashMap<Integer, EntityVariable<?>> vars = getVarsToSync(LogicalSide.SERVER, SyncTarget.ALL_CLIENTS);
+        if (vars.isEmpty()) {
+            vars.release();
+            return;
+        }
+        int simulationTimeClient = fr.dynamx.server.network.ServerPhysicsSyncManager.getTime(target);
+        MessagePhysicsEntitySync<PhysicsEntity<?>> msg = new MessagePhysicsEntitySync<>(
+                (PhysicsEntity<?>) entity, simulationTimeClient, vars, true);
+        fr.dynamx.common.network.DynamXNetwork.sendTo(msg, target);
+        // TODO port:1.20.1 - Joints sync (MessageJoints) + Seats sync (MessageSeatsSync) need their
+        // own port work before being re-broadcast here.
     }
 
     public PooledHashMap<Integer, EntityVariable<?>> getVarsToSync(LogicalSide fromSide, SyncTarget target) {
