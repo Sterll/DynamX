@@ -64,8 +64,12 @@ public class SubInfoTypesRegistry<T extends ISubInfoTypeOwner<?>> {
     }
 
     protected void addSubInfoTypePropertiesFixer(Class<? extends INamedObject> subInfoTypeClass, IPackFilePropertyFixer fixer) {
+        // In 1.20.1 the SubInfoTypeAnnotationCache may re-enter load() for a class whose
+        // first attempt threw (e.g. an unparsable field). Re-registering the same fixer is
+        // harmless and should not crash subsequent pack files of the same type, so skip
+        // silently when the same class is registered again.
         if (PROPERTY_FIXERS.containsKey(subInfoTypeClass))
-            throw new IllegalArgumentException("Property fixer for " + subInfoTypeClass + " is already registered !");
+            return;
         PROPERTY_FIXERS.put(subInfoTypeClass, fixer);
     }
 

@@ -186,13 +186,11 @@ public class DynamXMain {
                                 fr.dynamx.utils.errors.DynamXErrorManager.getErrorManager().getAllErrors();
                 int total = allErrors.values().stream().mapToInt(l -> l.getErrors().size()).sum();
                 if (total > 0) {
-                    log.warn("DynamX content packs reported {} loading error(s); enable debug logging on " +
-                            "fr.dynamx.errors for the full list", total);
-                    if (log.isDebugEnabled()) {
-                        allErrors.forEach((loc, list) -> list.getErrors().forEach(err ->
-                                log.debug("[pack {}] {} {} {} {}", loc, err.getLevel(),
-                                        err.getGenericType(), err.getObject(), err.getMessage())));
-                    }
+                    log.warn("DynamX content packs reported {} loading error(s)", total);
+                    allErrors.forEach((loc, list) -> list.getErrors().stream().limit(3).forEach(err ->
+                            log.warn("[pack {}] {} {} {} {}", loc, err.getLevel(),
+                                    err.getGenericType(), err.getObject(), err.getMessage(),
+                                    err.getException())));
                 }
             } catch (Throwable t) {
                 log.error("Failed to inspect DynamX pack errors", t);

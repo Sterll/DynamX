@@ -214,10 +214,15 @@ public class ModularVehicleInfo extends AbstractItemObject<ModularVehicleInfo, M
                     partWheel.setHandBrakingWheel(true);
             }
         }
-        // TODO port:1.20.1 - Original attached the default engine via DynamXObjectLoaders.ENGINES.findOrLoadInfo.
-        //   That loader still needs to be written in this Phase 3b batch.
         if (defaultEngine != null) {
-            // Will be restored once DynamXObjectLoaders is ported.
+            BaseEngineInfo engine = fr.dynamx.common.contentpack.DynamXObjectLoaders.ENGINES.findOrLoadInfo(
+                    defaultEngine, validator.getEngineClass());
+            if (engine == null) {
+                throw new IllegalArgumentException("Engine " + defaultEngine + " of " + getFullName()
+                        + " was not found, check file names and previous loading errors!");
+            }
+            engine.appendTo(this);
+            engine.postLoad(this, hot);
         }
         variants = getSubPropertyByType(MaterialVariantsInfo.class);
         if (texturesArray != null) {

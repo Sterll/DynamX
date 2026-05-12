@@ -48,12 +48,23 @@ public class DynamXReflection {
     }
 
     /**
-     * TODO port:1.20.1 - In 1.20.1 there are no static Material.* fields anymore;
-     * Material has been removed. Returns an empty map for now.
+     * TODO port:1.20.1 - Material was removed in 1.20.1; the closest analog is MapColor,
+     * which is what BlockBehaviour.Properties takes. We expose every static MapColor field
+     * (STONE, DIRT, WOOD, ...) so legacy pack files declaring {@code Material: STONE} keep
+     * resolving to a valid MapColor handle.
      */
     @SneakyThrows
     public static BiMap<String, Object> getBlockMaterialMap() {
-        return HashBiMap.create();
+        BiMap<String, Object> mats = HashBiMap.create();
+        for (Field field : net.minecraft.world.level.material.MapColor.class.getDeclaredFields()) {
+            if (!Modifier.isStatic(field.getModifiers()) || !field.getType().equals(net.minecraft.world.level.material.MapColor.class)) {
+                continue;
+            }
+            Object value = field.get(null);
+            if (value == null) continue;
+            mats.put(field.getName(), value);
+        }
+        return mats;
     }
 
     @SneakyThrows

@@ -11,8 +11,13 @@ import fr.dynamx.utils.RegistryNameSetter;
 import fr.dynamx.utils.physics.DynamXPhysicsHelper;
 import fr.dynamx.utils.physics.EnumCollisionType;
 import lombok.Getter;
+import net.minecraft.core.particles.ParticleOptions;
+import net.minecraft.core.particles.ParticleType;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.sounds.SoundEvent;
 import net.minecraft.world.level.block.SoundType;
+import net.minecraft.world.level.material.MapColor;
 
 import org.joml.Vector2f;
 import java.util.HashMap;
@@ -26,7 +31,7 @@ import java.util.function.Function;
  * @see PackFileProperty
  */
 public class DefinitionType<T> {
-    // TODO port:1.20.1 - In 1.20.1 Material was removed from MC; map stays empty.
+    // TODO port:1.20.1 - Material removed in 1.20.1; we use MapColor as a stand-in (see DynamXReflection).
     private static final BiMap<String, Object> MATERIALS = DynamXReflection.getBlockMaterialMap();
     private static final BiMap<String, SoundType> SOUNDS = DynamXReflection.getSoundTypeMap();
 
@@ -198,26 +203,38 @@ public class DefinitionType<T> {
             return new Vector2f(values[0], values[1]);
         }, v -> v.x + " " + v.y, "type.vector2f")),
         ITEM_RENDER_LOCATION(new DefinitionType<>(Enum3DRenderLocation.class, Enum3DRenderLocation::fromString, "type.item_render_location")),
-        // TODO port:1.20.1 - SoundEvent.REGISTRY is gone; use BuiltInRegistries.SOUND_EVENT.get(rl) once registries are wired up.
-        SOUND_EVENT(new DefinitionType<>(null, s -> {
-            throw new UnsupportedOperationException("SOUND_EVENT parser not yet ported to 1.20.1");
-        }, o -> "", "type.sound_event")),
-        // TODO port:1.20.1 - EnumParticleTypes no longer exists; use ParticleTypes / registry lookups.
-        PARTICLE_TYPE(new DefinitionType<>(null, s -> {
+        // 1.20.1: SoundEvent.REGISTRY is gone; look up via BuiltInRegistries.SOUND_EVENT.
+        SOUND_EVENT(new DefinitionType<>(SoundEvent.class, s -> {
+            ResourceLocation rl = ResourceLocation.tryParse(s);
+            return rl == null ? null : BuiltInRegistries.SOUND_EVENT.get(rl);
+        }, e -> e == null ? "" : String.valueOf(BuiltInRegistries.SOUND_EVENT.getKey(e)), "type.sound_event")),
+        // 1.20.1: EnumParticleTypes was replaced with the ParticleType registry. We resolve the
+        // particle type by id and ask it for its default options (which is enough for the
+        // particles DynamX currently spawns: SMOKE, FLAME, ...). Anything that needs parameters
+        // is out of scope until a richer parser lands.
+        PARTICLE_TYPE(new DefinitionType<>(ParticleOptions.class, s -> {
             if (s.equals("none")) return null;
-            throw new UnsupportedOperationException("PARTICLE_TYPE parser not yet ported to 1.20.1");
-        }, p -> p == null ? "none" : p.toString(), "type.particle")),
+            ResourceLocation rl = ResourceLocation.tryParse(s);
+            if (rl == null) return null;
+            ParticleType<?> type = BuiltInRegistries.PARTICLE_TYPE.get(rl);
+            return type instanceof ParticleOptions ? (ParticleOptions) type : null;
+        }, p -> {
+            if (p == null) return "none";
+            ResourceLocation k = BuiltInRegistries.PARTICLE_TYPE.getKey(p.getType());
+            return k == null ? "none" : k.toString();
+        }, "type.particle")),
         COLLISION_TYPE(new DefinitionType<>(EnumCollisionType.class, EnumCollisionType::valueOf,
                 p -> p == null ? EnumCollisionType.SIMPLE.name() : p.name(), "type.collision")),
-        // TODO port:1.20.1 - PartShape.EnumPartType lives in fr.dynamx.common.contentpack.parts (Phase 3b)
-        SHAPE_TYPE(new DefinitionType<>(null, s -> {
-            throw new UnsupportedOperationException("SHAPE_TYPE parser not yet ported to 1.20.1");
-        }, o -> "", "type.shapetype")),
+        SHAPE_TYPE(new DefinitionType<>(fr.dynamx.common.contentpack.parts.PartShape.EnumPartType.class,
+                fr.dynamx.common.contentpack.parts.PartShape.EnumPartType::fromString,
+                t -> t == null ? "" : t.name(), "type.shapetype")),
         DYNX_RESOURCE_LOCATION(new DefinitionType<>(ResourceLocation.class, RegistryNameSetter::getDynamXModelResourceLocation, "type.resourcelocation")),
         PLAYER_STAND_ON_TOP(new DefinitionType<>(EnumPlayerStandOnTop.class, EnumPlayerStandOnTop::fromString, "type.player_stand_on_top")),
         PLAYER_SEAT_POSITION(new DefinitionType<>(EnumSeatPlayerPosition.class, EnumSeatPlayerPosition::fromString, "type.player_seat_position")),
-        // TODO port:1.20.1 - Material was removed in 1.20.1. Parser kept as a no-op for source compatibility.
-        MATERIAL(new DefinitionType<>(null, s -> MATERIALS.get(s.toUpperCase()), material -> {
+        // 1.20.1: Material was removed; the legacy "Material: STONE" mapping now resolves to a
+        // MapColor (e.g. MapColor.STONE). We register the parser against MapColor.class so the
+        // AUTO type on BlockObject.material resolves without an explicit type annotation.
+        MATERIAL(new DefinitionType<>(MapColor.class, s -> (MapColor) MATERIALS.get(s.toUpperCase()), material -> {
             String inv = MATERIALS.inverse().get(material);
             return inv == null ? "" : inv;
         }, "type.material")),
