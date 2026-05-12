@@ -1,12 +1,17 @@
 package fr.dynamx.utils.client;
 
 import com.jme3.math.Vector3f;
+import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.blaze3d.vertex.VertexConsumer;
 import fr.dynamx.common.DynamXMain;
 import fr.dynamx.common.contentpack.type.ParticleEmitterInfo;
 import fr.dynamx.common.contentpack.type.vehicle.ModularVehicleInfo;
 import fr.dynamx.common.entities.PhysicsEntity;
 import fr.dynamx.utils.maths.DynamXGeometry;
 import net.minecraft.client.gui.Font;
+import net.minecraft.client.renderer.LevelRenderer;
+import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.RenderType;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
 import net.minecraftforge.api.distmarker.Dist;
@@ -54,16 +59,28 @@ public class DynamXRenderUtils {
         // TODO port:1.20.1 - rewire to ported Grid/Arrow/Octasphere meshes once Phase 7 lands.
     }
 
-    public static void drawBoundingBox(Vector3f halfExtent, float red, float green, float blue, float alpha) {
-        // TODO port:1.20.1 - LevelRenderer.renderLineBox.
+    public static void drawBoundingBox(PoseStack poseStack, MultiBufferSource bufferSource,
+                                       Vector3f halfExtent, float red, float green, float blue, float alpha) {
+        VertexConsumer consumer = bufferSource.getBuffer(RenderType.lines());
+        LevelRenderer.renderLineBox(poseStack, consumer,
+                -halfExtent.x, -halfExtent.y, -halfExtent.z,
+                halfExtent.x, halfExtent.y, halfExtent.z,
+                red, green, blue, alpha);
     }
 
-    public static void drawBoundingBox(Vector3f min, Vector3f max, float red, float green, float blue, float alpha) {
-        // TODO port:1.20.1 - LevelRenderer.renderLineBox.
+    public static void drawBoundingBox(PoseStack poseStack, MultiBufferSource bufferSource,
+                                       Vector3f min, Vector3f max, float red, float green, float blue, float alpha) {
+        VertexConsumer consumer = bufferSource.getBuffer(RenderType.lines());
+        LevelRenderer.renderLineBox(poseStack, consumer,
+                min.x, min.y, min.z,
+                max.x, max.y, max.z,
+                red, green, blue, alpha);
     }
 
-    public static void drawBoundingBox(AABB aabb, float red, float green, float blue, float alpha) {
-        // TODO port:1.20.1 - LevelRenderer.renderLineBox.
+    public static void drawBoundingBox(PoseStack poseStack, MultiBufferSource bufferSource,
+                                       AABB aabb, float red, float green, float blue, float alpha) {
+        VertexConsumer consumer = bufferSource.getBuffer(RenderType.lines());
+        LevelRenderer.renderLineBox(poseStack, consumer, aabb, red, green, blue, alpha);
     }
 
     /**
