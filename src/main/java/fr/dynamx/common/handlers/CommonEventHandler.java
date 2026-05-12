@@ -162,12 +162,37 @@ public class CommonEventHandler {
         }
     }
 
-    public void onTick(Object event) {
-        // TODO port:1.20.1 - TickEvent.ServerTickEvent; clear walking player floating-tick counters.
+    @SubscribeEvent
+    public void onTick(net.minecraftforge.event.TickEvent.ServerTickEvent event) {
+        // TODO port:1.20.1 - reset aboveGroundTickCount on ServerGamePacketListenerImpl for
+        // walking players to suppress kicks; the fields are private so this requires an
+        // access transformer or a dedicated mixin accessor (paired with MixinNetHandlerPlayServer).
     }
 
-    public void onPlayerUpdate(Object event) {
-        // TODO port:1.20.1 - TickEvent.PlayerTickEvent + PlayerPhysicsHandler (Phase 6/Physics).
+    @SubscribeEvent
+    public void onPlayerUpdate(net.minecraftforge.event.TickEvent.PlayerTickEvent event) {
+        if (event.phase != net.minecraftforge.event.TickEvent.Phase.END || event.player == null) {
+            return;
+        }
+        fr.dynamx.common.physics.player.PlayerPhysicsHandler handler =
+                fr.dynamx.common.DynamXContext.getPlayerToCollision().get(event.player);
+        if (handler != null) {
+            handler.update(event.player.level());
+        }
+        fr.dynamx.common.entities.PhysicsEntity<?> entity =
+                fr.dynamx.common.DynamXContext.getWalkingPlayers().get(event.player);
+        if (entity != null) {
+            fr.dynamx.common.physics.player.WalkingOnPlayerController controller =
+                    entity.walkingOnPlayers.get(event.player);
+            if (controller != null) {
+                fr.dynamx.utils.optimization.Vector3fPool.openPool();
+                try {
+                    controller.applyOffset();
+                } finally {
+                    fr.dynamx.utils.optimization.Vector3fPool.closePool();
+                }
+            }
+        }
     }
 
     public void onVehicleMount(Object event) {
