@@ -1,6 +1,8 @@
 package fr.dynamx.client.renders.model.renderer;
 
+import fr.dynamx.api.dxmodel.DxModelPath;
 import fr.dynamx.api.dxmodel.EnumDxModelFormats;
+import fr.dynamx.api.dxmodel.IModelTextureVariantsSupplier;
 import fr.dynamx.common.contentpack.type.objects.BlockObject;
 import lombok.Getter;
 import lombok.Setter;
@@ -15,29 +17,25 @@ import org.joml.Vector4f;
  * TODO port:1.20.1 - The render preview path used GlStateManager + immediate-mode matrix stacks
  * which are gone in 1.20.1. Restore once {@code BaseRenderContext.BlockRenderContext} exposes a
  * {@code PoseStack}/{@code MultiBufferSource} that the preview can hook into.
- * <p>
- * TODO port:1.20.1 - DxModelPath / IModelTextureVariantsSupplier have not been ported yet,
- * so location/textureVariants are typed as Object until the API package catches up.
  */
 public abstract class DxModelRenderer {
 
     @Getter
-    protected final Object location; // TODO port:1.20.1 - retype to DxModelPath once api/dxmodel ports it
+    protected final DxModelPath location;
 
     @Getter
-    protected final Object textureVariants; // TODO port:1.20.1 - retype to IModelTextureVariantsSupplier
+    protected final IModelTextureVariantsSupplier textureVariants;
     @Getter
     @Setter
     protected Vector4f modelColor = new Vector4f(1, 1, 1, 1);
 
     @Getter
-    private EnumDxModelFormats format;
+    private final EnumDxModelFormats format;
 
-    public DxModelRenderer(Object location, Object textureVariants) {
+    public DxModelRenderer(DxModelPath location, IModelTextureVariantsSupplier textureVariants) {
         this.location = location;
         this.textureVariants = textureVariants;
-        // TODO port:1.20.1 - this.format = location.getFormat();
-        this.format = null;
+        this.format = location.getFormat();
     }
 
     public void renderModel(boolean forceVanillaRender) {

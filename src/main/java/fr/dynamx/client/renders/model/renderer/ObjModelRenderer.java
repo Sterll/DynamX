@@ -1,5 +1,7 @@
 package fr.dynamx.client.renders.model.renderer;
 
+import fr.dynamx.api.dxmodel.DxModelPath;
+import fr.dynamx.api.dxmodel.IModelTextureVariantsSupplier;
 import lombok.Getter;
 
 import javax.annotation.Nullable;
@@ -22,14 +24,14 @@ public class ObjModelRenderer extends DxModelRenderer {
     private final Map<String, Object> materials; // TODO port:1.20.1 - was Map<String, Material>; OBJ loader dropped
     public boolean hasNoneMaterials;
 
-    protected ObjModelRenderer(Object location, List<ObjObjectRenderer> objObjects, Map<String, Object> materials, @Nullable Object textureVariants) {
+    protected ObjModelRenderer(DxModelPath location, List<ObjObjectRenderer> objObjects, Map<String, Object> materials, @Nullable IModelTextureVariantsSupplier textureVariants) {
         super(location, textureVariants);
         this.objObjects = objObjects;
         this.materials = materials;
         this.hasNoneMaterials = false;
     }
 
-    public static ObjModelRenderer loadObjModel(Object objModelPath, @Nullable Object textureVariants) {
+    public static ObjModelRenderer loadObjModel(DxModelPath objModelPath, @Nullable IModelTextureVariantsSupplier textureVariants) {
         // TODO port:1.20.1 - OBJ loader is being dropped
         return null;
     }

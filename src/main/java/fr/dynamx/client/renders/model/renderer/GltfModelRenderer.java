@@ -33,7 +33,7 @@ public class GltfModelRenderer extends DxModelRenderer {
 
     public Map<Object, Transform> initialNodeTransforms = new HashMap<>();
 
-    public GltfModelRenderer(Object location, Object textureVariants) {
+    public GltfModelRenderer(fr.dynamx.api.dxmodel.DxModelPath location, fr.dynamx.api.dxmodel.IModelTextureVariantsSupplier textureVariants) {
         super(location, textureVariants);
         // TODO port:1.20.1 - MCglTF.getInstance().addGltfModelReceiver(this);
     }
@@ -119,7 +119,7 @@ public class GltfModelRenderer extends DxModelRenderer {
         }
     }
 
-    public Object getModelLocation() {
+    public fr.dynamx.api.dxmodel.DxModelPath getModelLocation() {
         // TODO port:1.20.1 - was @Override DxModelPath getModelLocation() from IGltfModelReceiver
         return location;
     }

@@ -211,7 +211,7 @@ public class ContentPackLoader {
         for (InfoList<?> loader : DynamXObjectLoaders.getInfoLists())
             loader.clear(isHotReloading);
         DynamXErrorManager.getErrorManager().clear(DynamXErrorManager.PACKS_ERRORS);
-        // TODO port:1.20.1 - DynamXContext.getDxModelDataCache().clear() - Phase 7.
+        fr.dynamx.common.DynamXContext.getDxModelDataCache().clear();
         try {
             DynamX.LOGGER.info("Loading content pack system...");
             // TODO port:1.20.1 - ContentPackSystemEvent.Load(EventPhase.PRE) - Phase 5.
@@ -303,7 +303,7 @@ public class ContentPackLoader {
             scheduleLanguageRefresh();
         }
         PackSyncHandler.computeAll();
-        // TODO port:1.20.1 - DynamXLoadingTasks.endTask(PACK) - not yet ported.
+        fr.dynamx.utils.DynamXLoadingTasks.endTask(fr.dynamx.utils.DynamXLoadingTasks.PACK);
     }
 
     private static void loadPack(String loadingPack, File contentPack, ContentPackType packType, String suffix, PackFile packInfo, List<PackFile> packFiles) {

@@ -2,6 +2,8 @@ package fr.dynamx.common.network.packets;
 
 import fr.dynamx.api.network.EnumNetworkType;
 import fr.dynamx.api.network.IDnxPacket;
+import fr.dynamx.common.contentpack.ContentPackLoader;
+import fr.dynamx.utils.DynamXConfig;
 import io.netty.buffer.ByteBuf;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.block.Block;
@@ -28,18 +30,17 @@ public class MessageSyncConfig implements IDnxPacket {
 
     public MessageSyncConfig(boolean reloadResources, int entityId) {
         this.reloadResources = reloadResources;
-        // TODO port:1.20.1 - DynamXConfig.mountedVehiclesSyncTickRate is available; rely on Phase 0 config port.
-        this.syncDelay = 1;
-        this.blockInfos = new HashMap<>();
-        this.slopes = new ArrayList<>();
-        this.slopesLength = 0;
-        this.slopesPlace = false;
+        this.syncDelay = DynamXConfig.mountedVehiclesSyncTickRate;
+        this.blockInfos = new HashMap<>(ContentPackLoader.getBlocksGrip());
+        this.slopes = new ArrayList<>(ContentPackLoader.slopes);
+        this.slopesLength = ContentPackLoader.SLOPES_LENGTH;
+        this.slopesPlace = ContentPackLoader.PLACE_SLOPES;
+        // TODO port:1.20.1 - encode IPhysicsSimulationMode via a registry index once one exists.
+        // Sending 0 (full simulation) for now; the receiving end ignores until physics modes have an index.
         this.physicsSimulationMode = 0;
         this.entityId = entityId;
+        // TODO port:1.20.1 - SynchronizedEntityVariableRegistry size once Phase 5 sync registry is ported.
         this.serverSynchronizedVariablesCount = 0;
-        // TODO port:1.20.1 - Populate from ContentPackLoader.getBlocksGrip(), slopes, SLOPES_LENGTH,
-        // PLACE_SLOPES, DynamXContext.getPhysicsSimulationMode, SynchronizedEntityVariableRegistry size
-        // once ContentPackLoader API is fully wired.
     }
 
     @Override
@@ -96,8 +97,25 @@ public class MessageSyncConfig implements IDnxPacket {
 
     @Override
     public void handleUDPReceive(Player context, LogicalSide side) {
-        // TODO port:1.20.1 - Re-port body: schedule on client thread, update DynamXConfig,
-        // DynamXLoadingTasks.reload, ContentPackLoader, DynamXContext.setPhysicsSimulationMode,
-        // server-side entityId rebinding, version-count check + connection.closeChannel(Component).
+        if (side != LogicalSide.CLIENT) {
+            return;
+        }
+        // Apply received server settings to the local client-side mirrors used by the physics
+        // entity sync layer.
+        DynamXConfig.mountedVehiclesSyncTickRate = syncDelay;
+        ContentPackLoader.PLACE_SLOPES = slopesPlace;
+        ContentPackLoader.SLOPES_LENGTH = slopesLength;
+        ContentPackLoader.getBlocksGrip().clear();
+        ContentPackLoader.getBlocksGrip().putAll(blockInfos);
+        ContentPackLoader.slopes.clear();
+        ContentPackLoader.slopes.addAll(slopes);
+        // TODO port:1.20.1 - DynamXContext.setPhysicsSimulationMode(LogicalSide.CLIENT, ...) once a
+        // mode-by-index registry exists. SynchronizedEntityVariableRegistry version check and
+        // connection.disconnect(Component) on mismatch also deferred to Phase 5 sync registry.
+        if (reloadResources) {
+            fr.dynamx.utils.DynamXLoadingTasks.reload(
+                    fr.dynamx.utils.DynamXLoadingTasks.TaskContext.CLIENT,
+                    fr.dynamx.utils.DynamXLoadingTasks.PACK);
+        }
     }
 }

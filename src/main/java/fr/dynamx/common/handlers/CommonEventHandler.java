@@ -2,16 +2,20 @@ package fr.dynamx.common.handlers;
 
 import com.jme3.math.Vector3f;
 import fr.dynamx.common.items.tools.ItemSlopes;
+import fr.dynamx.common.network.DynamXNetwork;
+import fr.dynamx.common.network.packets.MessageSyncConfig;
 import fr.dynamx.utils.DynamXConstants;
 import fr.dynamx.utils.optimization.Vector3fPool;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
+import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.event.entity.player.PlayerInteractEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 
@@ -46,8 +50,11 @@ public class CommonEventHandler {
         // then transfer PENDING_CHUNKS_COLLISIONS into the chunk's DynamXChunkData attachment.
     }
 
-    public void onLoggedIn(Object event) {
-        // TODO port:1.20.1 - PlayerEvent.PlayerLoggedInEvent + send MessageSyncConfig (Phase 5).
+    @SubscribeEvent
+    public void onLoggedIn(PlayerEvent.PlayerLoggedInEvent event) {
+        if (event.getEntity() instanceof ServerPlayer serverPlayer) {
+            DynamXNetwork.sendTo(new MessageSyncConfig(false, serverPlayer.getId()), serverPlayer);
+        }
     }
 
     public void onDisconnect(Object event) {
