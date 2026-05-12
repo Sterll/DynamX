@@ -86,8 +86,18 @@ public class CommonEventHandler {
      * Updates are filtered by {@code ITerrainUpdateBehavior}s.
      */
     public static void onBlockChange(Level world, BlockPos pos, BlockState oldState, BlockState newState) {
-        // TODO port:1.20.1 - depends on DynamXContext.usesPhysicsWorld + DynamXTerrainApi; will be wired
-        // once physics world is plugged back in.
+        if (world == null || world.isClientSide || !fr.dynamx.common.DynamXContext.usesPhysicsWorld(world)) {
+            return;
+        }
+        fr.dynamx.api.physics.terrain.ITerrainUpdateBehavior.Result result =
+                fr.dynamx.api.physics.terrain.DynamXTerrainApi.getTerrainUpdateBehavior(world, pos, oldState, newState);
+        if (result != fr.dynamx.api.physics.terrain.ITerrainUpdateBehavior.Result.DO_UPDATE) {
+            return;
+        }
+        fr.dynamx.api.physics.IPhysicsWorld physicsWorld = fr.dynamx.common.DynamXContext.getPhysicsWorld(world);
+        if (physicsWorld != null && physicsWorld.getTerrainManager() != null) {
+            physicsWorld.getTerrainManager().onBlockChange(world, pos);
+        }
     }
 
     @SubscribeEvent
