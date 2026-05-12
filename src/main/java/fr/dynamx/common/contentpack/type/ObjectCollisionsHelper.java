@@ -66,7 +66,12 @@ public class ObjectCollisionsHelper {
                 }
                 return;
             }
-            if (!useComplexCollisions) {
+            // TODO port:1.20.1 - Original: !useComplexCollisions branch built shape from PartShapes;
+            //  useComplexCollisions=true called ShapeUtils.generateComplexModelCollisions(...) which
+            //  reads the OBJ model. Until the model pipeline lands, fall back to PartShapes whenever
+            //  they are provided, even when useComplexCollisions is true. This unblocks pack vehicles
+            //  that ship a Shape_* fallback (e.g. the karting test pack).
+            if (!useComplexCollisions || !getShapes().isEmpty()) {
                 physicsCollisionShape = new CompoundCollisionShape();
                 getShapes().forEach(shape -> {
                     CollisionShape collisionShape;

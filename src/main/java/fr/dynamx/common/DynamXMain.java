@@ -264,16 +264,52 @@ public class DynamXMain {
         // TODO port:1.20.1 - DxModelData cache cleanup on dedicated server.
     }
 
+    @net.minecraftforge.eventbus.api.SubscribeEvent
     public void onServerStarting(ServerStartingEvent event) {
         // TODO port:1.20.1 - RegisterCommandsEvent is the new home for server commands.
     }
 
+    @net.minecraftforge.eventbus.api.SubscribeEvent
     public void onServerStarted(ServerStartedEvent event) {
         if (DynamXContext.getNetwork() != null) {
             DynamXContext.getNetwork().startNetwork();
         }
+        String testSpawn = System.getProperty("dynamx.testSpawn");
+        if ((testSpawn == null || testSpawn.isEmpty()) && resourcesDirectory != null) {
+            java.io.File marker = new java.io.File(resourcesDirectory, "dynamx_test_spawn.txt");
+            if (marker.isFile()) {
+                try {
+                    testSpawn = new String(java.nio.file.Files.readAllBytes(marker.toPath())).trim();
+                } catch (Throwable t) {
+                    log.error("[testSpawn] failed reading marker", t);
+                }
+            }
+        }
+        if (testSpawn != null && !testSpawn.isEmpty()) {
+            try {
+                net.minecraft.server.level.ServerLevel overworld = event.getServer().overworld();
+                net.minecraft.core.BlockPos sp = overworld.getSharedSpawnPos();
+                com.jme3.math.Vector3f pos = new com.jme3.math.Vector3f(sp.getX() + 0.5f, sp.getY() + 4f, sp.getZ() + 0.5f);
+                fr.dynamx.common.items.DynamXItemSpawner<?> item =
+                        fr.dynamx.server.command.CmdSpawnObjects.getSpawnItem(testSpawn);
+                if (item == null) {
+                    log.error("[testSpawn] no item registered for '{}'", testSpawn);
+                } else {
+                    Object entity = item.getSpawnEntity(overworld, null, pos, 0f, 0);
+                    if (entity instanceof net.minecraft.world.entity.Entity) {
+                        overworld.addFreshEntity((net.minecraft.world.entity.Entity) entity);
+                        log.info("[testSpawn] Spawned {} at {} {} {}", testSpawn, sp.getX(), sp.getY() + 4, sp.getZ());
+                    } else {
+                        log.error("[testSpawn] factory returned {}", entity == null ? "null" : entity.getClass().getName());
+                    }
+                }
+            } catch (Throwable t) {
+                log.error("[testSpawn] spawn failed", t);
+            }
+        }
     }
 
+    @net.minecraftforge.eventbus.api.SubscribeEvent
     public void stopServer(ServerStoppedEvent event) {
         if (DynamXContext.getNetwork() != null) {
             DynamXContext.getNetwork().stopNetwork();

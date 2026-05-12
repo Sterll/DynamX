@@ -45,15 +45,6 @@ public class MessageUpdateChunk implements IDnxPacket {
         }
     }
 
-    public static void handle(MessageUpdateChunk message /*, IPayloadContext ctx */) {
-        try {
-            Player p = net.minecraft.client.Minecraft.getInstance().player;
-            message.handleUDPReceive(p, LogicalSide.CLIENT);
-        } catch (Throwable t) {
-            // server side or no client
-        }
-    }
-
     @Override
     public EnumNetworkType getPreferredNetwork() {
         return EnumNetworkType.VANILLA_TCP;
