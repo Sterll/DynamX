@@ -28,8 +28,9 @@ public class DynamXItemRegistry {
     private static final List<IResourcesOwner> ITEMS = new ArrayList<>();
 
     /**
-     * TODO port:1.20.1 - was {@code CreativeTabs}; relaxed to {@link Object} until CreativeModeTab wiring lands in
-     *  the entry-point phase. The icon-supplier and tab-name carry over once a real CreativeModeTab is built.
+     * Vehicle creative tab handle (kept as Object for the legacy
+     * {@link fr.dynamx.common.contentpack.type.objects.AbstractItemObject#getCreativeTab(Object)} contract).
+     * Backed by {@link fr.dynamx.common.core.DynamXCreativeTabs#VEHICLES}.
      */
     public static Object vehicleTab = new Object() {
         @Override
@@ -39,7 +40,7 @@ public class DynamXItemRegistry {
     };
 
     /**
-     * TODO port:1.20.1 - was {@code CreativeTabs}; relaxed to {@link Object} until CreativeModeTab wiring lands.
+     * Object creative tab handle. Backed by {@link fr.dynamx.common.core.DynamXCreativeTabs#OBJECTS}.
      */
     public static Object objectTab = new Object() {
         @Override
@@ -48,17 +49,20 @@ public class DynamXItemRegistry {
         }
     };
 
-    /**
-     * TODO port:1.20.1 - was {@code List<CreativeTabs>}; relaxed to {@code List<Object>} for the same reason.
-     */
     public static final List<Object> creativeTabs = new ArrayList<>();
 
     /**
-     * TODO port:1.20.1 - Static instantiation of {@link ItemWrench} used to register the wrench at class-load time.
-     *  Under DeferredRegister, this must move to a {@code RegistryObject<Item>} initialized in the entry-point phase.
-     *  Kept as an eager static for now so legacy call sites resolve.
+     * Legacy compat accessor for the wrench item. Backed by
+     * {@link fr.dynamx.common.core.DynamXItems#WRENCH}. Returns {@code null} before
+     * RegisterEvent fires; callers that compare references should still be safe (null != stack item).
      */
-    public static final Item ITEM_WRENCH = new ItemWrench();
+    public static Item getItemWrench() {
+        try {
+            return fr.dynamx.common.core.DynamXItems.WRENCH.get();
+        } catch (IllegalStateException e) {
+            return null;
+        }
+    }
 
     public static void add(Item item) {
         ITEMS.add(IResourcesOwner.of(item));

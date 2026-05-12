@@ -1,0 +1,31 @@
+{
+  "itemGroup.dynamxmod.vehicles": "DynamX Vehicles",
+  "itemGroup.dynamxmod.objects": "DynamX Objects",
+
+  "item.dynamxmod.wrench": "Wrench",
+  "item.dynamxmod.shockwave": "Shockwave Generator",
+  "item.dynamxmod.slopes": "Slopes Tool",
+  "item.dynamxmod.ragdoll": "Ragdoll Spawner",
+
+  "entity.dynamxmod.car": "Car",
+  "entity.dynamxmod.boat": "Boat",
+  "entity.dynamxmod.trailer": "Trailer",
+  "entity.dynamxmod.helicopter": "Helicopter",
+  "entity.dynamxmod.prop": "Prop",
+  "entity.dynamxmod.door": "Door",
+  "entity.dynamxmod.ragdoll": "Ragdoll",
+  "entity.dynamxmod.seat": "Seat",
+
+  "key.categories.dynamxmod": "DynamX",
+  "key.brake": "Handbrake",
+  "key.camin": "Camera zoom in",
+  "key.camout": "Camera zoom out",
+  "key.cammode": "Change camera mode",
+  "key.watchbehind": "Watch behind",
+  "key.debug": "Debug menu",
+  "key.speedlimit": "Speed limiter",
+  "key.startEngine": "Engine on/off",
+  "key.pickobject": "Pick object",
+  "key.takeobject": "Take object",
+  "key.toggleLockDoor": "Toggle lock door"
+}

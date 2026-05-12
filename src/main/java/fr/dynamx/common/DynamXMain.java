@@ -98,21 +98,85 @@ public class DynamXMain {
             log.error("Failed to instantiate DynamX proxy; running without one (many features will be no-ops)", t);
         }
 
-        // TODO port:1.20.1 - port the FMLConstructionEvent body: bullet engine install, MPS init,
+        // Bullet native engine install. Legacy did this in FMLConstructionEvent; here we run it
+        // synchronously at mod-construction time so that PhysicsSpace can be created later.
+        // We must call NativeLibraryLoader.loadLibbulletjme (from the libbulletjme jar) so that
+        // System.load is invoked from the same class loader as the native-method classes,
+        // otherwise JNI can't bind the natives.
+        try {
+            fr.dynamx.utils.LibraryInstaller.configureSsslContext();
+            java.io.File nativesDir = new java.io.File(
+                    net.minecraftforge.fml.loading.FMLPaths.GAMEDIR.get().toFile(),
+                    "dynamx_natives");
+            if (!nativesDir.exists() && !nativesDir.mkdirs()) {
+                log.warn("Could not create dynamx_natives directory at {}", nativesDir);
+            }
+            // Download the native (legacy installer naming) then copy it under the jme3 loader's
+            // expected name so NativeLibraryLoader can pick it up.
+            fr.dynamx.utils.physics.NativeEngineInstaller.loadLibbulletjme(
+                    nativesDir, DynamXConstants.LIBBULLET_VERSION, "Release", "Sp", false);
+            com.jme3.system.Platform platform = com.jme3.system.JmeSystem.getPlatform();
+            String libFile;
+            switch (platform) {
+                case Windows32: case Windows64: libFile = "bulletjme.dll"; break;
+                case MacOSX32: case MacOSX64: case MacOSX_ARM64: libFile = "libbulletjme.dylib"; break;
+                default: libFile = "libbulletjme.so"; break;
+            }
+            java.io.File legacy = new java.io.File(nativesDir,
+                    platform + "Release" + "Sp_" + DynamXConstants.LIBBULLET_VERSION + "_" + libFile);
+            java.io.File jmeExpected = new java.io.File(nativesDir,
+                    platform + "ReleaseSp_" + libFile);
+            if (legacy.exists() && !jmeExpected.exists()) {
+                java.nio.file.Files.copy(legacy.toPath(), jmeExpected.toPath());
+            }
+            boolean loaded = com.jme3.system.NativeLibraryLoader.loadLibbulletjme(
+                    true, nativesDir, "Release", "Sp");
+            if (!loaded) {
+                log.warn("NativeLibraryLoader reported failure for {}", jmeExpected);
+            } else {
+                log.info("Libbulletjme native engine loaded via jme3 loader from {}", nativesDir);
+            }
+        } catch (Throwable t) {
+            log.error("Failed to load libbulletjme native engine — physics will be disabled", t);
+            memoizedConstructionError = (t instanceof RuntimeException) ? (RuntimeException) t
+                    : new RuntimeException("libbulletjme load failed", t);
+        }
+
+        // TODO port:1.20.1 - port the FMLConstructionEvent body: MPS init,
         //   ACsLib threaded loading service, addons init, schedulePacksInit().
 
         modBus.addListener(this::commonSetup);
         modBus.addListener(this::loadComplete);
 
-        // Attachment-type registration for chunk data.
+        // DeferredRegister wiring for all DynamX content (items, blocks, block entities, entities, creative tabs).
+        fr.dynamx.common.core.DynamXItems.register(modBus);
+        fr.dynamx.common.core.DynamXBlocks.register(modBus);
+        fr.dynamx.common.core.DynamXBlockEntities.register(modBus);
+        fr.dynamx.common.core.DynamXEntities.register(modBus);
+        fr.dynamx.common.core.DynamXCreativeTabs.register(modBus);
+
+        // Attachment-type registration for chunk data (stubbed until Capabilities migration).
         try {
             fr.dynamx.common.capability.DynamXChunkDataProvider.register(modBus);
         } catch (Throwable t) {
             log.error("Failed to register DynamX chunk-data attachment", t);
         }
 
-        // Server lifecycle events live on the NeoForge bus.
+        // Client-side mod-bus event wiring (entity renderers, etc.). Loaded reflectively so the
+        // dedicated server jar never sees the client classes.
+        if (net.minecraftforge.fml.loading.FMLEnvironment.dist.isClient()) {
+            try {
+                Class<?> clientReg = Class.forName("fr.dynamx.client.DynamXClientRegistration");
+                clientReg.getMethod("register", IEventBus.class).invoke(null, modBus);
+            } catch (Throwable t) {
+                log.error("Failed to wire DynamX client registration", t);
+            }
+        }
+
+        // Server lifecycle + level events live on the NeoForge bus.
         net.minecraftforge.common.MinecraftForge.EVENT_BUS.register(this);
+        net.minecraftforge.common.MinecraftForge.EVENT_BUS.register(new fr.dynamx.server.command.DynamXServerCommands());
+        net.minecraftforge.common.MinecraftForge.EVENT_BUS.register(new fr.dynamx.common.handlers.LevelLifecycleHandler());
     }
 
     private void commonSetup(FMLCommonSetupEvent event) {

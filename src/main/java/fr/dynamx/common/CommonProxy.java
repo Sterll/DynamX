@@ -67,7 +67,7 @@ public abstract class CommonProxy {
      * @return True if the bullet physics engine should be used for the world. Always true except for client single player worlds
      */
     public boolean shouldUseBulletSimulation(Level world) {
-        return DynamXContext.getPhysicsWorldPerDimensionMap().containsKey(dimensionKey(world));
+        return world != null && DynamXContext.getPhysicsWorldPerDimensionMap().containsKey(world.dimension());
     }
 
     /**
@@ -82,8 +82,8 @@ public abstract class CommonProxy {
      * @return The minecraft server's tick counter
      */
     public int getTickTime() {
-        // TODO port:1.20.1 - ServerLifecycleHooks.getCurrentServer().getTickCount().
-        return 0;
+        net.minecraft.server.MinecraftServer server = net.minecraftforge.server.ServerLifecycleHooks.getCurrentServer();
+        return server != null ? server.getTickCount() : 0;
     }
 
     /**

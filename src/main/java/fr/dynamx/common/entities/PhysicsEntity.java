@@ -601,7 +601,7 @@ public abstract class PhysicsEntity<T extends AbstractEntityPhysicsHandler<?, ?>
                 && damageSource.getEntity().getVehicle() != this) {
             Player player = (Player) damageSource.getDirectEntity();
             if (player.getAbilities().instabuild
-                    || player.getMainHandItem().getItem().equals(DynamXItemRegistry.ITEM_WRENCH)) {
+                    || player.getMainHandItem().getItem().equals(DynamXItemRegistry.getItemWrench())) {
                 discard();
                 return true;
             }
