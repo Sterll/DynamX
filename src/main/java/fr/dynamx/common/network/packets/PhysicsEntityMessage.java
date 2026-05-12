@@ -49,7 +49,19 @@ public abstract class PhysicsEntityMessage<T extends PhysicsEntityMessage<T>> im
     // TODO port:1.20.1 - Replace MessageContext with IPayloadContext, schedule on physics world or
     // server executor depending on side. Body stubbed; legacy logic preserved in processMessage().
     public static void handle(PhysicsEntityMessage<?> message /*, IPayloadContext ctx */) {
-        // TODO port:1.20.1 - schedule processMessage on appropriate thread.
+        // TODO port:1.20.1 - Phase 5b PayloadRegistrar wiring will provide IPayloadContext with the
+        // sender/side. Until then, fall back to a client-side dispatch through Minecraft.getInstance()
+        // which mirrors the legacy SideOnly(CLIENT) leg of onMessage (used by the bulk of
+        // PhysicsEntityMessage subclasses that ship server -> client updates).
+        try {
+            Player local = net.minecraft.client.Minecraft.getInstance().player;
+            if (local == null) {
+                return;
+            }
+            message.clientSchedule(() -> message.processMessage(LogicalSide.CLIENT, message, local));
+        } catch (Throwable t) {
+            // server side or no client - server-side dispatch will be wired in Phase 5b
+        }
     }
 
     @Override
@@ -90,12 +102,20 @@ public abstract class PhysicsEntityMessage<T extends PhysicsEntityMessage<T>> im
     }
 
     protected void clientSchedule(Runnable task) {
-        // TODO port:1.20.1 - Original used Minecraft#addScheduledTask or physicsWorld.schedule().
-        // Use Minecraft.getInstance().execute(...) in Phase 5b once Minecraft client is reachable here.
         try {
-            net.minecraft.client.Minecraft.getInstance().execute(task);
+            Player local = getClientPlayer();
+            if (local == null || local.level() == null) {
+                return;
+            }
+            fr.dynamx.api.physics.IPhysicsWorld physicsWorld =
+                    fr.dynamx.common.DynamXContext.getPhysicsWorld(local.level());
+            if (getPreferredNetwork() != EnumNetworkType.VANILLA_TCP && physicsWorld != null) {
+                physicsWorld.schedule(task);
+            } else {
+                net.minecraft.client.Minecraft.getInstance().execute(task);
+            }
         } catch (Throwable t) {
-            // ignore (likely server side)
+            // ignore (likely server side or client not yet initialised)
         }
     }
 
