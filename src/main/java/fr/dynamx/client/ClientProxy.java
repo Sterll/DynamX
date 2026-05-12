@@ -94,9 +94,10 @@ public class ClientProxy extends CommonProxy {
     public void init() {
         super.init();
 
-        // TODO port:1.20.1 - KeyMappings: register via RegisterKeyMappingsEvent on the mod bus.
-        // Event handler is also registered through @Mod.EventBusSubscriber or in the main mod constructor.
-        //
+        // KeyMappings are registered via RegisterKeyMappingsEvent in DynamXClientRegistration.
+        // The KeyHandler instance is subscribed here for per-tick key polling.
+        net.minecraftforge.common.MinecraftForge.EVENT_BUS.register(new KeyHandler(Minecraft.getInstance()));
+
         // TODO port:1.20.1 - DynamXClientCommand registration moves to RegisterClientCommandsEvent.
         //
         // TODO port:1.20.1 - TESRDynamXBlock registration via EntityRenderersEvent.RegisterRenderers.
