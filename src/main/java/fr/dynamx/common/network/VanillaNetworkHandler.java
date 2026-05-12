@@ -42,29 +42,30 @@ public class VanillaNetworkHandler implements IDnxNetworkHandler {
         }
     }
 
-    // TODO port:1.20.1 - Replace with PacketDistributor.sendToServer(packet) once payload is registered.
     public void sendToServer(IDnxPacket packet) {
-        // PacketDistributor.sendToServer((CustomPacketPayload) packet);
+        DynamXNetwork.CHANNEL.sendToServer(packet);
     }
 
-    // TODO port:1.20.1 - PacketDistributor.sendToPlayer(player, payload).
     public void sendToPlayer(IDnxPacket packet, ServerPlayer player) {
-        // PacketDistributor.sendToPlayer(player, (CustomPacketPayload) packet);
+        DynamXNetwork.CHANNEL.send(net.minecraftforge.network.PacketDistributor.PLAYER.with(() -> player), packet);
     }
 
-    // TODO port:1.20.1 - PacketDistributor.sendToPlayersNear(level, exclude, x, y, z, range, payload).
     public void sendToAllAround(IDnxPacket packet, EnumPacketTarget.TargetPoint target) {
-        // PacketDistributor.sendToPlayersNear(..., (CustomPacketPayload) packet);
+        net.minecraft.resources.ResourceKey<net.minecraft.world.level.Level> dim =
+                net.minecraft.resources.ResourceKey.create(net.minecraft.core.registries.Registries.DIMENSION,
+                        new net.minecraft.resources.ResourceLocation(target.dimension));
+        net.minecraftforge.network.PacketDistributor.TargetPoint tp =
+                new net.minecraftforge.network.PacketDistributor.TargetPoint(
+                        target.x, target.y, target.z, target.range, dim);
+        DynamXNetwork.CHANNEL.send(net.minecraftforge.network.PacketDistributor.NEAR.with(() -> tp), packet);
     }
 
-    // TODO port:1.20.1 - PacketDistributor.sendToPlayersTrackingEntity(entity, payload).
     public void sendToAllTracking(IDnxPacket packet, Entity entity) {
-        // PacketDistributor.sendToPlayersTrackingEntity(entity, (CustomPacketPayload) packet);
+        DynamXNetwork.CHANNEL.send(net.minecraftforge.network.PacketDistributor.TRACKING_ENTITY.with(() -> entity), packet);
     }
 
-    // TODO port:1.20.1 - PacketDistributor.sendToAllPlayers(payload).
     public void sendToAll(IDnxPacket packet) {
-        // PacketDistributor.sendToAllPlayers((CustomPacketPayload) packet);
+        DynamXNetwork.CHANNEL.send(net.minecraftforge.network.PacketDistributor.ALL.noArg(), packet);
     }
 
     @Override

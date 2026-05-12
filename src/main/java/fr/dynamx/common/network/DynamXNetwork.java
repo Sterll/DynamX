@@ -16,8 +16,17 @@ import fr.dynamx.common.network.sync.MessagePhysicsEntitySync;
 import fr.dynamx.common.network.sync.MessageSeatsSync;
 import fr.dynamx.common.network.udp.auth.MessageDynamXUdpSettings;
 import fr.dynamx.utils.DynamXConfig;
+import fr.dynamx.utils.DynamXConstants;
 import io.netty.buffer.ByteBuf;
+import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.fml.LogicalSide;
+import net.minecraftforge.network.NetworkDirection;
+import net.minecraftforge.network.NetworkRegistry;
+import net.minecraftforge.network.simple.SimpleChannel;
+
+import java.util.Optional;
+import java.util.function.Supplier;
 
 /**
  * The DynamX network holding packets registry. <br>
@@ -38,6 +47,14 @@ import net.minecraftforge.fml.LogicalSide;
 public class DynamXNetwork {
     public static final BiMap<Integer, Class<? extends IDnxPacket>> UDP_PACKETS = HashBiMap.create();
 
+    private static final String PROTOCOL_VERSION = "1";
+    public static final SimpleChannel CHANNEL = NetworkRegistry.ChannelBuilder
+            .named(new ResourceLocation(DynamXConstants.ID, "main"))
+            .clientAcceptedVersions(PROTOCOL_VERSION::equals)
+            .serverAcceptedVersions(PROTOCOL_VERSION::equals)
+            .networkProtocolVersion(() -> PROTOCOL_VERSION)
+            .simpleChannel();
+
     private static int id;
     private static int udpId;
 
@@ -52,8 +69,8 @@ public class DynamXNetwork {
         EnumNetworkType type = DynamXConfig.useUdp ? EnumNetworkType.DYNAMX_UDP : EnumNetworkType.VANILLA_TCP;
         IDnxNetworkSystem network;
         if (side == LogicalSide.SERVER) {
-            // TODO port:1.20.1 - return new DynamXServerNetworkSystem(type) once that class is ported.
-            network = null;
+            // TODO port:1.20.1 - swap for DynamXServerNetworkSystem when UDP server lands.
+            network = new fr.dynamx.server.network.DynamXServerNetworkSystem(type);
         } else {
             network = new DynamXClientNetworkSystem(type);
         }
@@ -148,15 +165,35 @@ public class DynamXNetwork {
     }
 
     /**
-     * Legacy bookkeeping for non-UDP messages. In 1.20.1 this becomes
-     * {@code registrar.playToClient(...)} / {@code registrar.playToServer(...)} /
-     * {@code registrar.playBidirectional(...)} on a {@code PayloadRegistrar}.
+     * Registers a packet on the SimpleChannel. The channel is bi-directional; the side argument
+     * controls the direction Forge enforces (a CLIENT receiver means the packet flows to client).
      */
-    // TODO port:1.20.1 - Rewrite once Phase 5b adds the PayloadRegistrar bridge.
-    private static void registerMessage(Class<? extends IDnxPacket> message, LogicalSide... sides) {
+    private static <T extends IDnxPacket> void registerMessage(Class<T> message, LogicalSide... sides) {
         for (LogicalSide side : sides) {
-            // network.registerMessage(handler, message, id, side); -- legacy
-            id++;
+            NetworkDirection direction = side == LogicalSide.CLIENT
+                    ? NetworkDirection.PLAY_TO_CLIENT
+                    : NetworkDirection.PLAY_TO_SERVER;
+            CHANNEL.messageBuilder(message, id++, direction)
+                    .encoder((msg, buf) -> msg.toBytes(buf))
+                    .decoder(buf -> newPacket(message, buf))
+                    .consumerMainThread((msg, ctx) -> {
+                        // TODO port:1.20.1 - per-packet handle() dispatch; most handlers are still stubbed.
+                        // Each Message* class should expose a static handle(packet, ctx) and have it
+                        // invoked here once ported. For now we just acknowledge so the channel doesn't
+                        // crash on receipt.
+                        ctx.get().setPacketHandled(true);
+                    })
+                    .add();
+        }
+    }
+
+    private static <T extends IDnxPacket> T newPacket(Class<T> message, FriendlyByteBuf buf) {
+        try {
+            T packet = message.getDeclaredConstructor().newInstance();
+            packet.fromBytes(buf);
+            return packet;
+        } catch (ReflectiveOperationException e) {
+            throw new RuntimeException("Failed to instantiate DynamX packet " + message.getName(), e);
         }
     }
 
@@ -164,15 +201,10 @@ public class DynamXNetwork {
      * Same as {@link #registerMessage} but also assigns a UDP-wire id used by
      * {@link fr.dynamx.common.network.udp.EncapsulatedUDPPacket}.
      */
-    // TODO port:1.20.1 - Rewrite the dispatcher half once Phase 5b adds the PayloadRegistrar bridge.
-    // The UDP_PACKETS BiMap is kept as-is.
     private static void registerMessageWithUDP(Class<? extends IDnxPacket> message, LogicalSide... sides) {
         if (udpId > 245)
             throw new RuntimeException("There is too many packets, limit is 245 for the UDP !");
-        for (LogicalSide side : sides) {
-            // network.registerMessage(handler, message, id, side); -- legacy
-            id++;
-        }
+        registerMessage(message, sides);
         UDP_PACKETS.put(udpId, message);
         udpId++;
     }
@@ -190,22 +222,15 @@ public class DynamXNetwork {
         return UDP_PACKETS.inverse().get(message.getClass());
     }
 
-    /**
-     * Convenience dispatch helpers. In 1.20.1 these wrap
-     * {@link net.minecraftforge.network.PacketDistributor}.
-     */
-    // TODO port:1.20.1 - Wire to PacketDistributor.sendToServer((CustomPacketPayload) msg)
-    public static void sendToServer(Object msg) {
-        // PacketDistributor.sendToServer((CustomPacketPayload) msg);
+    public static void sendToServer(IDnxPacket msg) {
+        CHANNEL.sendToServer(msg);
     }
 
-    // TODO port:1.20.1 - Wire to PacketDistributor.sendToPlayer(player, (CustomPacketPayload) msg)
-    public static void sendTo(Object msg, net.minecraft.server.level.ServerPlayer player) {
-        // PacketDistributor.sendToPlayer(player, (CustomPacketPayload) msg);
+    public static void sendTo(IDnxPacket msg, net.minecraft.server.level.ServerPlayer player) {
+        CHANNEL.send(net.minecraftforge.network.PacketDistributor.PLAYER.with(() -> player), msg);
     }
 
-    // TODO port:1.20.1 - Wire to PacketDistributor.sendToAllPlayers((CustomPacketPayload) msg)
-    public static void sendToAll(Object msg) {
-        // PacketDistributor.sendToAllPlayers((CustomPacketPayload) msg);
+    public static void sendToAll(IDnxPacket msg) {
+        CHANNEL.send(net.minecraftforge.network.PacketDistributor.ALL.noArg(), msg);
     }
 }
