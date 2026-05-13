@@ -85,16 +85,17 @@ public class EntityNode<A extends IPhysicsPackInfo> extends AbstractItemNode<Bas
         // Scale to the config scale value
         transform.scale(DynamXUtils.toVector3f(packInfo.getScaleModifier()));
 
-        // TODO port:1.20.1 - render the model: was
-        //   GlStateManager.pushMatrix();
-        //   GlStateManager.multMatrix(ClientDynamXUtils.getMatrixBuffer(transform));
-        //   context.getRender().renderMainModel(context.getModel(), entity, context.getTextureId(), context.isUseVanillaRender());
-        //   GlStateManager.popMatrix();
-        // Must be rewritten on top of PoseStack#mulPoseMatrix once RenderPhysicsEntity#renderMainModel
-        // is rewritten for 1.20.1.
+        com.mojang.blaze3d.vertex.PoseStack pose = context.getPoseStack();
+        if (pose != null) {
+            pose.pushPose();
+            pose.mulPoseMatrix(transform);
+        }
         if (context.getRender() != null) {
             context.getRender().renderMainModel(context.getModel(), entity, context.getTextureId(), context.isUseVanillaRender());
+        } else if (context.getModel() != null) {
+            context.getModel().renderModel(context.getTextureId(), context.isUseVanillaRender());
         }
+        if (pose != null) pose.popPose();
         transform.scale(1 / packInfo.getScaleModifier().x, 1 / packInfo.getScaleModifier().y, 1 / packInfo.getScaleModifier().z);
 
         // Render the linked children

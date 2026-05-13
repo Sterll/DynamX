@@ -17,6 +17,11 @@ import fr.dynamx.common.DynamXContext;
 import fr.dynamx.common.DynamXMain;
 import fr.dynamx.common.contentpack.DynamXObjectLoaders;
 import fr.dynamx.common.contentpack.loader.InfoList;
+import fr.dynamx.client.renders.model.MissingObjModel;
+import fr.dynamx.client.renders.model.renderer.DxModelRenderer;
+import fr.dynamx.client.renders.model.renderer.ObjModelRenderer;
+import fr.dynamx.client.renders.model.texture.MaterialTexture;
+import fr.dynamx.common.contentpack.PackInfo;
 import fr.dynamx.common.contentpack.type.objects.ArmorObject;
 import fr.dynamx.common.objloader.MTLLoader;
 import fr.dynamx.common.objloader.OBJLoader;
@@ -58,14 +63,13 @@ public class DynamXModelRegistry implements IPackInfoReloadListener {
     // TODO port:1.20.1 - typed against client/renders/* once Phase 7 lands. Object placeholders for now.
     private static final Object OBJ_ITEM_MODEL_LOADER = null;
     private static final Map<DxModelPath, IModelTextureVariantsSupplier> MODELS_REGISTRY = new HashMap<>();
-    private static final Map<ResourceLocation, Object> MODELS = new ConcurrentHashMap<>();
+    private static final Map<ResourceLocation, DxModelRenderer> MODELS = new ConcurrentHashMap<>();
     private static final List<ResourceLocation> FAULTY_MODELS = new ArrayList<>();
 
     /**
      * A missing model rendered when the right model isn't found.
-     * TODO port:1.20.1 - typed against ObjModelRenderer once Phase 7 lands.
      */
-    public static final Object MISSING_MODEL = null;
+    public static final DxModelRenderer MISSING_MODEL = new MissingObjModel();
 
     private static boolean REGISTRY_CLOSED;
 
@@ -96,19 +100,20 @@ public class DynamXModelRegistry implements IPackInfoReloadListener {
         }
     }
 
-    public Object getModel(ResourceLocation name) {
-        if (!MODELS.containsKey(name)) {
+    public DxModelRenderer getModel(ResourceLocation name) {
+        DxModelRenderer m = MODELS.get(name);
+        if (m == null) {
             if (!FAULTY_MODELS.contains(name)) {
                 log.error("Dx model " + name + " isn't registered !");
                 FAULTY_MODELS.add(name);
             }
             return MISSING_MODEL;
         }
-        return MODELS.get(name);
+        return m;
     }
 
     @Deprecated
-    public Object getModel(String name) {
+    public DxModelRenderer getModel(String name) {
         return getModel(new ResourceLocation(DynamXConstants.ID, String.format("models/%s", name)));
     }
 
@@ -124,6 +129,22 @@ public class DynamXModelRegistry implements IPackInfoReloadListener {
         DynamXContext.getDxModelDataCache().clear();
         DynamXErrorManager.getErrorManager().clear(DynamXErrorManager.MODEL_ERRORS);
 
+        // Texture provider used by MaterialTexture.uploadTexture when the texture isn't in the
+        // vanilla resource manager (e.g. textures stored inside a .dnxpack ZIP).
+        MaterialTexture.setPackProvider(textureLocation -> {
+            for (Map.Entry<DxModelPath, IModelTextureVariantsSupplier> entry : MODELS_REGISTRY.entrySet()) {
+                DxModelPath path = entry.getKey();
+                for (PackInfo packInfo : path.getPackLocations()) {
+                    try {
+                        java.io.InputStream is = packInfo.readFile(textureLocation);
+                        if (is != null) return is;
+                    } catch (Exception ignored) {
+                    }
+                }
+            }
+            return null;
+        });
+
         ThreadedLoadingService threadedLoadingService = ACsLib.getPlatform().provideService(ThreadedLoadingService.class);
         ExecutorService modelLoader = Executors.newScheduledThreadPool(LOADER_POOL_SIZE, new DynamXThreadedModLoader.DefaultThreadFactory("DnxModelLoader"));
         threadedLoadingService.addTask(ThreadedLoadingService.ModLoadingSteps.FINISH_LOAD, "model_load", () -> {
@@ -135,8 +156,13 @@ public class DynamXModelRegistry implements IPackInfoReloadListener {
                     }
                     loadObjTasks.add(() -> {
                         log.debug("Loading dx model " + name.getKey());
-                        // TODO port:1.20.1 - call ObjModelRenderer.loadObjModel / new GltfModelRenderer once Phase 7 lands.
-                        MODELS.put(name.getKey().getModelPath(), MISSING_MODEL);
+                        DxModelPath path = name.getKey();
+                        DxModelRenderer renderer = null;
+                        if (path.getFormat() == EnumDxModelFormats.OBJ) {
+                            renderer = ObjModelRenderer.loadObjModel(path, name.getValue());
+                        }
+                        // TODO port:1.20.1 - GLTF support is still stubbed; fall back to missing.
+                        MODELS.put(path.getModelPath(), renderer != null ? renderer : MISSING_MODEL);
                         return null;
                     });
                 }
@@ -196,7 +222,7 @@ public class DynamXModelRegistry implements IPackInfoReloadListener {
     public void uploadVAOs() {
         log.info("Loading model vaos...");
         long t1 = System.currentTimeMillis();
-        // TODO port:1.20.1 - MODELS.values().forEach(DxModelRenderer::uploadVAOs);
+        MODELS.values().forEach(DxModelRenderer::uploadVAOs);
         DynamXMain.log.info("VAO upload took " + (System.currentTimeMillis() - t1) + "ms");
     }
 

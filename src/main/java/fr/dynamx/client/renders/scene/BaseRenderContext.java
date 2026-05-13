@@ -1,5 +1,6 @@
 package fr.dynamx.client.renders.scene;
 
+import com.mojang.blaze3d.vertex.PoseStack;
 import fr.dynamx.client.renders.RenderPhysicsEntity;
 import fr.dynamx.client.renders.model.ItemDxModel;
 import fr.dynamx.client.renders.model.ModelObjArmor;
@@ -9,6 +10,8 @@ import fr.dynamx.common.blocks.TEDynamXBlock;
 import fr.dynamx.common.entities.ModularPhysicsEntity;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import lombok.Setter;
+import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.ItemDisplayContext;
@@ -34,6 +37,12 @@ public abstract class BaseRenderContext implements IRenderContext {
     private byte textureId;
     private float partialTicks;
     private boolean useVanillaRender;
+    @Setter
+    private PoseStack poseStack;
+    @Setter
+    private MultiBufferSource bufferSource;
+    @Setter
+    private int packedLight;
 
     protected BaseRenderContext setModelParams(@Nonnull DxModelRenderer model, byte textureId) {
         this.model = model;

@@ -52,12 +52,11 @@ public class RenderBaseVehicle<T extends BaseVehicleEntity<?>> extends RenderPhy
     @Override
     @Nullable
     public BaseRenderContext.EntityRenderContext getRenderContext(T entity) {
-        // TODO port:1.20.1 - DynamXContext.getDxModelRegistry() isn't ported yet (Phase 5/8). Once it lands:
-        //   if (entity.getPackInfo() == null) return null;
-        //   DxModelRenderer modelRenderer = DynamXContext.getDxModelRegistry().getModel(entity.getPackInfo().getModel());
-        //   if (modelRenderer == null) return null;
-        //   return context.setModelParams(entity, modelRenderer, entity.getEntityTextureId());
-        return null;
+        if (entity.getPackInfo() == null) return null;
+        Object raw = fr.dynamx.common.DynamXContext.getDxModelRegistry().getModel(entity.getPackInfo().getModel());
+        if (!(raw instanceof fr.dynamx.client.renders.model.renderer.DxModelRenderer modelRenderer)) return null;
+        if (modelRenderer.isEmpty()) return null;
+        return context.setModelParams(entity, modelRenderer, entity.getEntityTextureId());
     }
 
     @Override

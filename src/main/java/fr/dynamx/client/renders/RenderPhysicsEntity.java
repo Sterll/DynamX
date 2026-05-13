@@ -103,12 +103,16 @@ public abstract class RenderPhysicsEntity<T extends PhysicsEntity<?>> extends En
         // The engine already pre-translated the PoseStack to (entity.x - cameraX, ...) so we use 0,0,0
         // for the render position and rely on the PoseStack instead.
         context.setRenderParams(0, 0, 0, partialTicks, false);
+        context.setPoseStack(poseStack);
+        context.setBufferSource(bufferSource);
+        context.setPackedLight(packedLight);
 
         // TODO port:1.20.1 - render passes are gone in core profile; hardcoded to 0.
         int renderPass = 0;
         QuaternionPool.openPool(SubClassPool.ENTITY_RENDER);
         Vector3fPool.openPool(SubClassPool.ENTITY_RENDER);
         GlQuaternionPool.openPool(SubClassPool.ENTITY_RENDER);
+        RenderFrame.push(poseStack, bufferSource, packedLight);
 
         // Render vehicle
         DynamXEntityRenderEvent preEvent = new DynamXEntityRenderEvent(entity, context, DynamXEntityRenderEvent.Type.ENTITY, renderPass);
@@ -128,6 +132,7 @@ public abstract class RenderPhysicsEntity<T extends PhysicsEntity<?>> extends En
         Vector3fPool.closePool();
         QuaternionPool.closePool();
         GlQuaternionPool.closePool();
+        RenderFrame.clear();
     }
 
     /**

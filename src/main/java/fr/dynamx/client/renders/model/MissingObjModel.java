@@ -2,24 +2,21 @@ package fr.dynamx.client.renders.model;
 
 import fr.dynamx.client.renders.model.renderer.ObjModelRenderer;
 import fr.dynamx.client.renders.model.renderer.ObjObjectRenderer;
+import fr.dynamx.common.objloader.data.ObjObjectData;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 
 /**
- * Missing OBJ model indicating errors.
- * <p>
- * TODO port:1.20.1 - OBJ loader is being dropped. This class is kept as a stub so that callers
- * compile; the proper missing-model fallback must be reauthored on top of the 1.20.1 BakedModel
- * fallback (or simply rendered with the {@code ModelManager#getMissingModel()} flow).
+ * Missing OBJ model indicating errors. Renders nothing — the {@code renderMissingModelFallback}
+ * path in {@code RenderPhysicsEntity} handles the "no model" wireframe.
  */
 public class MissingObjModel extends ObjModelRenderer {
     private static ObjObjectRenderer emptyPartRenderer;
 
     public MissingObjModel() {
         super(null, new ArrayList<>(), new HashMap<>(), null);
-        // TODO port:1.20.1 - OBJ loader is being dropped
-        ObjObjectRenderer objObjectRenderer = new ObjObjectRenderer(null) {
+        ObjObjectRenderer objObjectRenderer = new ObjObjectRenderer(new ObjObjectData("missing")) {
             @Override
             public void render(ObjModelRenderer model, byte textureVariantID, boolean forceVanillaRender) {
                 MissingObjModel.this.renderModel(textureVariantID, forceVanillaRender);
@@ -35,7 +32,7 @@ public class MissingObjModel extends ObjModelRenderer {
 
     @Override
     public void renderGroup(ObjObjectRenderer group, byte textureDataId, boolean forceVanillaRender) {
-        renderModel(textureDataId, forceVanillaRender);
+        // no-op
     }
 
     @Override
@@ -45,19 +42,21 @@ public class MissingObjModel extends ObjModelRenderer {
 
     @Override
     public boolean renderGroup(String groupsName, byte textureDataId, boolean forceVanillaRender) {
-        renderModel(textureDataId, forceVanillaRender);
         return true;
     }
 
     @Override
     public boolean renderDefaultParts(byte textureDataId, boolean forceVanillaRender) {
-        renderModel(textureDataId, forceVanillaRender);
         return true;
     }
 
     @Override
     public void renderModel(byte textureDataId, boolean forceVanillaRender) {
-        // TODO port:1.20.1 - render a red "Error" placeholder via PoseStack/MultiBufferSource +
-        // Minecraft.getInstance().font.draw(...) and a debug AABB outline RenderType
+        // no-op
+    }
+
+    @Override
+    public boolean isEmpty() {
+        return true;
     }
 }
