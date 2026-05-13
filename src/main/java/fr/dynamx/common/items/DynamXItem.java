@@ -75,6 +75,18 @@ public class DynamXItem<T extends AbstractItemObject<?, ?>> extends Item impleme
     }
 
     @Override
+    public Component getName(ItemStack stack) {
+        T info = getInfo();
+        if (info != null) {
+            String name = info.getDefaultName() != null ? info.getDefaultName() : info.getName();
+            if (name != null && !name.isEmpty()) {
+                return Component.literal(name);
+            }
+        }
+        return super.getName(stack);
+    }
+
+    @Override
     public void appendHoverText(ItemStack stack, @Nullable Level worldIn, List<Component> tooltip, TooltipFlag flagIn) {
         super.appendHoverText(stack, worldIn, tooltip, flagIn);
         // TODO port:1.20.1 - addItemTooltip(...) still operates on List<String>; bridge by collecting and converting.

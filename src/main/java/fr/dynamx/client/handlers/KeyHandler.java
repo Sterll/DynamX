@@ -203,9 +203,9 @@ public class KeyHandler {
     /**
      * <p>TODO port:1.20.1 - was {@code MouseEvent} (mixed wheel/click). 1.20 splits into:
      * {@code InputEvent.MouseScrollingEvent} (wheel) and {@code InputEvent.MouseButton.Pre/Post} (clicks).
-     * The body reacts to wheel scrolls when holding a wrench/slopes item while sneaking.</p>
+     * The body reacts to wheel scrolls when holding a wrench/slopes item while sneaking.
+     * TODO port:1.20.1 - re-add @SubscribeEvent once the parameter is typed as a real Event subclass.</p>
      */
-    @SubscribeEvent
     public void onMouseEvent(/* InputEvent.MouseScrollingEvent */ Object event) {
         if (MC.player != null) {
             if (MC.player.getMainHandItem().getItem() instanceof ItemWrench) {

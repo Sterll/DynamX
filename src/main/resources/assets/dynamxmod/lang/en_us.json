@@ -2,6 +2,10 @@
   "itemGroup.dynamxmod.vehicles": "DynamX Vehicles",
   "itemGroup.dynamxmod.objects": "DynamX Objects",
 
+  "dynamx.item.description": "%s",
+  "dynamx.item.pack": "Pack: %s",
+  "dynamx.item.variant": "Variant: %s",
+
   "item.dynamxmod.wrench": "Wrench",
   "item.dynamxmod.shockwave": "Shockwave Generator",
   "item.dynamxmod.slopes": "Slopes Tool",
