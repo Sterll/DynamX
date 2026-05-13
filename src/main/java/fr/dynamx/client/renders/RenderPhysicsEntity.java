@@ -1,11 +1,14 @@
 package fr.dynamx.client.renders;
 
 import com.mojang.blaze3d.vertex.PoseStack;
+import fr.dynamx.api.contentpack.object.part.IShapeInfo;
 import fr.dynamx.api.events.client.DynamXEntityRenderEvent;
 import fr.dynamx.client.renders.model.renderer.DxModelRenderer;
 import fr.dynamx.client.renders.scene.BaseRenderContext;
 import fr.dynamx.client.renders.scene.node.SceneNode;
+import fr.dynamx.common.entities.PackPhysicsEntity;
 import fr.dynamx.common.entities.PhysicsEntity;
+import fr.dynamx.utils.client.ClientDynamXUtils;
 import fr.dynamx.utils.debug.renderer.DebugRenderer;
 import fr.dynamx.utils.optimization.GlQuaternionPool;
 import fr.dynamx.utils.optimization.QuaternionPool;
@@ -94,7 +97,7 @@ public abstract class RenderPhysicsEntity<T extends PhysicsEntity<?>> extends En
 
         BaseRenderContext.EntityRenderContext context = getRenderContext(entity);
         if (context == null) {
-            renderMissingModelFallback(entity, poseStack, bufferSource);
+            renderMissingModelFallback(entity, partialTicks, poseStack, bufferSource);
             return;
         }
         // The engine already pre-translated the PoseStack to (entity.x - cameraX, ...) so we use 0,0,0
@@ -129,14 +132,53 @@ public abstract class RenderPhysicsEntity<T extends PhysicsEntity<?>> extends En
 
     /**
      * Fallback used when {@link #getRenderContext(PhysicsEntity)} returns null (no model bound).
-     * Draws a wireframe over the entity's bounding box plus a magenta box around the physics
-     * collision shape extents so spawned vehicles remain visible while the DxModelRegistry
-     * pipeline is being ported.
+     * Renders rotated PartShape boxes (when available) so the user can see the vehicle's silhouette
+     * and orientation in the world. Falls back to the axis-aligned bounding box otherwise.
      */
-    private void renderMissingModelFallback(T entity, PoseStack poseStack, MultiBufferSource bufferSource) {
-        AABB box = entity.getBoundingBox().move(-entity.getX(), -entity.getY(), -entity.getZ());
-        LevelRenderer.renderLineBox(poseStack, bufferSource.getBuffer(RenderType.lines()),
-                box, 1.0f, 0.2f, 0.8f, 1.0f);
+    private void renderMissingModelFallback(T entity, float partialTicks, PoseStack poseStack, MultiBufferSource bufferSource) {
+        var consumer = bufferSource.getBuffer(RenderType.lines());
+
+        // Apply the interpolated physics rotation so the placeholder follows the vehicle's actual
+        // orientation in the world. The PoseStack is already pre-translated to the entity origin.
+        poseStack.pushPose();
+        org.joml.Quaternionf rotation = ClientDynamXUtils.computeInterpolatedJomlQuaternion(
+                entity.prevRenderRotation, entity.renderRotation, partialTicks);
+        poseStack.mulPose(rotation);
+
+        boolean drewShapes = false;
+        if (entity instanceof PackPhysicsEntity<?, ?> packEntity && packEntity.getPackInfo() != null) {
+            try {
+                java.util.List<IShapeInfo> shapes = packEntity.getPackInfo().getCollisionsHelper().getShapes();
+                if (shapes != null && !shapes.isEmpty()) {
+                    for (IShapeInfo shape : shapes) {
+                        com.jme3.math.Vector3f pos = shape.getPosition();
+                        com.jme3.math.Vector3f size = shape.getSize();
+                        AABB box = new AABB(
+                                pos.x - size.x, pos.y - size.y, pos.z - size.z,
+                                pos.x + size.x, pos.y + size.y, pos.z + size.z);
+                        LevelRenderer.renderLineBox(poseStack, consumer,
+                                box, 0.2f, 0.9f, 1.0f, 1.0f);
+                    }
+                    drewShapes = true;
+                }
+            } catch (Throwable ignored) {
+                // Pack info may be partial during loading — fall through to AABB.
+            }
+        }
+
+        if (!drewShapes) {
+            AABB local = entity.getBoundingBox().move(-entity.getX(), -entity.getY(), -entity.getZ());
+            // Undo the rotation for the AABB path so it stays axis-aligned with the world.
+            poseStack.popPose();
+            LevelRenderer.renderLineBox(poseStack, consumer,
+                    local, 1.0f, 0.2f, 0.8f, 1.0f);
+            return;
+        }
+
+        // Forward-pointing axis marker (+X is the vehicle's nose for DynamX physics shapes).
+        AABB nose = new AABB(0.0, -0.05, -0.05, 1.5, 0.05, 0.05);
+        LevelRenderer.renderLineBox(poseStack, consumer, nose, 1.0f, 0.1f, 0.1f, 1.0f);
+        poseStack.popPose();
     }
 
     public void spawnParticles(T physicsEntity, BaseRenderContext.EntityRenderContext context) {
