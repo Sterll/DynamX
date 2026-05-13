@@ -534,8 +534,13 @@ public class DynamXUtils {
         tooltip.add(ChatFormatting.DARK_PURPLE + I18n.get("dynamx.item.pack", itemInfo.getPackName()));
 
         // TODO port:1.20.1 - cast to IModelTextureVariantsSupplier; AbstractItemObject is not yet
-        // declared to implement it in the ported version of IModelPackObject.
-        fr.dynamx.api.dxmodel.IModelTextureVariantsSupplier variants = (fr.dynamx.api.dxmodel.IModelTextureVariantsSupplier) (Object) itemInfo;
+        // declared to implement it in the ported version of IModelPackObject. Until the model
+        // pipeline lands and the interface gets re-attached to pack info classes, skip the
+        // variant-name line so hovering a pack item doesn't crash with ClassCastException.
+        if (!(itemInfo instanceof fr.dynamx.api.dxmodel.IModelTextureVariantsSupplier)) {
+            return;
+        }
+        fr.dynamx.api.dxmodel.IModelTextureVariantsSupplier variants = (fr.dynamx.api.dxmodel.IModelTextureVariantsSupplier) itemInfo;
         if (variants.getMaxVariantId() <= 1) {
             return;
         }

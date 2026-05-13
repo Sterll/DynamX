@@ -51,7 +51,11 @@ public abstract class ClassPool<T> {
     public T provideNewInstance() {
         T instance;
         if (root == null) {
-            DynamX.LOGGER.warn("No sub-pool opened ! Opening a default one", new IllegalStateException("No sub-pool opened ! Opening a default one"));
+            // TODO port:1.20.1 - The 1.12 codebase opened these pools explicitly on every entry
+            //  point; several of those sites (createShape during entity init, RenderRagdoll, ...)
+            //  haven't been re-wired in the port. Auto-opening a default sub-pool keeps behaviour
+            //  correct; the spammy stack-traced warning is dropped so it doesn't fill the console
+            //  at 60Hz per entity.
             openSubPool(SubClassPool.DEFAULT_DEFAULT);
         }
         if (root.getStartIndex() + root.getAffectedObjectsCount() >= pool.length) //If the pool is too small

@@ -215,6 +215,12 @@ public class DynamXModelRegistry implements IPackInfoReloadListener {
         for (InfoList<?> infoLoader : DynamXObjectLoaders.getInfoLists()) {
             for (INamedObject namedObject : infoLoader.getInfos().values()) {
                 if (namedObject instanceof IModelPackObject && ((IModelPackObject) namedObject).shouldRegisterModel()) {
+                    // TODO port:1.20.1 - IModelTextureVariantsSupplier was implemented by every pack
+                    //  info in 1.12 via the now-stubbed model pipeline. Until that interface is
+                    //  re-implemented in Phase 5/8, skip pack infos that don't supply variants.
+                    if (!(namedObject instanceof IModelTextureVariantsSupplier)) {
+                        continue;
+                    }
                     DxModelPath modelPath = DynamXUtils.getModelPath(namedObject.getPackName(), ((IModelPackObject) namedObject).getModel());
                     registerModel(modelPath, (IModelTextureVariantsSupplier) namedObject);
                 }
