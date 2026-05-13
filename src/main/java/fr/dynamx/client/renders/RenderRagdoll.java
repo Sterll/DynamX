@@ -59,7 +59,9 @@ public class RenderRagdoll<T extends RagdollEntity> extends RenderPhysicsEntity<
         ResourceLocation skinLocation = resolveSkin(entity);
         VertexConsumer consumer = bufferSource.getBuffer(playerModel.renderType(skinLocation));
 
-        Vector3f entityPos = entity.physicsPosition;
+        double interpX = entity.xOld + (entity.getX() - entity.xOld) * partialTicks;
+        double interpY = entity.yOld + (entity.getY() - entity.yOld) * partialTicks;
+        double interpZ = entity.zOld + (entity.getZ() - entity.zOld) * partialTicks;
         for (EnumRagdollBodyPart partKey : EnumRagdollBodyPart.values()) {
             SynchronizedRigidBodyTransform sync = transforms.get((byte) partKey.ordinal());
             if (sync == null) {
@@ -70,9 +72,11 @@ public class RenderRagdoll<T extends RagdollEntity> extends RenderPhysicsEntity<
 
             Vector3f prevPos = prev.getPosition();
             Vector3f currPos = curr.getPosition();
-            float ix = lerp(prevPos.x, currPos.x, partialTicks) - entityPos.x;
-            float iy = lerp(prevPos.y, currPos.y, partialTicks) - entityPos.y;
-            float iz = lerp(prevPos.z, currPos.z, partialTicks) - entityPos.z;
+            // Rigid body world position - interpolated entity world position
+            // (the PoseStack is already pre-translated to the interpolated entity position).
+            float ix = (float) (lerp(prevPos.x, currPos.x, partialTicks) - interpX);
+            float iy = (float) (lerp(prevPos.y, currPos.y, partialTicks) - interpY);
+            float iz = (float) (lerp(prevPos.z, currPos.z, partialTicks) - interpZ);
 
             Quaternionf q = ClientDynamXUtils.computeInterpolatedJomlQuaternion(
                     prev.getRotation(), curr.getRotation(), partialTicks);
@@ -85,18 +89,13 @@ public class RenderRagdoll<T extends RagdollEntity> extends RenderPhysicsEntity<
             poseStack.pushPose();
             poseStack.translate(ix, iy, iz);
             poseStack.mulPose(q);
-            // The body parts are authored at scale 0.0625 (one pixel = 1/16 block) and offset so
-            // that the model's pivot is at the joint. Flip Y to match vanilla model orientation.
-            poseStack.scale(-1.0F, -1.0F, 1.0F);
+            // Legacy 1.12: GlStateManager.rotate(180, 1, 0, 0) — flip on X so the model points
+            // right-way-up (PlayerModel is authored upside-down in modelspace).
+            poseStack.mulPose(com.mojang.math.Axis.XP.rotationDegrees(180.0F));
+            // Per-part pivot offsets in world units, taken verbatim from the 1.12 renderer.
             applyPartPivot(poseStack, partKey);
-
-            ModelPart.Cube[] backup = null; // no-op placeholder for future per-bodypart tinting
-            part.xRot = 0;
-            part.yRot = 0;
-            part.zRot = 0;
-            part.x = 0;
-            part.y = 0;
-            part.z = 0;
+            // PlayerModel cubes are authored in pixel units; convert to world units.
+            poseStack.scale(0.0625F, 0.0625F, 0.0625F);
             part.render(poseStack, consumer, packedLight, OverlayTexture.NO_OVERLAY);
             poseStack.popPose();
         }
@@ -119,15 +118,17 @@ public class RenderRagdoll<T extends RagdollEntity> extends RenderPhysicsEntity<
     }
 
     /**
-     * Vanilla player model parts are pivoted at the joint (top of arm, top of leg, etc.). Each
-     * body part's physics transform is centered on its rigid body, so we shift the pose so the
-     * model part's joint aligns with the centre of the box.
+     * Per-part pivot offsets in world units. Values taken verbatim from the 1.12 RenderRagdoll so
+     * each body part aligns with its rigid-body center after the 180° X flip.
      */
     private static void applyPartPivot(PoseStack poseStack, EnumRagdollBodyPart key) {
         switch (key) {
             case HEAD -> poseStack.translate(0.0F, 0.25F, 0.0F);
-            case CHEST -> poseStack.translate(0.0F, 0.375F, 0.0F);
-            case RIGHT_ARM, LEFT_ARM, RIGHT_LEG, LEFT_LEG -> poseStack.translate(0.0F, 0.375F, 0.0F);
+            case CHEST -> poseStack.translate(0.0F, -0.375F, 0.0F);
+            case RIGHT_ARM -> poseStack.translate(0.369F, -0.375F, 0.0F);
+            case LEFT_ARM -> poseStack.translate(-0.369F, -0.375F, 0.0F);
+            case RIGHT_LEG -> poseStack.translate(0.125F, -1.125F, 0.0F);
+            case LEFT_LEG -> poseStack.translate(-0.1F, -1.125F, 0.0F);
         }
     }
 
