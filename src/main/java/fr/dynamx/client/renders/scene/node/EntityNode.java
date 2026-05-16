@@ -77,10 +77,12 @@ public class EntityNode<A extends IPhysicsPackInfo> extends AbstractItemNode<Bas
         // TODO port:1.20.1 - was: GlStateManager.enableRescaleNormal();
 
         ModularPhysicsEntity<?> entity = context.getEntity();
+        org.joml.Quaternionf entityRotation = null;
         if (entity != null) {
             transform.translate(context.getRenderPosition());
-            transform.rotate(ClientDynamXUtils.computeInterpolatedJomlQuaternion(
-                    entity.prevRenderRotation, entity.renderRotation, context.getPartialTicks()));
+            entityRotation = ClientDynamXUtils.computeInterpolatedJomlQuaternion(
+                    entity.prevRenderRotation, entity.renderRotation, context.getPartialTicks());
+            transform.rotate(entityRotation);
         }
         // Scale to the config scale value
         transform.scale(DynamXUtils.toVector3f(packInfo.getScaleModifier()));
@@ -88,7 +90,22 @@ public class EntityNode<A extends IPhysicsPackInfo> extends AbstractItemNode<Bas
         com.mojang.blaze3d.vertex.PoseStack pose = context.getPoseStack();
         if (pose != null) {
             pose.pushPose();
-            pose.mulPoseMatrix(transform);
+            // PoseStack.mulPoseMatrix(Matrix4f) only multiplies the pose matrix - the normal
+            // matrix is left untouched, so per-vertex lighting is computed against the world's
+            // normal frame instead of the entity's. That produces the "shattered facets" look.
+            // Apply translate / mulPose(Quat) / scale individually so the normal matrix tracks
+            // the rotation and scale correctly.
+            org.joml.Vector3f renderPos = context.getRenderPosition();
+            if (renderPos != null) {
+                pose.translate(renderPos.x, renderPos.y, renderPos.z);
+            }
+            if (entityRotation != null) {
+                pose.mulPose(entityRotation);
+            }
+            org.joml.Vector3f scale = DynamXUtils.toVector3f(packInfo.getScaleModifier());
+            if (scale != null && (scale.x != 1f || scale.y != 1f || scale.z != 1f)) {
+                pose.scale(scale.x, scale.y, scale.z);
+            }
         }
         if (context.getRender() != null) {
             context.getRender().renderMainModel(context.getModel(), entity, context.getTextureId(), context.isUseVanillaRender());

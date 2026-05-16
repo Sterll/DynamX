@@ -163,14 +163,19 @@ public class OBJLoader {
                 Map<IndexedModel.OBJIndex, Integer> resultIndexMap = new HashMap<>();
 
                 for (IndexedModel.OBJIndex current : objIdx) {
-                    if (current.positionIndex < 0 || current.positionIndex >= positions.size()) continue;
-                    Vector3f pos = positions.get(current.positionIndex);
-                    Vector2f tc = hasTexCoords && location != null && current.texCoordsIndex >= 0 && current.texCoordsIndex < texCoords.size()
-                            ? texCoords.get(current.texCoordsIndex)
-                            : new Vector2f();
-                    Vector3f n = hasNormals && current.normalIndex >= 0 && current.normalIndex < normals.size()
-                            ? normals.get(current.normalIndex)
-                            : new Vector3f(0, 1, 0);
+                    // Never skip an OBJIndex: doing so desynchronises im.indices (per-vertex)
+                    // from indicedMaterials (per-triangle), shifting every later triangle's
+                    // material and producing the "shattered geometry" look. Out-of-range
+                    // positions fall back to the origin so the triangle count stays consistent.
+                    Vector3f srcPos = (current.positionIndex >= 0 && current.positionIndex < positions.size())
+                            ? positions.get(current.positionIndex) : null;
+                    Vector3f pos = srcPos != null ? new Vector3f(srcPos) : new Vector3f();
+                    Vector2f srcTc = (hasTexCoords && location != null && current.texCoordsIndex >= 0 && current.texCoordsIndex < texCoords.size())
+                            ? texCoords.get(current.texCoordsIndex) : null;
+                    Vector2f tc = srcTc != null ? new Vector2f(srcTc) : new Vector2f();
+                    Vector3f srcN = (hasNormals && current.normalIndex >= 0 && current.normalIndex < normals.size())
+                            ? normals.get(current.normalIndex) : null;
+                    Vector3f n = srcN != null ? new Vector3f(srcN) : new Vector3f(0, 1, 0);
 
                     Integer modelVertexIndex = resultIndexMap.get(current);
                     if (modelVertexIndex == null) {
@@ -202,6 +207,12 @@ public class OBJLoader {
 
     private IndexedModel.OBJIndex parseOBJIndex(String token) {
         IndexedModel.OBJIndex index = new IndexedModel.OBJIndex();
+        // OBJIndex's int fields default to 0 - if a face token omits texcoord or normal
+        // (e.g. "f 1//1" or "f 1/2"), leaving them at 0 makes the dedup loop pull texCoords[0]
+        // / normals[0] into every such vertex, producing scrambled UVs and shattered shading.
+        // Use -1 as the explicit "missing" sentinel so the bounds check falls back to defaults.
+        index.texCoordsIndex = -1;
+        index.normalIndex = -1;
         String[] values = token.split("/");
         index.positionIndex = Integer.parseInt(values[0]) - 1;
         if (values.length > 1) {

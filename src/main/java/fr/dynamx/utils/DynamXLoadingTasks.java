@@ -139,8 +139,14 @@ public class DynamXLoadingTasks {
      * Should be fired for each resource type, on reload end
      */
     public static void endTask(Consumer<TaskContext> type) {
-        if (!reloadCallbacks.containsKey(type))
-            throw new IllegalStateException("Reloading of " + type + " isn't running");
+        if (!reloadCallbacks.containsKey(type)) {
+            // TODO port:1.20.1 - reloadModels() is currently invoked directly from
+            // onPackInfosReloaded (pre-Phase 4) instead of going through reload(). The
+            // reloadCallbacks map is therefore empty when endTask runs. Treat this as a
+            // no-op until the resource-manager reload listener is wired up.
+            DynamX.LOGGER.debug("endTask({}) skipped - no in-flight reload (pre-Phase 4 path)", type);
+            return;
+        }
         DynamX.LOGGER.info("Done reloading " + type);
         reloadCallbacks.remove(type).complete(null);
     }

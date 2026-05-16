@@ -35,7 +35,7 @@ public abstract class DxModelRenderer {
     public DxModelRenderer(DxModelPath location, IModelTextureVariantsSupplier textureVariants) {
         this.location = location;
         this.textureVariants = textureVariants;
-        this.format = location.getFormat();
+        this.format = location != null ? location.getFormat() : EnumDxModelFormats.OBJ;
     }
 
     public void renderModel(boolean forceVanillaRender) {

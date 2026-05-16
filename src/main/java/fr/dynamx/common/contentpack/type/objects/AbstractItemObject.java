@@ -12,6 +12,8 @@ import fr.dynamx.api.contentpack.object.subinfo.ISubInfoType;
 import fr.dynamx.api.contentpack.object.subinfo.ISubInfoTypeOwner;
 import fr.dynamx.api.contentpack.registry.DefinitionType;
 import fr.dynamx.api.contentpack.registry.PackFileProperty;
+import fr.dynamx.api.dxmodel.IModelTextureVariantsSupplier;
+import fr.dynamx.client.renders.model.renderer.ObjObjectRenderer;
 import fr.dynamx.common.contentpack.type.ItemTransformsInfo;
 import fr.dynamx.common.contentpack.type.ObjectInfo;
 import fr.dynamx.common.contentpack.type.ViewTransformsInfo;
@@ -39,7 +41,7 @@ import java.util.Map;
  *   The getViewTransformsInfo(Object) override uses Object pending ItemDisplayContext wiring.
  */
 public abstract class AbstractItemObject<T extends AbstractItemObject<?, ?>, A extends ISubInfoTypeOwner<A>> extends ObjectInfo<T>
-        implements IModelPackObject, IPartContainer<A> {
+        implements IModelPackObject, IPartContainer<A>, IModelTextureVariantsSupplier {
     @Getter
     @Setter
     @PackFileProperty(configNames = {"CreativeTabName", "CreativeTab", "TabName"}, required = false, defaultValue = "CreativeTab of DynamX", description = "common.creativetabname")
@@ -176,10 +178,23 @@ public abstract class AbstractItemObject<T extends AbstractItemObject<?, ?>, A e
         drawableParts.add(part);
     }
 
-    // TODO port:1.20.1 - @Override removed; canRenderPart lives on IModelTextureVariantsSupplier
-    // which AbstractItemObject does not (yet) declare in its interface chain.
+    @Override
     public boolean canRenderPart(String partName) {
         return !renderedParts.contains(partName);
+    }
+
+    @Override
+    public IModelTextureVariantsSupplier.IModelTextureVariants getTextureVariantsFor(ObjObjectRenderer objObjectRenderer) {
+        // TODO port:1.20.1 - Real per-object variant lookup waits on MaterialVariantsInfo implementing
+        // IModelTextureVariants (Phase 7). Returning null here means the model registry still captures
+        // this object as a supplier (so canRenderPart gates door/steering-wheel objects out of the
+        // chassis pass) but the renderer falls back to the diffuse texture from the MTL.
+        return null;
+    }
+
+    @Override
+    public byte getMaxVariantId() {
+        return 1;
     }
 
     // TODO port:1.20.1 - Mirror of IModelTextureVariantsSupplier#getMainObjectVariantName(byte) for

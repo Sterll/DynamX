@@ -1,6 +1,7 @@
 package fr.dynamx.client.renders.model.texture;
 
 import com.mojang.blaze3d.platform.NativeImage;
+import com.mojang.blaze3d.systems.RenderSystem;
 import fr.dynamx.common.DynamXMain;
 import lombok.Getter;
 import net.minecraft.client.Minecraft;
@@ -8,6 +9,7 @@ import net.minecraft.client.renderer.texture.DynamicTexture;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.resources.Resource;
 
+import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.util.Optional;
 
@@ -60,23 +62,35 @@ public class MaterialTexture {
         } catch (Exception ignored) {
         }
         PackTextureProvider provider = PACK_PROVIDER;
-        if (provider != null) {
-            try (InputStream is = provider.open(path)) {
-                if (is != null) registerFromPack(is);
-            } catch (Exception e) {
-                DynamXMain.log.warn("Failed to load pack texture " + path + ": " + e.getMessage());
-            }
+        if (provider == null) return;
+        byte[] payload = null;
+        try (InputStream is = provider.open(path)) {
+            if (is != null) payload = is.readAllBytes();
+        } catch (Exception e) {
+            DynamXMain.log.warn("Failed to load pack texture " + path + ": " + e.getMessage());
+        }
+        if (payload == null) return;
+        // NativeImage.read + DynamicTexture allocation + register must run on the render
+        // thread. Doing it from a worker enqueues an upload via recordRenderCall and the
+        // NativeImage can be GC'd / freed before the queue replays (crash #5 - "Image is
+        // not allocated").
+        final byte[] bytes = payload;
+        final ResourceLocation rl = new ResourceLocation(path.getNamespace(),
+                "dnxpack/" + path.getPath().replace('/', '_').replace('.', '_'));
+        effectivePath = rl;
+        Runnable register = () -> registerOnRenderThread(rl, bytes);
+        if (RenderSystem.isOnRenderThread()) {
+            register.run();
+        } else {
+            Minecraft.getInstance().execute(register);
         }
     }
 
-    private void registerFromPack(InputStream is) {
-        try {
-            NativeImage img = NativeImage.read(is);
+    private void registerOnRenderThread(ResourceLocation rl, byte[] bytes) {
+        try (ByteArrayInputStream bin = new ByteArrayInputStream(bytes)) {
+            NativeImage img = NativeImage.read(bin);
             DynamicTexture dyn = new DynamicTexture(img);
-            ResourceLocation rl = new ResourceLocation(path.getNamespace(),
-                    "dnxpack/" + path.getPath().replace('/', '_').replace('.', '_'));
             Minecraft.getInstance().getTextureManager().register(rl, dyn);
-            effectivePath = rl;
         } catch (Exception e) {
             DynamXMain.log.warn("Failed to register pack texture " + path + ": " + e.getMessage());
         }

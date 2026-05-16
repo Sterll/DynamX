@@ -290,7 +290,12 @@ public class ModularVehicleInfo extends AbstractItemObject<ModularVehicleInfo, M
     @Override
     public Object getSceneGraph() {
         // TODO port:1.20.1 - Original posted BuildEntityScene event then fell back to new EntityNode<>(...).
-        //   Phase 7 dependency.
+        //   Full scene graph (wheels, doors, lights as linked children) is a Phase 7 dependency.
+        //   Lazy-init a minimal EntityNode with no children so the main body renders.
+        if (sceneGraph == null) {
+            sceneGraph = new fr.dynamx.client.renders.scene.node.EntityNode<ModularVehicleInfo>(
+                    new java.util.ArrayList<>(), new java.util.ArrayList<>());
+        }
         return sceneGraph;
     }
 

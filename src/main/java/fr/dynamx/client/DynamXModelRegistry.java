@@ -241,18 +241,19 @@ public class DynamXModelRegistry implements IPackInfoReloadListener {
         for (InfoList<?> infoLoader : DynamXObjectLoaders.getInfoLists()) {
             for (INamedObject namedObject : infoLoader.getInfos().values()) {
                 if (namedObject instanceof IModelPackObject && ((IModelPackObject) namedObject).shouldRegisterModel()) {
-                    // TODO port:1.20.1 - IModelTextureVariantsSupplier was implemented by every pack
-                    //  info in 1.12 via the now-stubbed model pipeline. Until that interface is
-                    //  re-implemented in Phase 5/8, skip pack infos that don't supply variants.
-                    if (!(namedObject instanceof IModelTextureVariantsSupplier)) {
-                        continue;
-                    }
                     DxModelPath modelPath = DynamXUtils.getModelPath(namedObject.getPackName(), ((IModelPackObject) namedObject).getModel());
-                    registerModel(modelPath, (IModelTextureVariantsSupplier) namedObject);
+                    IModelTextureVariantsSupplier supplier = (namedObject instanceof IModelTextureVariantsSupplier)
+                            ? (IModelTextureVariantsSupplier) namedObject : null;
+                    registerModel(modelPath, supplier);
                 }
             }
         }
         REGISTRY_CLOSED = true;
         log.info("Registered " + getLoadedModelCount() + " dx models");
+        // TODO port:1.20.1 - the legacy onResourceManagerReload() hook isn't wired to NeoForge's
+        // RegisterClientReloadListenersEvent yet, so reloadModels() is never triggered through the
+        // normal resource-pack reload path. Trigger it explicitly once registration is complete so
+        // models actually populate the MODELS map before vehicles try to render.
+        reloadModels();
     }
 }

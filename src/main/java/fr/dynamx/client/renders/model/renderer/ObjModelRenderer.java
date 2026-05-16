@@ -72,17 +72,28 @@ public class ObjModelRenderer extends DxModelRenderer {
         return true;
     }
 
+    private static final java.util.Set<String> DUMPED_DEFAULTS = java.util.concurrent.ConcurrentHashMap.newKeySet();
+
     @Override
     public boolean renderDefaultParts(byte textureDataId, boolean forceVanillaRender) {
         // Render every object that isn't a part-marker. The IModelTextureVariantsSupplier
         // gating (canRenderPart) is not wired in the minimal port — supplier may be null.
         boolean drawn = false;
+        String key = String.valueOf(getLocation());
+        boolean dump = DUMPED_DEFAULTS.add(key);
+        StringBuilder sb = dump ? new StringBuilder("renderDefaultParts model=" + key + " supplier=" + textureVariants + "\n") : null;
         for (ObjObjectRenderer object : objObjects) {
-            if (textureVariants == null || canRenderPart(object)) {
+            boolean allowed = textureVariants == null || canRenderPart(object);
+            if (dump) {
+                sb.append("  obj=").append(object.getObjObjectData() != null ? object.getObjObjectData().getName() : "null")
+                        .append(" allowed=").append(allowed).append("\n");
+            }
+            if (allowed) {
                 renderGroup(object, textureDataId, forceVanillaRender);
                 drawn = true;
             }
         }
+        if (dump) org.apache.logging.log4j.LogManager.getLogger("DynamX-ObjDump").info(sb.toString());
         return drawn;
     }
 

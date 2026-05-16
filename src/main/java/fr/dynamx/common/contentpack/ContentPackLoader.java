@@ -117,8 +117,6 @@ public class ContentPackLoader {
      * @return The chosen folder file
      */
     public static File init(File resDir, String folderName) {
-        resourcesDirectory = resDir;
-        PackInfo.resourcesDirectory = resDir;
         //Production-environment
         File myDir = new File(folderName);
         if (!myDir.exists()) {
@@ -133,6 +131,12 @@ public class ContentPackLoader {
             } else //First run, in production environment
                 myDir.mkdirs();
         }
+        // PackInfo.readFile resolves <resourcesDirectory>/<pathName> where pathName is the pack
+        // file name (no folder prefix). The directory that *contains* the packs is myDir, not
+        // resDir. The legacy 1.12 code relied on DynamXMain.resourcesDirectory carrying the same
+        // semantics; we restore that here.
+        resourcesDirectory = myDir;
+        PackInfo.resourcesDirectory = myDir;
         //Discover addons / sub info types - the legacy code wired these up here using
         //FMLConstructionEvent. The NeoForge equivalents are no-arg.
         AddonLoader.discoverAddons();
