@@ -29,6 +29,7 @@ import java.util.List;
  */
 public class DynamXItemRegistry {
     private static final List<IResourcesOwner> ITEMS = new ArrayList<>();
+    private static final List<fr.dynamx.common.blocks.DynamXBlock<?>> BLOCKS = new ArrayList<>();
 
     /**
      * Vehicle creative tab handle (kept as Object for the legacy
@@ -131,10 +132,58 @@ public class DynamXItemRegistry {
     }
 
     public static void registerItemBlock(Object block) {
-        // TODO port:1.20.1 - DynamXBlock not yet ported (Phase 4); accepted as Object and downcast when available.
-        if (block instanceof net.minecraft.world.level.block.Block) {
-            add(new DynamXItemBlock((net.minecraft.world.level.block.Block) block));
+        if (block instanceof fr.dynamx.common.blocks.DynamXBlock<?> dxBlock) {
+            BLOCKS.add(dxBlock);
+            add(new DynamXItemBlock(dxBlock));
+        } else if (block instanceof net.minecraft.world.level.block.Block vanillaBlock) {
+            add(new DynamXItemBlock(vanillaBlock));
         }
+    }
+
+    /**
+     * Registers every {@link fr.dynamx.common.blocks.DynamXBlock} collected through
+     * {@link #registerItemBlock(Object)} with the block registry.
+     *
+     * <p>Each {@code new DynamXBlock(...)} grabs an intrusive holder slot in
+     * {@link ForgeRegistries#BLOCKS}; if the holder isn't consumed by a registry insertion before
+     * {@code freezeData()} runs, the game crashes with
+     * {@code IllegalStateException: Some intrusive holders were not registered}.
+     * Pack-driven blocks get a registry id of the form {@code dynamxmod:<json-name>}.
+     */
+    public static void injectBlocks(RegisterEvent event) {
+        if (!event.getRegistryKey().equals(ForgeRegistries.Keys.BLOCKS)) {
+            return;
+        }
+        org.apache.logging.log4j.Logger log = org.apache.logging.log4j.LogManager.getLogger("DynamX");
+        int registered = 0;
+        for (fr.dynamx.common.blocks.DynamXBlock<?> block : BLOCKS) {
+            ResourceLocation existing = ForgeRegistries.BLOCKS.getKey(block);
+            if (existing != null && ForgeRegistries.BLOCKS.getValue(existing) == block) {
+                continue;
+            }
+            String rawName;
+            try {
+                rawName = block.getJsonName(0);
+            } catch (Throwable t) {
+                log.error("Failed to derive json name for block {}", block, t);
+                continue;
+            }
+            String name = rawName.toLowerCase().replace('.', '_');
+            ResourceLocation id;
+            try {
+                id = new ResourceLocation(DynamXConstants.ID, name);
+            } catch (net.minecraft.ResourceLocationException e) {
+                log.error("Invalid registry id derived from '{}' for block {}", name, block, e);
+                continue;
+            }
+            if (ForgeRegistries.BLOCKS.containsKey(id)) {
+                log.warn("Duplicate registry id {} for block {} - skipping", id, block);
+                continue;
+            }
+            event.register(ForgeRegistries.Keys.BLOCKS, id, () -> block);
+            registered++;
+        }
+        log.info("injectBlocks: registered {} pack block(s) out of {} collected", registered, BLOCKS.size());
     }
 
     /**

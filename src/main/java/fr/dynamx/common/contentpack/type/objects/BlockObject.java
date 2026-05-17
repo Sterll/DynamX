@@ -148,7 +148,9 @@ public class BlockObject<T extends BlockObject<T>> extends AbstractProp<T> imple
     @Override
     @SuppressWarnings({"unchecked", "rawtypes"})
     public IDynamXItem<T> createItem(InfoList<T> loader) {
-        return (IDynamXItem<T>) new fr.dynamx.common.blocks.DynamXBlock<>((T) this);
+        fr.dynamx.common.blocks.DynamXBlock<T> block = new fr.dynamx.common.blocks.DynamXBlock<>((T) this);
+        fr.dynamx.common.items.DynamXItemRegistry.registerItemBlock(block);
+        return (IDynamXItem<T>) block;
     }
 
     @Override

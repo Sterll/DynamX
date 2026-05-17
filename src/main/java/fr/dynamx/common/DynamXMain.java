@@ -161,41 +161,45 @@ public class DynamXMain {
         modBus.addListener(this::commonSetup);
         modBus.addListener(this::loadComplete);
 
-        // Items RegisterEvent listener: reload content packs (building pack items along the way)
-        // and then register everything collected in DynamXItemRegistry into the Forge items registry.
-        // Both steps must happen while the items registry is open.
+        // Single RegisterEvent listener handles both BLOCKS and ITEMS registries.
+        //   - BLOCKS fires first: reload content packs (so DynamXBlock instances exist before
+        //     freezeData() validates intrusive holders) and register every collected block.
+        //   - ITEMS fires next: register every pack item collected during pack loading.
         modBus.addListener((net.minecraftforge.registries.RegisterEvent event) -> {
-            if (!event.getRegistryKey().equals(net.minecraftforge.registries.ForgeRegistries.Keys.ITEMS)) {
+            if (event.getRegistryKey().equals(net.minecraftforge.registries.ForgeRegistries.Keys.BLOCKS)) {
+                try {
+                    java.io.File packsDir = new java.io.File(resourcesDirectory, fr.dynamx.utils.DynamXConstants.RES_DIR_NAME);
+                    fr.dynamx.utils.optimization.Vector3fPool.openPool(
+                            fr.dynamx.utils.optimization.SubClassPool.PACK_MODEL_LOAD);
+                    try {
+                        fr.dynamx.common.contentpack.ContentPackLoader.reload(packsDir, true);
+                    } finally {
+                        fr.dynamx.utils.optimization.Vector3fPool.closePool();
+                    }
+                } catch (Throwable t) {
+                    log.error("DynamX content pack loading failed", t);
+                }
+                try {
+                    java.util.Map<net.minecraft.resources.ResourceLocation,
+                            fr.aym.acslib.api.services.error.LocatedErrorList> allErrors =
+                                    fr.dynamx.utils.errors.DynamXErrorManager.getErrorManager().getAllErrors();
+                    int total = allErrors.values().stream().mapToInt(l -> l.getErrors().size()).sum();
+                    if (total > 0) {
+                        log.warn("DynamX content packs reported {} loading error(s)", total);
+                        allErrors.forEach((loc, list) -> list.getErrors().stream().limit(3).forEach(err ->
+                                log.warn("[pack {}] {} {} {} {}", loc, err.getLevel(),
+                                        err.getGenericType(), err.getObject(), err.getMessage(),
+                                        err.getException())));
+                    }
+                } catch (Throwable t) {
+                    log.error("Failed to inspect DynamX pack errors", t);
+                }
+                fr.dynamx.common.items.DynamXItemRegistry.injectBlocks(event);
                 return;
             }
-            try {
-                java.io.File packsDir = new java.io.File(resourcesDirectory, fr.dynamx.utils.DynamXConstants.RES_DIR_NAME);
-                fr.dynamx.utils.optimization.Vector3fPool.openPool(
-                        fr.dynamx.utils.optimization.SubClassPool.PACK_MODEL_LOAD);
-                try {
-                    fr.dynamx.common.contentpack.ContentPackLoader.reload(packsDir, true);
-                } finally {
-                    fr.dynamx.utils.optimization.Vector3fPool.closePool();
-                }
-            } catch (Throwable t) {
-                log.error("DynamX content pack loading failed", t);
+            if (event.getRegistryKey().equals(net.minecraftforge.registries.ForgeRegistries.Keys.ITEMS)) {
+                fr.dynamx.common.items.DynamXItemRegistry.injectItems(event);
             }
-            try {
-                java.util.Map<net.minecraft.resources.ResourceLocation,
-                        fr.aym.acslib.api.services.error.LocatedErrorList> allErrors =
-                                fr.dynamx.utils.errors.DynamXErrorManager.getErrorManager().getAllErrors();
-                int total = allErrors.values().stream().mapToInt(l -> l.getErrors().size()).sum();
-                if (total > 0) {
-                    log.warn("DynamX content packs reported {} loading error(s)", total);
-                    allErrors.forEach((loc, list) -> list.getErrors().stream().limit(3).forEach(err ->
-                            log.warn("[pack {}] {} {} {} {}", loc, err.getLevel(),
-                                    err.getGenericType(), err.getObject(), err.getMessage(),
-                                    err.getException())));
-                }
-            } catch (Throwable t) {
-                log.error("Failed to inspect DynamX pack errors", t);
-            }
-            fr.dynamx.common.items.DynamXItemRegistry.injectItems(event);
         });
 
         // Expose every pack found in <gamedir>/DynamX/ to Minecraft's resource manager so item

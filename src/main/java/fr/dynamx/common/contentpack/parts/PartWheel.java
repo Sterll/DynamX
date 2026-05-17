@@ -171,10 +171,15 @@ public class PartWheel extends InteractivePart<Object, ModularVehicleInfo> imple
     }
 
     @Override
+    @SuppressWarnings({"unchecked", "rawtypes"})
     public void addModules(Object entity, Object modules) {
-        // TODO port:1.20.1 - addModules signature (Object,Object) bridges Phase 6 ModuleListBuilder.
-        // The actual wiring of WheelsModule lives in BaseVehicleEntity.createModules() in the 1.20.1
-        // port; this hook is intentionally left no-op here.
+        if (!(entity instanceof BaseVehicleEntity)) {
+            throw new IllegalStateException("The entity " + entity + " has PartWheels, but isn't a vehicle !");
+        }
+        fr.dynamx.api.entities.modules.ModuleListBuilder builder = (fr.dynamx.api.entities.modules.ModuleListBuilder) modules;
+        if (!builder.hasModuleOfClass(WheelsModule.class)) {
+            builder.add(new WheelsModule((BaseVehicleEntity) entity));
+        }
     }
 
     /**
