@@ -49,15 +49,16 @@ public class TESRDynamXBlock<T extends TEDynamXBlock> implements BlockEntityRend
         QuaternionPool.openPool();
         BaseRenderContext.BlockRenderContext blockContext = this.context.setModelParams(te, null, (byte) 0);
         blockContext.setRenderParams(0, 0, 0, partialTicks, false);
-        Object sceneNode = packInfo.getSceneGraph();
-        if (sceneNode instanceof SceneNode) {
+        @SuppressWarnings({"rawtypes"})
+        SceneNode sceneNode = packInfo.getSceneGraph();
+        if (sceneNode != null) {
             // TODO port:1.20.1 - was wrapped in MinecraftForge.EVENT_BUS.post(DynamXBlockEvent.RenderTileEntity(...))
             // pre/post pair; rewrite once DynamXBlockEvent is migrated.
-            ((SceneNode<BaseRenderContext.BlockRenderContext, BlockObject<?>>) sceneNode).render(blockContext, packInfo, null);
+            sceneNode.render(blockContext, packInfo, null);
             // TODO port:1.20.1 - particle spawn for blocks. Was:
             //   DynamXRenderUtils.spawnParticles(packInfo, te.getWorld(), pos, rot);
             if (shouldRenderDebug()) {
-                ((SceneNode<BaseRenderContext.BlockRenderContext, BlockObject<?>>) sceneNode).renderDebug(blockContext, packInfo);
+                sceneNode.renderDebug(blockContext, packInfo);
             }
         }
         QuaternionPool.closePool();

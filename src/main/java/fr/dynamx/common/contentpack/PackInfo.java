@@ -170,18 +170,19 @@ public class PackInfo extends SubInfoTypeOwner<PackInfo> {
     }
 
     /**
-     * Reads a file from the pack.
-     *
-     * TODO port:1.20.1 - Original first tried the protected MPS class loader via
-     *   {@code ContentPackLoader.getProtectedResources(getPathName()).getSecureLoader()}.
-     *   MPS wiring is paused until Phase 0 secure-loader rework completes. The plain-file
-     *   fallback uses {@link #resourcesDirectory} which is populated by ContentPackLoader.init().
+     * Reads a file from the pack. MPS-protected resources are decrypted via
+     * {@link fr.dynamx.common.contentpack.mps.DynamXMpsManager} before falling back to
+     * the plain ZIP/folder lookup.
      */
     public InputStream readFile(ResourceLocation file) throws IOException {
         InputStream result = null;
         if (resourcesDirectory == null) {
             DynamX.LOGGER.warn("PackInfo.readFile called before resourcesDirectory was set");
             return null;
+        }
+        InputStream mpsStream = fr.dynamx.common.contentpack.mps.DynamXMpsManager.get().tryReadResource(getPathName(), file);
+        if (mpsStream != null) {
+            return mpsStream;
         }
         switch (getPackType()) {
             case FOLDER:

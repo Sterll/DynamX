@@ -87,15 +87,23 @@ public class ObjObjectRenderer {
             if (now - lastCounterDump > 2000) {
                 synchronized (RENDER_COUNTERS) {
                     if (now - lastCounterDump > 2000) {
-                        StringBuilder sb = new StringBuilder("renders/2s: ");
-                        for (var e : RENDER_COUNTERS.entrySet()) sb.append(e.getKey()).append("=").append(e.getValue().getAndSet(0)).append(" ");
-                        org.apache.logging.log4j.LogManager.getLogger("DynamX-ObjDump").info(sb.toString());
+                        org.apache.logging.log4j.Logger lg = org.apache.logging.log4j.LogManager.getLogger("DynamX-ObjDump");
+                        lg.info("");
+                        lg.info("    +=========================[ RENDER COUNTERS / 2s ]=========================+");
+                        for (var e : RENDER_COUNTERS.entrySet()) {
+                            int count = e.getValue().getAndSet(0);
+                            String bar = "#".repeat(Math.min(40, count / 5));
+                            lg.info(String.format("    | %-30s %5d  %s", e.getKey(), count, bar));
+                        }
+                        lg.info("    +==========================================================================+");
+                        lg.info("");
                         lastCounterDump = now;
                     }
                 }
             }
         }
-        if (diagName != null && DUMPED_OBJECTS.add(diagName)) {
+        String dumpKey = (model != null ? String.valueOf(model.getLocation()) : "?") + "::" + diagName;
+        if (diagName != null && DUMPED_OBJECTS.add(dumpKey)) {
             int triCountDbg = indices.length / 3;
             float minX = Float.POSITIVE_INFINITY, minY = Float.POSITIVE_INFINITY, minZ = Float.POSITIVE_INFINITY;
             float maxX = Float.NEGATIVE_INFINITY, maxY = Float.NEGATIVE_INFINITY, maxZ = Float.NEGATIVE_INFINITY;
@@ -138,15 +146,34 @@ public class ObjObjectRenderer {
                 for (int i = 0; i < show; i++) sb.append(perVertex[i]).append(",");
                 pvSample = sb.toString();
             }
-            org.apache.logging.log4j.LogManager.getLogger("DynamX-ObjDump").info(
-                    "obj={} v={} idx={} tri={} bbox=[{} .. {}] nan={} oobIdx={} mats={} perVertex={} uv=[{},{} .. {},{}] zeroUV={} zeroNrm={} avgNy={}",
-                    diagName, vertices.length, indices.length, triCountDbg,
-                    String.format("(%.3f,%.3f,%.3f)", minX, minY, minZ),
-                    String.format("(%.3f,%.3f,%.3f)", maxX, maxY, maxZ),
-                    nanCount, oobIdx, matKeys, pvSample,
-                    String.format("%.3f", minU), String.format("%.3f", minV),
-                    String.format("%.3f", maxU), String.format("%.3f", maxV),
-                    zeroUV, zeroNormal, String.format("%.3f", avgNy));
+
+            // Build a beautiful, easy-to-spot box dump.
+            org.apache.logging.log4j.Logger lg = org.apache.logging.log4j.LogManager.getLogger("DynamX-ObjDump");
+            String badGeo = (nanCount > 0 || oobIdx > 0) ? " !! BAD" : " ok OK";
+            String hdr = "[ OBJ GEOMETRY DUMP :: " + diagName + " ]" + badGeo;
+            String parentPath = model != null ? String.valueOf(model.getLocation()) : "?";
+            int dataHash = System.identityHashCode(objObjectData);
+            lg.info("");
+            lg.info("+==============================================================================+");
+            lg.info(String.format("| %-76s |", hdr));
+            lg.info(String.format("|   from   : %-66s|", truncate(parentPath, 66)));
+            lg.info(String.format("|   data@  : %08x   (System.identityHashCode of ObjObjectData)         |", dataHash));
+            lg.info("+==============================================================================+");
+            lg.info(String.format("|   vertices : %-10d   indices : %-10d   triangles : %-10d   |", vertices.length, indices.length, triCountDbg));
+            lg.info(String.format("|   bbox min : (% .3f, % .3f, % .3f)%39s|",
+                    minX, minY, minZ, ""));
+            lg.info(String.format("|   bbox max : (% .3f, % .3f, % .3f)%39s|",
+                    maxX, maxY, maxZ, ""));
+            lg.info(String.format("|   sanity   : nan=%-6d  oobIdx=%-6d  zeroUV=%-6d  zeroNrm=%-6d        |",
+                    nanCount, oobIdx, zeroUV, zeroNormal));
+            lg.info(String.format("|   uv range : (% .3f, % .3f) .. (% .3f, % .3f)%29s|",
+                    minU, minV, maxU, maxV, ""));
+            lg.info(String.format("|   avg Ny   : % .3f%59s|", avgNy, ""));
+            lg.info("|------------------------------[ materials ]----------------------------------|");
+            lg.info(String.format("|   keys     : %-64s|", truncate(matKeys, 64)));
+            lg.info(String.format("|   perVtx   : %-64s|", truncate(pvSample, 64)));
+            lg.info("+==============================================================================+");
+            lg.info("");
         }
 
         // Group triangles by material so we issue one quad per RenderType bind.
@@ -191,13 +218,17 @@ public class ObjObjectRenderer {
             if (DUMPED_TEXTURES.add(texKey)) {
                 String allVariants = "null";
                 if (material != null) allVariants = material.diffuseTexture.keySet().toString();
-                org.apache.logging.log4j.LogManager.getLogger("DynamX-ObjDump").info(
-                        "tex obj={} mat={} pickedKey=default? texPath={} variants={} diffuseRGB=({},{},{})",
-                        objObjectData.getName(), mat, tex,
-                        allVariants,
-                        material != null ? material.diffuseColor.x : "?",
-                        material != null ? material.diffuseColor.y : "?",
-                        material != null ? material.diffuseColor.z : "?");
+                org.apache.logging.log4j.Logger lg = org.apache.logging.log4j.LogManager.getLogger("DynamX-ObjDump");
+                String hdr = "[ TEX :: " + objObjectData.getName() + " / " + mat + " ]";
+                lg.info("    +-----------------------------------------------------------------------------");
+                lg.info(String.format("    | %s", hdr));
+                lg.info(String.format("    |   path      : %s", String.valueOf(tex)));
+                lg.info(String.format("    |   variants  : %s", allVariants));
+                lg.info(String.format("    |   diffRGB   : (%.3f, %.3f, %.3f)",
+                        material != null ? material.diffuseColor.x : 0f,
+                        material != null ? material.diffuseColor.y : 0f,
+                        material != null ? material.diffuseColor.z : 0f));
+                lg.info("    +-----------------------------------------------------------------------------");
             }
             // entityCutoutNoCull draws both sides of every triangle, so back-faces also
             // emit fragments with an inverted normal interpretation. On opaque car body
@@ -237,8 +268,13 @@ public class ObjObjectRenderer {
         Vector3f n1 = vertices[i1].getNormal();
         Vector3f n2 = vertices[i2].getNormal();
 
+        // RenderType.entityCutout uses VertexFormat.Mode.QUADS (4 vertices per primitive).
+        // Emit each triangle as a degenerate quad (v2 repeated) so the buffer aligns on quad
+        // boundaries; otherwise consecutive triangles get re-grouped into mixed quads, which
+        // is what produced the "shattered" topology.
         emitVertex(pose, vc, vertices[i0].getPos(), vertices[i0].getTexCoords(), n0, r, g, b, packedLight);
         emitVertex(pose, vc, vertices[i1].getPos(), vertices[i1].getTexCoords(), n1, r, g, b, packedLight);
+        emitVertex(pose, vc, vertices[i2].getPos(), vertices[i2].getTexCoords(), n2, r, g, b, packedLight);
         emitVertex(pose, vc, vertices[i2].getPos(), vertices[i2].getTexCoords(), n2, r, g, b, packedLight);
     }
 
@@ -255,6 +291,12 @@ public class ObjObjectRenderer {
 
     enum EnumGLPointer {
         VERTEX, TEX_COORDS, NORMAL
+    }
+
+    private static String truncate(String s, int max) {
+        if (s == null) return "";
+        if (s.length() <= max) return s;
+        return s.substring(0, max - 3) + "...";
     }
 
     @Override

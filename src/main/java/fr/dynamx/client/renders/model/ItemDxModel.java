@@ -1,41 +1,34 @@
 package fr.dynamx.client.renders.model;
 
+import fr.dynamx.api.contentpack.object.render.IModelPackObject;
+import net.minecraft.client.resources.model.BakedModel;
 import net.minecraft.resources.ResourceLocation;
+import lombok.Getter;
+import lombok.Setter;
 
 /**
  * DynamX item model wrapper.
  * <p>
  * TODO port:1.20.1 - The 1.12 Forge {@code IModel}/{@code IBakedModel} pipeline is gone in 1.20.1.
  * Item rendering should be driven by {@link net.minecraft.client.renderer.BlockEntityWithoutLevelRenderer}
- * (BEWLR) or by datagen-generated {@link net.minecraft.client.resources.model.BakedModel}s. This class
- * is preserved as a simple data holder.
+ * (BEWLR) or by datagen-generated {@link BakedModel}s. The GUI baked model is loaded lazily via the
+ * 1.20.1 ModelManager when the item is first rendered in-GUI.
  */
+@Getter
 public class ItemDxModel {
     private final ResourceLocation location;
-    private Object owner; // TODO port:1.20.1 - retype to IModelPackObject once api is fully ported
+    @Setter
+    private IModelPackObject owner;
 
-    private Object gui;       // TODO port:1.20.1 - was Forge IModel
-    private Object guiBaked;  // TODO port:1.20.1 - was Forge IBakedModel
+    /**
+     * Baked GUI model resolved against the 1.20.1 {@link net.minecraft.client.resources.model.ModelManager}.
+     * Populated lazily by the item renderer the first time it needs the GUI variant.
+     */
+    @Setter
+    private BakedModel guiBaked;
 
-    public ItemDxModel(ResourceLocation location, Object owner) {
+    public ItemDxModel(ResourceLocation location, IModelPackObject owner) {
         this.location = location;
         this.owner = owner;
-        // TODO port:1.20.1 - load alternate GUI model via the 1.20.1 ModelManager / ModelResourceLocation
-    }
-
-    public void setOwner(Object owner) {
-        this.owner = owner;
-    }
-
-    public Object getOwner() {
-        return owner;
-    }
-
-    public Object getGuiBaked() {
-        return guiBaked;
-    }
-
-    public ResourceLocation getLocation() {
-        return location;
     }
 }

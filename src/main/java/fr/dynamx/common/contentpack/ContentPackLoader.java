@@ -150,9 +150,10 @@ public class ContentPackLoader {
                     DynamX.LOGGER.debug("Loading resource pack: {}", file.getName());
                     if (loadPackResources(file, file.isDirectory()))
                         packCount++;
-                    // TODO port:1.20.1 - ModProtectionContainer wiring removed (Phase 0). The
-                    //   legacy code populated a per-pack secure repository here.
                     protectedResources.put(file.getName(), null);
+                    if (file.isFile() && file.getName().endsWith(PACK_FILE_EXTENSION)) {
+                        fr.dynamx.common.contentpack.mps.DynamXMpsManager.get().registerPack(file.getName(), file);
+                    }
                 }
                 if (file.isDirectory()) {
                     //Legacy: load protected .jar files via LaunchClassLoader.addURL(...).

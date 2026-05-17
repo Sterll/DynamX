@@ -1,5 +1,7 @@
 package fr.dynamx.api.events.client;
 
+import fr.dynamx.client.renders.scene.BaseRenderContext;
+import fr.dynamx.common.entities.PhysicsEntity;
 import lombok.Getter;
 import net.minecraftforge.eventbus.api.Event;
 
@@ -8,11 +10,9 @@ import javax.annotation.Nullable;
 /**
  * Fired when rendering a PhysicsEntity.
  *
- * TODO port:1.20.1 - PhysicsEntity (fr.dynamx.common.entities) and BaseRenderContext.EntityRenderContext
- *   (fr.dynamx.client.renders.scene) are not yet ported (Phases 6/7); typed as Object here.
- *   Cancellation per phase used to be expressed via @HasResult; in NeoForge 1.20.1 there is no
- *   direct equivalent, so addons should switch on {@link Type} themselves and stop processing
- *   manually.
+ * <p>Cancellation per phase used to be expressed via @HasResult in 1.12; in NeoForge 1.20.1 there
+ * is no direct equivalent, so addons should switch on {@link Type} themselves and stop processing
+ * manually.
  */
 @Getter
 public class DynamXEntityRenderEvent extends Event {
@@ -20,12 +20,12 @@ public class DynamXEntityRenderEvent extends Event {
      * The entity being rendered
      */
     @Nullable
-    private final Object entity; // TODO port:1.20.1 - PhysicsEntity<?>
+    private final PhysicsEntity<?> entity;
 
     /**
      * The render context
      */
-    private final Object context; // TODO port:1.20.1 - BaseRenderContext.EntityRenderContext
+    private final BaseRenderContext.EntityRenderContext context;
 
     /**
      * The render type
@@ -37,7 +37,7 @@ public class DynamXEntityRenderEvent extends Event {
      */
     private final int renderPass;
 
-    public DynamXEntityRenderEvent(Object entity, Object context, Type renderType, int renderPass) {
+    public DynamXEntityRenderEvent(@Nullable PhysicsEntity<?> entity, BaseRenderContext.EntityRenderContext context, Type renderType, int renderPass) {
         this.entity = entity;
         this.context = context;
         this.renderType = renderType;

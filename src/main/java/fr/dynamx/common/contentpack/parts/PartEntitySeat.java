@@ -1,6 +1,9 @@
 package fr.dynamx.common.contentpack.parts;
 
+import com.jme3.math.FastMath;
 import com.jme3.math.Vector3f;
+import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.math.Axis;
 import fr.aym.acslib.api.services.error.ErrorLevel;
 import fr.dynamx.api.contentpack.object.IPhysicsPackInfo;
 import fr.dynamx.api.contentpack.object.part.IDrawablePart;
@@ -8,32 +11,35 @@ import fr.dynamx.api.contentpack.registry.DefinitionType;
 import fr.dynamx.api.contentpack.registry.PackFileProperty;
 import fr.dynamx.api.contentpack.registry.RegisteredSubInfoType;
 import fr.dynamx.api.contentpack.registry.SubInfoTypeRegistries;
+import fr.dynamx.api.entities.IModuleContainer;
+import fr.dynamx.api.entities.modules.ModuleListBuilder;
+import fr.dynamx.client.handlers.ClientEventHandler;
+import fr.dynamx.client.renders.RenderPhysicsEntity;
+import fr.dynamx.client.renders.scene.BaseRenderContext;
+import fr.dynamx.client.renders.scene.SceneBuilder;
+import fr.dynamx.client.renders.scene.node.SceneNode;
+import fr.dynamx.client.renders.scene.node.SimpleNode;
+import fr.dynamx.common.DynamXMain;
 import fr.dynamx.common.contentpack.type.vehicle.ModularVehicleInfo;
+import fr.dynamx.common.entities.PackPhysicsEntity;
+import fr.dynamx.common.entities.modules.DoorsModule;
+import fr.dynamx.common.entities.modules.SeatsModule;
+import fr.dynamx.common.entities.vehicles.CarEntity;
+import fr.dynamx.common.entities.vehicles.HelicopterEntity;
+import fr.dynamx.utils.EnumSeatPlayerPosition;
 import fr.dynamx.utils.errors.DynamXErrorManager;
 import lombok.Getter;
 import lombok.Setter;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.entity.EntityRenderDispatcher;
 import net.minecraft.network.chat.Component;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
+import org.joml.Matrix4f;
 
 import javax.annotation.Nullable;
 import java.util.List;
 
-/**
- * A seat that can be used on vehicles.
- *
- * TODO port:1.20.1 - Original referenced (Phase 6/7):
- *   - fr.dynamx.api.entities.IModuleContainer (ISeatsContainer/IDoorContainer)
- *   - fr.dynamx.api.entities.modules.ModuleListBuilder
- *   - fr.dynamx.client.renders.scene.* (SceneBuilder/SceneNode/SimpleNode/BaseRenderContext/IRenderContext)
- *   - fr.dynamx.client.renders.RenderPhysicsEntity
- *   - fr.dynamx.client.handlers.ClientEventHandler
- *   - fr.dynamx.common.entities.{BaseVehicleEntity, PackPhysicsEntity}
- *   - fr.dynamx.common.entities.modules.{DoorsModule, SeatsModule}
- *   - fr.dynamx.common.entities.vehicles.{CarEntity, HelicopterEntity}
- *   - GlStateManager / RenderGlobal / RenderPlayer / MinecraftForgeClient (removed in 1.20.1)
- *   The interact() / addModules() / createSceneGraph() / inner PartEntitySeatNode are stubbed.
- *   The first generic A of BasePartSeat was BaseVehicleEntity; relaxed to Object.
- */
 @Setter
 @RegisteredSubInfoType(name = "seat", registries = {SubInfoTypeRegistries.WHEELED_VEHICLES, SubInfoTypeRegistries.HELICOPTER}, strictName = false)
 public class PartEntitySeat extends BasePartSeat<Object, ModularVehicleInfo> implements IDrawablePart<IPhysicsPackInfo> {
@@ -65,15 +71,44 @@ public class PartEntitySeat extends BasePartSeat<Object, ModularVehicleInfo> imp
 
     @Override
     public boolean interact(Object vehicleEntity, Player player) {
-        // TODO port:1.20.1 - Original interacted with:
-        //   - IModuleContainer.ISeatsContainer to get/set the SeatsModule passenger map
-        //   - IModuleContainer.IDoorContainer to coordinate door open/close on mount
-        //   - CarEntity-specific door logic
-        //   All depend on Phase 6 modules/entities. Returning false until then.
-        if (player != null) {
-            player.sendSystemMessage(Component.literal("Seat interact not available (Phase 6 not ported)"));
+        if (!(vehicleEntity instanceof IModuleContainer.ISeatsContainer)) {
+            return false;
         }
-        return false;
+        SeatsModule seats = (SeatsModule) ((IModuleContainer.ISeatsContainer) vehicleEntity).getSeats();
+        if (seats == null) return false;
+        Entity seatRider = seats.getSeatToPassengerMap().get(this);
+        if (seatRider != null && seatRider != player) {
+            player.sendSystemMessage(Component.literal("The seat is already taken"));
+            return false;
+        }
+        if (!hasDoor()) {
+            return mountEntity(vehicleEntity, seats, player);
+        }
+        if (!(vehicleEntity instanceof CarEntity)) {
+            return false;
+        }
+        PartDoor door = getLinkedPartDoor();
+        if (door == null) {
+            DynamXMain.log.error("Cannot mount : part door not found : " + linkedDoor);
+            return false;
+        }
+        IModuleContainer.IDoorContainer doorContainer = (IModuleContainer.IDoorContainer) vehicleEntity;
+        DoorsModule doors = (DoorsModule) doorContainer.getDoors();
+        if (door.isPlayerMounting() || doors == null) {
+            return false;
+        }
+        if (door.isEnabled() && !doors.isDoorAttached(door.getId())) {
+            return false;
+        }
+        if (!door.isEnabled() || doors.isDoorOpened(door.getId())) {
+            boolean didMount = mountEntity(vehicleEntity, seats, player);
+            if (didMount) {
+                doors.setDoorState(door.getId(), DoorsModule.DoorState.CLOSING);
+            }
+            return didMount;
+        } else {
+            return door.interact(vehicleEntity, player);
+        }
     }
 
     @Override
@@ -96,22 +131,33 @@ public class PartEntitySeat extends BasePartSeat<Object, ModularVehicleInfo> imp
     }
 
     @Override
+    @SuppressWarnings("rawtypes")
     public void addModules(Object entity, Object modules) {
-        // TODO port:1.20.1 - Original:
-        //   if (!(entity instanceof IModuleContainer.ISeatsContainer)) throw ...
-        //   if (entity instanceof HelicopterEntity) return;
-        //   if (!modules.hasModuleOfClass(SeatsModule.class)) modules.add(new SeatsModule(entity));
+        if (!(entity instanceof IModuleContainer.ISeatsContainer)) return;
+        if (entity instanceof HelicopterEntity) return; // Helicopters have their own SeatsModule
+        if (modules instanceof ModuleListBuilder) {
+            ModuleListBuilder list = (ModuleListBuilder) modules;
+            if (!list.hasModuleOfClass(SeatsModule.class) && entity instanceof PackPhysicsEntity) {
+                list.add(new SeatsModule((PackPhysicsEntity<?, ?>) entity));
+            }
+        }
     }
 
     @Override
+    @SuppressWarnings({"unchecked", "rawtypes"})
     public void addToSceneGraph(IPhysicsPackInfo packInfo, Object sceneBuilder) {
-        // TODO port:1.20.1 - Original delegated to SceneBuilder.addNode(packInfo, this, nodeDependingOnName?).
+        SceneBuilder<?, IPhysicsPackInfo> builder = (SceneBuilder<?, IPhysicsPackInfo>) sceneBuilder;
+        if (nodeDependingOnName != null) {
+            builder.addNode(packInfo, this, nodeDependingOnName);
+        } else {
+            builder.addNode(packInfo, this);
+        }
     }
 
     @Override
+    @SuppressWarnings({"unchecked", "rawtypes"})
     public Object createSceneGraph(Vector3f modelScale, List<Object> childGraph) {
-        // TODO port:1.20.1 - Original returned new PartEntitySeatNode<>(this, modelScale, (List) childGraph).
-        return null;
+        return new PartEntitySeatNode<>(this, modelScale, (List) childGraph);
     }
 
     @Override
@@ -136,5 +182,67 @@ public class PartEntitySeat extends BasePartSeat<Object, ModularVehicleInfo> imp
     @Override
     public boolean isDriver() {
         return isDriver;
+    }
+
+    class PartEntitySeatNode<A extends IPhysicsPackInfo> extends SimpleNode<BaseRenderContext.EntityRenderContext, A> {
+        public PartEntitySeatNode(PartEntitySeat seat, Vector3f scale, List<SceneNode<BaseRenderContext.EntityRenderContext, A>> linkedChilds) {
+            super(seat.getRelativeRenderPosition(), seat.getRotation(), PartEntitySeat.this.isAutomaticPosition, scale, linkedChilds);
+        }
+
+        @Override
+        public void render(BaseRenderContext.EntityRenderContext context, A packInfo, Matrix4f parentTransform) {
+            if (!(context.getEntity() instanceof IModuleContainer.ISeatsContainer)) {
+                renderChildren(context, packInfo, parentTransform);
+                return;
+            }
+            SeatsModule seats = (SeatsModule) ((IModuleContainer.ISeatsContainer) context.getEntity()).getSeats();
+            if (seats == null) {
+                renderChildren(context, packInfo, parentTransform);
+                return;
+            }
+            Entity seatRider = seats.getSeatToPassengerMap().get(PartEntitySeat.this);
+            Minecraft mc = Minecraft.getInstance();
+            if (seatRider == null || (seatRider == mc.player && mc.options.getCameraType().isFirstPerson())) {
+                renderChildren(context, packInfo, parentTransform);
+                return;
+            }
+
+            ClientEventHandler.renderingEntity = seatRider.getUUID();
+            transformToRotationPoint(parentTransform);
+
+            EnumSeatPlayerPosition position = getPlayerPosition();
+            RenderPhysicsEntity.shouldRenderPlayerSitting = position == EnumSeatPlayerPosition.SITTING;
+
+            PoseStack pose = context.getPoseStack();
+            if (pose != null) {
+                pose.pushPose();
+                if (translation != null) {
+                    pose.translate(translation.x, translation.y, translation.z);
+                }
+                if (rotation != null) {
+                    pose.mulPose(rotation);
+                }
+                if (getPlayerSize() != null) {
+                    pose.scale(getPlayerSize().x, getPlayerSize().y, getPlayerSize().z);
+                }
+                if (position == EnumSeatPlayerPosition.LYING) {
+                    pose.mulPose(Axis.XP.rotation(FastMath.PI / 2));
+                }
+
+                float partialTicks = context.getPartialTicks();
+                EntityRenderDispatcher dispatcher = mc.getEntityRenderDispatcher();
+                try {
+                    dispatcher.render(seatRider, 0, 0, 0, seatRider.getYRot(), partialTicks, pose,
+                            context.getBufferSource(), context.getPackedLight());
+                } catch (Throwable t) {
+                    DynamXMain.log.error("Failed to render seat passenger " + seatRider, t);
+                }
+
+                pose.popPose();
+            }
+            ClientEventHandler.renderingEntity = null;
+
+            renderChildren(context, packInfo, transform);
+        }
     }
 }

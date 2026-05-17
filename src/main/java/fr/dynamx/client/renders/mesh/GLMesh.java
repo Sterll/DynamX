@@ -5,44 +5,63 @@ import com.jme3.math.Quaternion;
 import com.jme3.math.Transform;
 import com.jme3.math.Vector3f;
 import com.jme3.util.BufferUtils;
+import com.mojang.blaze3d.systems.RenderSystem;
+import com.mojang.blaze3d.vertex.BufferBuilder;
+import com.mojang.blaze3d.vertex.BufferUploader;
+import com.mojang.blaze3d.vertex.DefaultVertexFormat;
+import com.mojang.blaze3d.vertex.Tesselator;
+import com.mojang.blaze3d.vertex.VertexFormat;
 import fr.dynamx.utils.maths.DynamXGeometry;
 import jme3utilities.Validate;
 import jme3utilities.math.MyMath;
 import jme3utilities.math.MyVector3f;
 import lombok.Getter;
-
+import net.minecraft.client.renderer.GameRenderer;
 import org.joml.Vector4f;
+
 import java.nio.FloatBuffer;
 import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Encapsulate a vertex array object (VAO), to which vertex buffer objects (VBOs) are attached.
+ * Mesh primitive backed by CPU-side float buffers (positions, optional normals, optional UVs)
+ * and an optional {@link DxIndexBuffer}.
  * <p>
- * TODO port:1.20.1 - VAO/VBO bindings replaced by no-op stubs; the rendering pipeline
- * must be reworked on top of BufferBuilder/VertexFormat/RenderType to comply with the
- * 1.20.1 core profile. Public method signatures are preserved for callers.
+ * In 1.12.2 this class managed an OpenGL VAO plus per-attribute VBOs through {@code GL15} and
+ * issued {@code glDrawArrays} / {@code glDrawElements} in immediate mode. The 1.20.1 core
+ * profile requires going through {@code BufferBuilder} with a {@link DefaultVertexFormat} and
+ * an explicit shader, so {@link #renderUsing()} now rebuilds a transient vertex stream every
+ * frame and submits it through {@link BufferUploader}. CPU-side mutation helpers (rotate,
+ * scale, transform, normal generation, UV generation, smoothing) are preserved verbatim so
+ * mesh-building call sites such as {@code BoxMesh}, {@code IcosphereGLMesh} or
+ * {@code OctasphereMesh} keep working unchanged.
+ * <p>
+ * TODO port:1.20.1 - normals are still computed and stored CPU-side but are not emitted to
+ * the GPU because no built-in 1.20.1 vanilla shader matches {@code POSITION_TEX_NORMAL}.
+ * Meshes that rely on per-vertex lighting (smooth-shaded debug spheres for example) will look
+ * flat-shaded until a custom shader or a {@code RenderType}-based path is wired in.
  */
 public class GLMesh implements jme3utilities.lbj.Mesh {
-    // GL primitive constants kept as literal hex values to avoid depending on GL11 import.
-    private static final int GL_POINTS = 0x0000;
-    private static final int GL_LINES = 0x0001;
-    private static final int GL_LINE_LOOP = 0x0002;
-    private static final int GL_LINE_STRIP = 0x0003;
-    private static final int GL_TRIANGLES = 0x0004;
-    private static final int GL_TRIANGLE_STRIP = 0x0005;
-    private static final int GL_TRIANGLE_FAN = 0x0006;
-    private static final int GL_QUADS = 0x0007;
+    // Legacy GL draw-mode constants kept as bare ints to preserve the public API used by
+    // BoxMesh / OctasphereMesh / IcosphereGLMesh / GridGLMesh / ArrowMesh.
+    public static final int GL_POINTS = 0x0000;
+    public static final int GL_LINES = 0x0001;
+    public static final int GL_LINE_LOOP = 0x0002;
+    public static final int GL_LINE_STRIP = 0x0003;
+    public static final int GL_TRIANGLES = 0x0004;
+    public static final int GL_TRIANGLE_STRIP = 0x0005;
+    public static final int GL_TRIANGLE_FAN = 0x0006;
+    public static final int GL_QUADS = 0x0007;
 
     protected static final int numAxes = 3;
     protected static final int vpe = 2;
     protected static final int vpt = 3;
 
     private boolean mutable = true;
+    private boolean uploaded = false;
     private DxIndexBuffer indices;
     private final int drawMode;
     private final int vertexCount;
-    private Integer vaoId;
     private VertexBuffer normals;
     private VertexBuffer positions;
     @Getter
@@ -82,10 +101,6 @@ public class GLMesh implements jme3utilities.lbj.Mesh {
     }
 
     public void cleanUp() {
-        // TODO port:1.20.1 - replace VAO/VBO cleanup with BufferBuilder pipeline (no explicit deletes)
-        if (vaoId == null) {
-            return;
-        }
         if (indices != null) {
             indices.cleanUp();
         }
@@ -98,7 +113,7 @@ public class GLMesh implements jme3utilities.lbj.Mesh {
         if (textureCoordinates != null) {
             textureCoordinates.cleanUp();
         }
-        this.vaoId = null;
+        this.uploaded = false;
     }
 
     public int countIndexedVertices() {
@@ -311,15 +326,52 @@ public class GLMesh implements jme3utilities.lbj.Mesh {
         renderUsing();
     }
 
+    /**
+     * Emit the mesh through a {@link BufferBuilder}, using a {@link DefaultVertexFormat} that
+     * matches the available attributes (positions only, or positions + UVs) and the matching
+     * built-in shader. Indices, if present, drive the emission order; otherwise vertices are
+     * walked in storage order. The first call locks the mesh as immutable to preserve the
+     * legacy invariant where rendering a mesh fixed its CPU buffers.
+     */
     public void renderUsing() {
-        // TODO port:1.20.1 - replace VAO bind + glDrawArrays/glDrawElements with BufferBuilder/RenderType draw call
-        enableAttributes();
-        if (indices == null) {
-            // TODO port:1.20.1 - GL11.glDrawArrays(drawMode, 0, vertexCount)
-        } else {
-            indices.drawElements(drawMode);
+        if (vertexCount == 0) {
+            return;
         }
-        disableAttributes();
+        if (!uploaded) {
+            this.uploaded = true;
+            this.mutable = false;
+        }
+
+        VertexFormat.Mode mode = mapDrawMode(drawMode);
+        boolean hasUv = textureCoordinates != null;
+
+        VertexFormat format;
+        if (hasUv) {
+            format = DefaultVertexFormat.POSITION_TEX;
+            RenderSystem.setShader(GameRenderer::getPositionTexShader);
+        } else {
+            format = DefaultVertexFormat.POSITION;
+            RenderSystem.setShader(GameRenderer::getPositionShader);
+        }
+
+        BufferBuilder builder = Tesselator.getInstance().getBuilder();
+        builder.begin(mode, format);
+
+        int emitCount = (indices == null) ? vertexCount : indices.capacity();
+        for (int i = 0; i < emitCount; ++i) {
+            int idx = (indices == null) ? i : indices.getIndex(i);
+            int posBase = idx * numAxes;
+            float x = positions.get(posBase);
+            float y = positions.get(posBase + 1);
+            float z = positions.get(posBase + 2);
+            builder.vertex(x, y, z);
+            if (hasUv) {
+                int uvBase = idx * textureCoordinates.fpv;
+                builder.uv(textureCoordinates.get(uvBase), textureCoordinates.get(uvBase + 1));
+            }
+            builder.endVertex();
+        }
+        BufferUploader.drawWithShader(builder.end());
     }
 
     public GLMesh rotate(float xAngle, float yAngle, float zAngle) {
@@ -383,7 +435,7 @@ public class GLMesh implements jme3utilities.lbj.Mesh {
             float oldU = textureCoordinates.get(startPosition);
             float oldV = textureCoordinates.get(startPosition + 1);
 
-            // TODO port:1.20.1 - JOML Vector4f exposes public x/y/z/w fields (no getters).
+            // JOML Vector4f exposes public x/y/z/w fields (no getters), unlike the legacy javax.vecmath one.
             float newU = uCoefficients.w
                     + uCoefficients.x * oldU
                     + uCoefficients.y * oldV;
@@ -478,28 +530,27 @@ public class GLMesh implements jme3utilities.lbj.Mesh {
         positions.setModified();
     }
 
-    private void enableAttributes() {
-        // TODO port:1.20.1 - replace VAO generation/bind + VBO attribute setup with BufferBuilder/VertexFormat
-        if (vaoId == null) {
-            this.vaoId = 0;
-            this.mutable = false;
-        }
-        positions.prepareToDraw();
-        if (normals != null) {
-            normals.prepareToDraw();
-        }
-        if (textureCoordinates != null) {
-            textureCoordinates.prepareToDraw();
-        }
-    }
-
-    private void disableAttributes() {
-        positions.stopDraw();
-        if (normals != null) {
-            normals.stopDraw();
-        }
-        if (textureCoordinates != null) {
-            textureCoordinates.stopDraw();
+    private static VertexFormat.Mode mapDrawMode(int drawMode) {
+        switch (drawMode) {
+            case GL_LINES:
+                return VertexFormat.Mode.LINES;
+            case GL_LINE_STRIP:
+                return VertexFormat.Mode.LINE_STRIP;
+            case GL_TRIANGLES:
+                return VertexFormat.Mode.TRIANGLES;
+            case GL_TRIANGLE_STRIP:
+                return VertexFormat.Mode.TRIANGLE_STRIP;
+            case GL_TRIANGLE_FAN:
+                return VertexFormat.Mode.TRIANGLE_FAN;
+            case GL_QUADS:
+                return VertexFormat.Mode.QUADS;
+            case GL_POINTS:
+            case GL_LINE_LOOP:
+            default:
+                // TODO port:1.20.1 - GL_POINTS and GL_LINE_LOOP have no direct VertexFormat.Mode mapping;
+                // emit them by expanding to LINES (loop) or by using a dedicated shader path when needed.
+                throw new IllegalStateException("drawMode = " + drawMode
+                        + " has no direct VertexFormat.Mode mapping in the 1.20.1 core profile.");
         }
     }
 

@@ -8,16 +8,17 @@ import java.nio.IntBuffer;
 import java.nio.ShortBuffer;
 
 /**
- * Wrapper class for the index buffer of a mesh.
- * <p>
- * TODO port:1.20.1 - GL15 element-array buffer logic must be replaced with BufferBuilder index emission.
+ * Index buffer of a {@link GLMesh}. In 1.12.2 this class owned an
+ * {@code GL_ELEMENT_ARRAY_BUFFER} VBO and issued {@code glDrawElements} directly. In the
+ * 1.20.1 core profile the draw is performed by {@link GLMesh} through {@code BufferBuilder},
+ * so this class is now a CPU-side index store with a tagged element width (byte / short / int)
+ * inherited from {@code jme3utilities.lbj.IndexBuffer}.
  *
  * @author Stephen Gold sgold@sonic.net
  */
 public class DxIndexBuffer extends jme3utilities.lbj.IndexBuffer {
     private boolean isModified = true;
     private final int elementType;
-    private Integer vbo;
 
     public DxIndexBuffer(int maxVertices, int capacity) {
         super(maxVertices, capacity);
@@ -40,16 +41,12 @@ public class DxIndexBuffer extends jme3utilities.lbj.IndexBuffer {
     }
 
     void cleanUp() {
-        // TODO port:1.20.1 - replace GL15.glDeleteBuffers with 1.20.1 buffer cleanup
+        // No GL resources owned in the 1.20.1 BufferBuilder pipeline.
     }
 
     public DxIndexBuffer clear() {
         getBuffer().clear();
         return this;
-    }
-
-    void drawElements(int drawMode) {
-        // TODO port:1.20.1 - replace immediate-mode glDrawElements with BufferBuilder/RenderType draw call
     }
 
     public DxIndexBuffer flip() {
@@ -93,7 +90,7 @@ public class DxIndexBuffer extends jme3utilities.lbj.IndexBuffer {
     }
 
     public DxIndexBuffer setDynamic() {
-        // TODO port:1.20.1 - usage hint is implicit in BufferBuilder pipeline
+        // Usage hint was a GL15 concern; BufferBuilder re-emits each frame so it is implicit.
         return this;
     }
 
@@ -101,5 +98,29 @@ public class DxIndexBuffer extends jme3utilities.lbj.IndexBuffer {
         verifyMutable();
         this.isModified = true;
         return this;
+    }
+
+    public boolean isModifiedFlag() {
+        return isModified;
+    }
+
+    public int getElementType() {
+        return elementType;
+    }
+
+    /**
+     * Read an index value at the given position regardless of the underlying buffer width
+     * (byte / short / int). Used by {@link GLMesh} when emitting an indexed primitive through
+     * {@code BufferBuilder}.
+     */
+    public int getIndex(int position) {
+        Buffer buffer = getBuffer();
+        if (buffer instanceof ByteBuffer) {
+            return ((ByteBuffer) buffer).get(position) & 0xFF;
+        }
+        if (buffer instanceof ShortBuffer) {
+            return ((ShortBuffer) buffer).get(position) & 0xFFFF;
+        }
+        return ((IntBuffer) buffer).get(position);
     }
 }

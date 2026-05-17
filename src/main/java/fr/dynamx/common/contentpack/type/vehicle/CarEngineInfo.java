@@ -1,6 +1,10 @@
 package fr.dynamx.common.contentpack.type.vehicle;
 
 import fr.dynamx.api.contentpack.registry.PackFileProperty;
+import fr.dynamx.api.entities.modules.ModuleListBuilder;
+import fr.dynamx.common.entities.BaseVehicleEntity;
+import fr.dynamx.common.entities.modules.engines.CarEngineModule;
+import fr.dynamx.common.entities.vehicles.CarEntity;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -45,11 +49,9 @@ public class CarEngineInfo extends BaseEngineInfo {
 
     @Override
     public void addModules(Object entity, Object modules) {
-        // TODO port:1.20.1 - Re-enable once PackPhysicsEntity / ModuleListBuilder / CarEngineModule
-        //   / CarEntity / BaseVehicleEntity are ported (Phase 6).
-        //   Original logic:
-        //     if(!(entity instanceof CarEntity))
-        //         throw new IllegalArgumentException("CarEngineInfo can only be used on CarEntity");
-        //     modules.add(new CarEngineModule((BaseVehicleEntity<?>) entity, this));
+        if (!(modules instanceof ModuleListBuilder)) return;
+        if (!(entity instanceof CarEntity))
+            throw new IllegalArgumentException("CarEngineInfo can only be used on CarEntity");
+        ((ModuleListBuilder) modules).add(new CarEngineModule((BaseVehicleEntity<?>) entity, this));
     }
 }

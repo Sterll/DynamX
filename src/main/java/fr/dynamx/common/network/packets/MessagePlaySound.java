@@ -11,8 +11,8 @@ import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.entity.player.Player;
 import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.fml.DistExecutor;
 import net.minecraftforge.fml.LogicalSide;
+import net.minecraftforge.fml.loading.FMLEnvironment;
 
 public class MessagePlaySound implements IDnxPacket {
 
@@ -47,7 +47,9 @@ public class MessagePlaySound implements IDnxPacket {
         if (side != LogicalSide.CLIENT) {
             return;
         }
-        DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> playClient(pos, volume, pitch));
+        if (FMLEnvironment.dist == Dist.CLIENT) {
+            playClient(pos, volume, pitch);
+        }
     }
 
     private static void playClient(Vector3f pos, float volume, float pitch) {

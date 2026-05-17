@@ -5,7 +5,10 @@ import fr.dynamx.api.contentpack.object.part.BasePart;
 import fr.dynamx.api.contentpack.object.part.IShapeInfo;
 import fr.dynamx.api.contentpack.registry.RegisteredSubInfoType;
 import fr.dynamx.api.contentpack.registry.SubInfoTypeRegistries;
+import fr.dynamx.api.entities.modules.ModuleListBuilder;
 import fr.dynamx.common.contentpack.type.vehicle.ModularVehicleInfo;
+import fr.dynamx.common.entities.BaseVehicleEntity;
+import fr.dynamx.common.entities.modules.PropsContainerModule;
 import fr.dynamx.utils.optimization.MutableBoundingBox;
 
 /**
@@ -36,10 +39,12 @@ public class PartPropsContainer extends BasePart<ModularVehicleInfo> implements 
 
     @Override
     public void addModules(Object entity, Object modules) {
-        // TODO port:1.20.1 - Original:
-        //   if (!modules.hasModuleOfClass(PropsContainerModule.class))
-        //       modules.add(new PropsContainerModule((BaseVehicleEntity<?>) entity));
-        //   PropsContainerModule lives in Phase 6.
+        if (modules instanceof ModuleListBuilder && entity instanceof BaseVehicleEntity) {
+            ModuleListBuilder list = (ModuleListBuilder) modules;
+            if (!list.hasModuleOfClass(PropsContainerModule.class)) {
+                list.add(new PropsContainerModule((BaseVehicleEntity<?>) entity));
+            }
+        }
     }
 
     @Override

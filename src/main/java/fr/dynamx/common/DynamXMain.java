@@ -153,7 +153,7 @@ public class DynamXMain {
         try {
             java.io.File gameDir = net.minecraftforge.fml.loading.FMLPaths.GAMEDIR.get().toFile();
             resourcesDirectory = gameDir;
-            fr.dynamx.common.contentpack.ContentPackLoader.init(gameDir, "DynamXResourcePacks");
+            fr.dynamx.common.contentpack.ContentPackLoader.init(gameDir, fr.dynamx.utils.DynamXConstants.RES_DIR_NAME);
         } catch (Throwable t) {
             log.error("DynamX content pack discovery failed", t);
         }
@@ -169,7 +169,7 @@ public class DynamXMain {
                 return;
             }
             try {
-                java.io.File packsDir = new java.io.File(resourcesDirectory, "DynamXResourcePacks");
+                java.io.File packsDir = new java.io.File(resourcesDirectory, fr.dynamx.utils.DynamXConstants.RES_DIR_NAME);
                 fr.dynamx.utils.optimization.Vector3fPool.openPool(
                         fr.dynamx.utils.optimization.SubClassPool.PACK_MODEL_LOAD);
                 try {
@@ -196,6 +196,44 @@ public class DynamXMain {
                 log.error("Failed to inspect DynamX pack errors", t);
             }
             fr.dynamx.common.items.DynamXItemRegistry.injectItems(event);
+        });
+
+        // Expose every pack found in <gamedir>/DynamX/ to Minecraft's resource manager so item
+        // textures, models and lang files inside the pack's assets/ folder become resolvable.
+        // Without this listener the pack files are loaded by ContentPackLoader for vehicle data
+        // but their assets stay invisible to vanilla code paths (ItemRenderer, language loader).
+        modBus.addListener((net.minecraftforge.event.AddPackFindersEvent event) -> {
+            try {
+                java.io.File packsDir = new java.io.File(resourcesDirectory, fr.dynamx.utils.DynamXConstants.RES_DIR_NAME);
+                java.io.File[] files = packsDir.listFiles();
+                if (files == null) return;
+                net.minecraft.server.packs.PackType packType = event.getPackType();
+                for (java.io.File file : files) {
+                    final String name = file.getName();
+                    final boolean isDir = file.isDirectory();
+                    final boolean isZip = !isDir && (name.endsWith(".zip")
+                            || name.endsWith(fr.dynamx.common.contentpack.ContentPackLoader.PACK_FILE_EXTENSION));
+                    if (!isDir && !isZip) continue;
+                    final String packId = "dynamx_pack/" + name;
+                    event.addRepositorySource(consumer -> {
+                        net.minecraft.server.packs.repository.Pack.ResourcesSupplier supplier = id -> isDir
+                                ? new net.minecraftforge.resource.PathPackResources(id, true, file.toPath())
+                                : new net.minecraft.server.packs.FilePackResources(id, file, false);
+                        net.minecraft.server.packs.repository.Pack pack = net.minecraft.server.packs.repository.Pack.readMetaAndCreate(
+                                packId,
+                                net.minecraft.network.chat.Component.literal("DynamX: " + name),
+                                true,
+                                supplier,
+                                packType,
+                                net.minecraft.server.packs.repository.Pack.Position.TOP,
+                                net.minecraft.server.packs.repository.PackSource.BUILT_IN);
+                        if (pack != null) consumer.accept(pack);
+                        else log.warn("DynamX pack {} has no valid pack.mcmeta, assets won't be exposed to MC", name);
+                    });
+                }
+            } catch (Throwable t) {
+                log.error("DynamX AddPackFindersEvent listener failed", t);
+            }
         });
 
         // DeferredRegister wiring for all DynamX content (items, blocks, block entities, entities, creative tabs).
@@ -253,6 +291,12 @@ public class DynamXMain {
 
     @SuppressWarnings("unused")
     private void clientSetup(FMLClientSetupEvent event) {
+        // Force client-only class init of the DynamX item BEWLR singleton so it is ready before
+        // Forge queries IClientItemExtensions#getCustomRenderer on registered items.
+        event.enqueueWork(() -> {
+            //noinspection ResultOfMethodCallIgnored
+            fr.dynamx.client.renders.model.renderer.DxItemModelLoader.INSTANCE.toString();
+        });
         // TODO port:1.20.1 - hook MenuScreens.register here once client proxy is ported.
     }
 

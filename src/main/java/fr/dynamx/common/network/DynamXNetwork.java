@@ -185,9 +185,10 @@ public class DynamXNetwork {
                                 player = ctx.getSender();
                                 receiveSide = LogicalSide.SERVER;
                             } else {
-                                player = net.minecraftforge.fml.DistExecutor.safeCallWhenOn(
-                                        net.minecraftforge.api.distmarker.Dist.CLIENT,
-                                        () -> ClientNetworkBridge::getLocalPlayer);
+                                player = net.minecraftforge.fml.loading.FMLEnvironment.dist
+                                        == net.minecraftforge.api.distmarker.Dist.CLIENT
+                                        ? ClientNetworkBridge.getLocalPlayer()
+                                        : null;
                                 receiveSide = LogicalSide.CLIENT;
                             }
                             // PhysicsEntityMessage subclasses already implement handleUDPReceive

@@ -7,8 +7,8 @@ import fr.dynamx.client.gui.NewGuiDnxDebug;
 import io.netty.buffer.ByteBuf;
 import net.minecraft.world.entity.player.Player;
 import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.fml.DistExecutor;
 import net.minecraftforge.fml.LogicalSide;
+import net.minecraftforge.fml.loading.FMLEnvironment;
 
 public class MessageOpenDebugGui implements IDnxPacket {
     private byte action;
@@ -40,9 +40,12 @@ public class MessageOpenDebugGui implements IDnxPacket {
         if (side != LogicalSide.CLIENT) {
             return;
         }
-        if (action == 125) {
-            DistExecutor.unsafeRunWhenOn(Dist.CLIENT,
-                    () -> () -> ACsGuiApi.asyncLoadThenShowGui("Dnx Debug", NewGuiDnxDebug::new));
+        if (action == 125 && FMLEnvironment.dist == Dist.CLIENT) {
+            openDebugGui();
         }
+    }
+
+    private static void openDebugGui() {
+        ACsGuiApi.asyncLoadThenShowGui("Dnx Debug", NewGuiDnxDebug::new);
     }
 }

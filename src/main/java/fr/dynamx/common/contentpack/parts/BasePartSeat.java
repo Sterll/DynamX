@@ -5,6 +5,7 @@ import com.jme3.math.Vector3f;
 import fr.dynamx.api.contentpack.object.part.InteractivePart;
 import fr.dynamx.api.contentpack.object.subinfo.ISubInfoTypeOwner;
 import fr.dynamx.api.contentpack.registry.PackFileProperty;
+import fr.dynamx.common.entities.modules.SeatsModule;
 import fr.dynamx.utils.DynamXConstants;
 import fr.dynamx.utils.EnumSeatPlayerPosition;
 import lombok.Getter;
@@ -72,24 +73,22 @@ public abstract class BasePartSeat<A, T extends ISubInfoTypeOwner<T>> extends In
     }
 
     /**
-     * TODO port:1.20.1 - seatsModule was a fr.dynamx.common.entities.modules.SeatsModule (Phase 6);
-     *   relaxed to Object. The body that called seatsModule.getSeatToPassengerMap() is stubbed.
-     *
      * @return true if the mount succeeded
      */
     public boolean mountEntity(A riddenEntity, Object seatsModule, Entity rider) {
-        // TODO port:1.20.1 - Re-enable once SeatsModule (Phase 6) is ported:
-        //   if (seatsModule.getSeatToPassengerMap().containsValue(rider)) return false;
-        //   seatsModule.getSeatToPassengerMap().put(this, rider);
-        //   if (!rider.startRiding((Entity) riddenEntity, false)) {
-        //       seatsModule.getSeatToPassengerMap().remove(this);
-        //       return false;
-        //   }
-        //   return true;
-        if (riddenEntity instanceof Entity) {
-            return rider.startRiding((Entity) riddenEntity, false);
+        if (!(riddenEntity instanceof Entity) || !(seatsModule instanceof SeatsModule)) {
+            return false;
         }
-        return false;
+        SeatsModule seats = (SeatsModule) seatsModule;
+        if (seats.getSeatToPassengerMap().containsValue(rider)) {
+            return false;
+        }
+        seats.getSeatToPassengerMap().put(this, rider);
+        if (!rider.startRiding((Entity) riddenEntity, false)) {
+            seats.getSeatToPassengerMap().remove(this);
+            return false;
+        }
+        return true;
     }
 
     @Override

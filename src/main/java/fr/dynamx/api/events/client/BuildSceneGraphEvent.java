@@ -4,6 +4,15 @@ import com.jme3.math.Vector3f;
 import fr.dynamx.api.contentpack.object.IPhysicsPackInfo;
 import fr.dynamx.api.contentpack.object.part.IDrawablePart;
 import fr.dynamx.api.contentpack.object.render.IModelPackObject;
+import fr.dynamx.client.renders.scene.SceneBuilder;
+import fr.dynamx.client.renders.scene.node.ArmorNode;
+import fr.dynamx.client.renders.scene.node.BlockNode;
+import fr.dynamx.client.renders.scene.node.EntityNode;
+import fr.dynamx.client.renders.scene.node.ItemNode;
+import fr.dynamx.client.renders.scene.node.SceneNode;
+import fr.dynamx.common.contentpack.type.objects.ArmorObject;
+import fr.dynamx.common.contentpack.type.objects.BlockObject;
+import fr.dynamx.common.contentpack.type.objects.ItemObject;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
@@ -15,20 +24,14 @@ import java.util.function.BiFunction;
 
 /**
  * Build scene graph events.
- *
- * TODO port:1.20.1 - SceneBuilder / SceneNode / IRenderContext / BaseRenderContext.*RenderContext
- *   and ArmorObject / BlockObject / ItemObject live in not-yet-ported packages (Phase 3b / 7).
- *   The originally-typed scene generic (C extends IRenderContext) is dropped here and scene types
- *   are typed as Object. Subclasses keep their distinct context shape for documentation; tighten
- *   when those packages are ported.
  */
 @Getter
 @RequiredArgsConstructor
 public abstract class BuildSceneGraphEvent<A extends IModelPackObject> extends Event {
     /**
-     * The scene builder. TODO port:1.20.1 - SceneBuilder is Phase 7.
+     * The scene builder.
      */
-    protected final Object sceneBuilder = null;
+    protected final SceneBuilder<?, A> sceneBuilder = new SceneBuilder<>();
     /**
      * The pack info that is being compiled into a scene graph
      */
@@ -45,13 +48,13 @@ public abstract class BuildSceneGraphEvent<A extends IModelPackObject> extends E
      * The scene graph that will be used to render the pack info. Can be overridden.
      */
     @Setter
-    protected Object overrideSceneNode;
+    protected SceneNode<?, A> overrideSceneNode;
 
     /**
      * @return The scene graph that will be used to render the pack info.
      */
     @Nonnull
-    public abstract Object getSceneGraphResult();
+    public abstract SceneNode<?, A> getSceneGraphResult();
 
     /**
      * Adds an isolated scene node to the pack info.
@@ -85,61 +88,69 @@ public abstract class BuildSceneGraphEvent<A extends IModelPackObject> extends E
 
         @Override
         @Nonnull
-        public Object getSceneGraphResult() {
-            // TODO port:1.20.1 - SceneBuilder.buildEntitySceneGraph(packInfo, drawableParts, modelScale); Phase 7.
-            return overrideSceneNode == null ? (overrideSceneNode = new Object()) : overrideSceneNode;
+        @SuppressWarnings({"unchecked", "rawtypes"})
+        public SceneNode<?, IPhysicsPackInfo> getSceneGraphResult() {
+            if (overrideSceneNode == null) {
+                overrideSceneNode = (SceneNode) new SceneBuilder().buildEntitySceneGraph(packInfo, drawableParts, modelScale);
+            }
+            return (SceneNode<?, IPhysicsPackInfo>) (SceneNode) overrideSceneNode;
         }
     }
 
     /**
      * Fired when creating the scene of a block pack info.
-     *
-     * TODO port:1.20.1 - BlockObject lives in fr.dynamx.common.contentpack.type.objects (Phase 3b);
-     *   the generic parameter is dropped to keep this event compilable.
      */
-    public static class BuildBlockScene extends BuildSceneGraphEvent<IModelPackObject> {
-        public BuildBlockScene(IModelPackObject packInfo, List<IDrawablePart<IModelPackObject>> drawableParts, Vector3f modelScale) {
+    public static class BuildBlockScene extends BuildSceneGraphEvent<BlockObject<?>> {
+        public BuildBlockScene(BlockObject<?> packInfo, List<IDrawablePart<BlockObject<?>>> drawableParts, Vector3f modelScale) {
             super(packInfo, drawableParts, modelScale);
         }
 
         @Override
         @Nonnull
-        public Object getSceneGraphResult() {
-            return overrideSceneNode == null ? (overrideSceneNode = new Object()) : overrideSceneNode;
+        @SuppressWarnings({"unchecked", "rawtypes"})
+        public SceneNode<?, BlockObject<?>> getSceneGraphResult() {
+            if (overrideSceneNode == null) {
+                overrideSceneNode = (SceneNode) new SceneBuilder().buildBlockSceneGraph(packInfo, drawableParts, modelScale);
+            }
+            return (SceneNode<?, BlockObject<?>>) (SceneNode) overrideSceneNode;
         }
     }
 
     /**
      * Fired when creating the scene of an armor pack info.
-     *
-     * TODO port:1.20.1 - ArmorObject lives in fr.dynamx.common.contentpack.type.objects (Phase 3b).
      */
-    public static class BuildArmorScene extends BuildSceneGraphEvent<IModelPackObject> {
-        public BuildArmorScene(IModelPackObject packInfo, List<IDrawablePart<IModelPackObject>> drawableParts) {
+    public static class BuildArmorScene extends BuildSceneGraphEvent<ArmorObject<?>> {
+        public BuildArmorScene(ArmorObject<?> packInfo, List<IDrawablePart<ArmorObject<?>>> drawableParts) {
             super(packInfo, drawableParts, new Vector3f(1, 1, 1));
         }
 
         @Override
         @Nonnull
-        public Object getSceneGraphResult() {
-            return overrideSceneNode == null ? (overrideSceneNode = new Object()) : overrideSceneNode;
+        @SuppressWarnings({"unchecked", "rawtypes"})
+        public SceneNode<?, ArmorObject<?>> getSceneGraphResult() {
+            if (overrideSceneNode == null) {
+                overrideSceneNode = (SceneNode) new SceneBuilder().buildArmorSceneGraph(packInfo, drawableParts, modelScale);
+            }
+            return (SceneNode<?, ArmorObject<?>>) (SceneNode) overrideSceneNode;
         }
     }
 
     /**
      * Fired when creating the scene of an item pack info.
-     *
-     * TODO port:1.20.1 - ItemObject lives in fr.dynamx.common.contentpack.type.objects (Phase 3b).
      */
-    public static class BuildItemScene extends BuildSceneGraphEvent<IModelPackObject> {
-        public BuildItemScene(IModelPackObject packInfo, List<IDrawablePart<IModelPackObject>> drawableParts) {
+    public static class BuildItemScene extends BuildSceneGraphEvent<ItemObject<?>> {
+        public BuildItemScene(ItemObject<?> packInfo, List<IDrawablePart<ItemObject<?>>> drawableParts) {
             super(packInfo, drawableParts, new Vector3f(1, 1, 1));
         }
 
         @Override
         @Nonnull
-        public Object getSceneGraphResult() {
-            return overrideSceneNode == null ? (overrideSceneNode = new Object()) : overrideSceneNode;
+        @SuppressWarnings({"unchecked", "rawtypes"})
+        public SceneNode<?, ItemObject<?>> getSceneGraphResult() {
+            if (overrideSceneNode == null) {
+                overrideSceneNode = (SceneNode) new SceneBuilder().buildItemSceneGraph(packInfo, drawableParts, modelScale);
+            }
+            return (SceneNode<?, ItemObject<?>>) (SceneNode) overrideSceneNode;
         }
     }
 }

@@ -136,13 +136,11 @@ public class PartWheelInfo extends SubInfoTypeOwner<PartWheelInfo> implements IM
         return 0;
     }
 
-    /**
-     * TODO port:1.20.1 - Original signature returned IModelTextureVariantsSupplier.IModelTextureVariants
-     *   and took an ObjObjectRenderer. Both live in Phase 7; relaxed to Object.
-     */
-    public Object getTextureVariantsFor(Object objObjectRenderer) {
-        //Here we can make difference between tyre and rim textures
-        return getVariants();
+    @Override
+    public fr.dynamx.api.dxmodel.IModelTextureVariantsSupplier.IModelTextureVariants getTextureVariantsFor(fr.dynamx.client.renders.model.renderer.ObjObjectRenderer objObjectRenderer) {
+        // TODO port:1.20.1 - Original returned getVariants() (tyre vs rim distinction). Returning null
+        //   until MaterialVariantsInfo implements IModelTextureVariants (Phase 7).
+        return null;
     }
 
     public boolean hasTextureVariants() {
@@ -165,8 +163,7 @@ public class PartWheelInfo extends SubInfoTypeOwner<PartWheelInfo> implements IM
     }
 
     @Override
-    public Object getSceneGraph() {
-        // TODO port:1.20.1 - SceneNode lives in Phase 7. Original threw UnsupportedOperationException.
+    public fr.dynamx.client.renders.scene.node.SceneNode<?, ?> getSceneGraph() {
         throw new UnsupportedOperationException();
     }
 }

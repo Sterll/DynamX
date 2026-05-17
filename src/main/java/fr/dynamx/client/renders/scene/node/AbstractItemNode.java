@@ -6,6 +6,8 @@ import fr.dynamx.api.events.client.DynamXRenderItemEvent;
 import fr.dynamx.client.renders.model.ItemDxModel;
 import fr.dynamx.client.renders.scene.BaseRenderContext;
 import fr.dynamx.client.renders.scene.IRenderContext;
+import fr.dynamx.common.contentpack.type.ViewTransformsInfo;
+import net.minecraftforge.common.MinecraftForge;
 import fr.dynamx.utils.optimization.GlQuaternionPool;
 import fr.dynamx.utils.optimization.QuaternionPool;
 import fr.dynamx.utils.optimization.SubClassPool;
@@ -73,22 +75,21 @@ public abstract class AbstractItemNode<C extends IRenderContext, A extends IMode
             Vector3fPool.openPool(SubClassPool.ITEM_RENDER_NODE);
             QuaternionPool.openPool(SubClassPool.ITEM_RENDER_NODE);
             GlQuaternionPool.openPool(SubClassPool.ITEM_RENDER_NODE);
-            // TODO port:1.20.1 - was MinecraftForge.EVENT_BUS.post(...) ; use MinecraftForge.EVENT_BUS.post
             DynamXRenderItemEvent transformEvent = new DynamXRenderItemEvent(context, this, DynamXRenderItemEvent.EventStage.TRANSFORM);
-            // if (!MinecraftForge.EVENT_BUS.post(transformEvent).isCanceled()) {
-            //     packInfo.applyItemTransforms(renderType, stack, model, transform);
-            //     ViewTransformsInfo transformsInfo = packInfo.getViewTransformsInfo(renderType);
-            //     if (transformsInfo != null) {
-            //         transform.mul(transformsInfo.getTransformMatrix());
-            //     } else {
-            //         float scale = packInfo.getItemScale();
-            //         transform.scale(scale, scale, scale);
-            //     }
-            // }
+            if (!MinecraftForge.EVENT_BUS.post(transformEvent)) {
+                packInfo.applyItemTransforms(renderType, stack, model, transform);
+                ViewTransformsInfo transformsInfo = packInfo.getViewTransformsInfo(renderType);
+                if (transformsInfo != null) {
+                    transform.mul(transformsInfo.getTransformMatrix());
+                } else {
+                    float scale = packInfo.getItemScale();
+                    transform.scale(scale, scale, scale);
+                }
+            }
             DynamXRenderItemEvent renderEvent = new DynamXRenderItemEvent(context, this, DynamXRenderItemEvent.EventStage.RENDER);
-            // if (!MinecraftForge.EVENT_BUS.post(renderEvent).isCanceled()) {
-            renderItemModel(context, packInfo, transform);
-            // }
+            if (!MinecraftForge.EVENT_BUS.post(renderEvent)) {
+                renderItemModel(context, packInfo, transform);
+            }
             GlQuaternionPool.closePool();
             QuaternionPool.closePool();
             Vector3fPool.closePool();

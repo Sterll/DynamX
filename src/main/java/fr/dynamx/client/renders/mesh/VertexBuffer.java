@@ -11,19 +11,21 @@ import jme3utilities.math.MyQuaternion;
 import java.nio.FloatBuffer;
 
 /**
- * Wrapper class for a named attribute in a mesh, including its data buffer.
+ * Wrapper for a vertex attribute (positions, normals or texture coordinates) stored in a
+ * direct {@link FloatBuffer}. In the legacy 1.12.2 pipeline this class also owned an OpenGL
+ * VBO populated via {@code GL15.glBufferData} and consumed by {@code glVertexPointer} /
+ * {@code glNormalPointer} / {@code glTexCoordPointer}.
  * <p>
- * TODO port:1.20.1 - VBO/attribute pointer setup must be reworked to use BufferBuilder/VertexFormat,
- * the legacy GL15/GL_ARRAY_BUFFER + glVertexPointer pipeline is gone in 1.20.1 core profile.
- *
- * @author Stephen Gold sgold@sonic.net
+ * 1.20.1 runs in the core profile where client arrays and named attribute pointers are gone:
+ * uploads are performed implicitly by {@code BufferBuilder} when the owning {@link GLMesh}
+ * emits its vertices, so this class is now pure CPU-side storage with mutation helpers used
+ * by mesh generation code (normals, UV transforms, ragdoll skinning, etc.).
  */
 public class VertexBuffer {
     private boolean isModified = true;
     private boolean isMutable = true;
     private final FloatBuffer dataBuffer;
     public final int fpv;
-    private Integer vbo;
     private final int attribIndex;
 
     VertexBuffer(float[] data, int fpv, int attribIndex) {
@@ -57,7 +59,7 @@ public class VertexBuffer {
     }
 
     void cleanUp() {
-        // TODO port:1.20.1 - replace GL15.glDeleteBuffers with 1.20.1 buffer cleanup
+        // No GL resources owned in the 1.20.1 BufferBuilder pipeline.
     }
 
     public VertexBuffer flip() {
@@ -80,6 +82,18 @@ public class VertexBuffer {
         return dataBuffer;
     }
 
+    public int getAttribIndex() {
+        return attribIndex;
+    }
+
+    public boolean isModified() {
+        return isModified;
+    }
+
+    public void clearModified() {
+        this.isModified = false;
+    }
+
     public int limit() {
         return dataBuffer.limit();
     }
@@ -91,14 +105,6 @@ public class VertexBuffer {
 
     public int position() {
         return dataBuffer.position();
-    }
-
-    void prepareToDraw() {
-        // TODO port:1.20.1 - replace immediate mode VBO bind + glVertex/Normal/TexCoordPointer with BufferBuilder/RenderType
-    }
-
-    void stopDraw() {
-        // TODO port:1.20.1 - replace immediate mode client-state disable with no-op (BufferBuilder is self-contained)
     }
 
     public VertexBuffer put(float fValue) {
@@ -155,7 +161,7 @@ public class VertexBuffer {
     }
 
     public VertexBuffer setDynamic() {
-        // TODO port:1.20.1 - usage hint is implicit in BufferBuilder pipeline
+        // Usage hint was a GL15 concern; BufferBuilder re-emits every frame so it is implicit.
         return this;
     }
 
@@ -179,9 +185,5 @@ public class VertexBuffer {
         if (!isMutable) {
             throw new IllegalStateException("The vertex buffer is no longer mutable.");
         }
-    }
-
-    public void unbindVbo() {
-        // TODO port:1.20.1 - explicit VBO unbind unnecessary in BufferBuilder pipeline
     }
 }

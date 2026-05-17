@@ -3,6 +3,7 @@ package fr.dynamx.api.events.client;
 import com.jme3.math.Vector3f;
 import fr.dynamx.api.contentpack.object.part.IDrawablePart;
 import fr.dynamx.api.contentpack.object.render.IModelPackObject;
+import fr.dynamx.client.renders.scene.node.SceneNode;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
@@ -15,8 +16,8 @@ import java.util.List;
 /**
  * Fired when creating the scene node of a {@link IDrawablePart}.
  *
- * TODO port:1.20.1 - SceneNode and SceneNode.SceneRenderListener / SceneNode.SceneContainer
- *   live in fr.dynamx.client.renders.scene.node (Phase 7); typed as Object until then.
+ * <p>TODO port:1.20.1 - SceneNode.SceneRenderListener / SceneNode.SceneContainer are not yet implemented;
+ *   {@link #listenPartScene(Object)} is a no-op stub until they land.
  */
 @Getter
 @RequiredArgsConstructor
@@ -37,20 +38,21 @@ public class CreatePartSceneEvent extends Event {
      * The children of the part.
      */
     @Nullable
-    private final List<Object> childGraph;
+    private final List<SceneNode<?, ?>> childGraph;
     /**
      * The scene graph that will be used to render the part. Can be overridden.
      */
     @Setter
-    private Object overrideSceneNode;
+    private SceneNode<?, ?> overrideSceneNode;
 
     /**
      * @return The scene graph that will be used to render the part. If overrideSceneGraph is null, it will be created by the part.
      */
     @Nonnull
-    public Object getSceneGraphResult() {
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public SceneNode<?, ?> getSceneGraphResult() {
         if (overrideSceneNode == null) {
-            overrideSceneNode = part.createSceneGraph(modelScale, childGraph);
+            overrideSceneNode = (SceneNode<?, ?>) part.createSceneGraph(modelScale, (List) childGraph);
         }
         return overrideSceneNode;
     }
@@ -58,7 +60,7 @@ public class CreatePartSceneEvent extends Event {
     /**
      * Adds a listener to the scene graph that will be used to render the part.
      *
-     * TODO port:1.20.1 - SceneNode.SceneRenderListener / SceneNode.SceneContainer are Phase 7.
+     * <p>TODO port:1.20.1 - SceneNode.SceneRenderListener / SceneNode.SceneContainer not yet ported.
      */
     public void listenPartScene(Object listener) {
         // TODO port:1.20.1 - overrideSceneNode = new SceneNode.SceneContainer(listener, part, getSceneGraphResult());

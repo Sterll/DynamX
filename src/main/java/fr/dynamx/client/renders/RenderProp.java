@@ -46,19 +46,20 @@ public class RenderProp<T extends PropsEntity<?>> extends RenderPhysicsEntity<T>
     }
 
     @Override
+    @SuppressWarnings({"unchecked", "rawtypes"})
     public void renderEntity(T entity, BaseRenderContext.EntityRenderContext context) {
-        // TODO port:1.20.1 - PropObject#getSceneGraph() returns Object until SceneNode is exposed by api.
-        Object sceneGraph = entity.getPackInfo().getSceneGraph();
-        if (sceneGraph instanceof SceneNode) {
-            ((SceneNode<BaseRenderContext.EntityRenderContext, PropObject<?>>) sceneGraph).render(context, entity.getPackInfo(), null);
+        SceneNode<?, ?> sceneGraph = entity.getPackInfo().getSceneGraph();
+        if (sceneGraph != null) {
+            ((SceneNode) sceneGraph).render(context, entity.getPackInfo(), null);
         }
     }
 
     @Override
+    @SuppressWarnings({"unchecked", "rawtypes"})
     public void renderEntityDebug(T entity, BaseRenderContext.EntityRenderContext context) {
-        Object sceneGraph = entity.getPackInfo().getSceneGraph();
-        if (sceneGraph instanceof SceneNode) {
-            ((SceneNode<BaseRenderContext.EntityRenderContext, PropObject<?>>) sceneGraph).renderDebug(context, entity.getPackInfo());
+        SceneNode<?, ?> sceneGraph = entity.getPackInfo().getSceneGraph();
+        if (sceneGraph != null) {
+            ((SceneNode) sceneGraph).renderDebug(context, entity.getPackInfo());
         }
     }
 }

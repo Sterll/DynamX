@@ -108,7 +108,7 @@ public class PropObject<T extends PropObject<T>> extends AbstractProp<T> impleme
     /**
      * TODO port:1.20.1 - Was SceneNode&lt;?, ?&gt; (Phase 7).
      */
-    protected Object sceneGraph;
+    protected fr.dynamx.client.renders.scene.node.SceneNode<?, ?> sceneGraph;
 
     public PropObject(ISubInfoTypeOwner<BlockObject<?>> owner, String fileName) {
         super(owner.getPackName(), fileName);
@@ -231,9 +231,16 @@ public class PropObject<T extends PropObject<T>> extends AbstractProp<T> impleme
     }
 
     @Override
-    public Object getSceneGraph() {
-        // TODO port:1.20.1 - Original posted BuildEntityScene event then fell back to new EntityNode<>(...).
-        //   Phase 7 dependency.
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public fr.dynamx.client.renders.scene.node.SceneNode<?, ?> getSceneGraph() {
+        if (sceneGraph == null) {
+            fr.dynamx.client.renders.scene.SceneBuilder<
+                    fr.dynamx.client.renders.scene.BaseRenderContext.EntityRenderContext,
+                    PropObject<T>> builder = new fr.dynamx.client.renders.scene.SceneBuilder<>();
+            sceneGraph = builder.buildEntitySceneGraph((PropObject<T>) this,
+                    (java.util.List) getDrawableParts(),
+                    getScaleModifier());
+        }
         return sceneGraph;
     }
 }

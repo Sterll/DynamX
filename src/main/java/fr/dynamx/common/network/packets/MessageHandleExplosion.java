@@ -11,8 +11,8 @@ import io.netty.buffer.ByteBuf;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.fml.DistExecutor;
 import net.minecraftforge.fml.LogicalSide;
+import net.minecraftforge.fml.loading.FMLEnvironment;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -62,7 +62,10 @@ public class MessageHandleExplosion implements IDnxPacket {
         if (side != LogicalSide.CLIENT) {
             return;
         }
-        Player local = DistExecutor.safeCallWhenOn(Dist.CLIENT, () -> ClientNetworkBridge::getLocalPlayer);
+        if (FMLEnvironment.dist != Dist.CLIENT) {
+            return;
+        }
+        Player local = ClientNetworkBridge.getLocalPlayer();
         if (local == null || local.level() == null) {
             return;
         }

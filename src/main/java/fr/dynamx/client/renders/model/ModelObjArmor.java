@@ -1,41 +1,69 @@
 package fr.dynamx.client.renders.model;
 
-import fr.dynamx.client.renders.model.renderer.ArmorRenderer;
+import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.blaze3d.vertex.VertexConsumer;
 import fr.dynamx.client.renders.model.renderer.DxModelRenderer;
 import fr.dynamx.client.renders.scene.BaseRenderContext;
+import fr.dynamx.common.contentpack.type.objects.ArmorObject;
 import lombok.Getter;
+import net.minecraft.client.model.HumanoidModel;
+import net.minecraft.client.model.geom.ModelPart;
+import net.minecraft.client.model.geom.builders.CubeDeformation;
+import net.minecraft.client.model.geom.builders.LayerDefinition;
+import net.minecraft.client.model.geom.builders.MeshDefinition;
 import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.entity.LivingEntity;
 import org.joml.Matrix4f;
 
 /**
- * 1.12-era OBJ-armor model that extended {@code ModelBiped}.
+ * 1.20.1 port of the 1.12 {@code ModelObjArmor}.
  * <p>
- * TODO port:1.20.1 - OBJ loader is being dropped; armor rendering must be rebuilt on top of
- * {@link net.minecraft.client.model.HumanoidModel} + {@link net.minecraft.client.model.geom.ModelPart}
- * + the GLTF pipeline. This class is preserved as a stub so external callers
- * ({@link fr.dynamx.client.renders.scene.BaseRenderContext.ArmorRenderContext}, scene graph) still compile.
+ * The legacy class extended {@code ModelBiped} and held one {@code ArmorRenderer} per body part.
+ * In 1.20.1 armor models are {@link HumanoidModel}s that the Forge armor pipeline feeds with a
+ * {@link PoseStack} + {@link VertexConsumer} via {@link #renderToBuffer}. Per-slot visibility is
+ * driven by Forge's vanilla {@code HumanoidArmorLayer} which calls
+ * {@link HumanoidModel#setAllVisible(boolean)} before rendering each slot, so we keep a single
+ * model instance per pack and let the slot/textureId fields drive whatever is currently drawn.
+ * <p>
+ * TODO port:1.20.1 - the actual per-part DxModel rendering must be wired through the
+ * {@link fr.dynamx.client.renders.scene.node.ArmorNode} scene graph once
+ * {@link fr.dynamx.api.events.client.BuildSceneGraphEvent.BuildArmorScene} produces a real
+ * pipeline (currently the ArmorNode body and OBJ/GLTF renderers are stubbed). For now this class
+ * provides the vanilla skeleton plus stubs so {@link BaseRenderContext.ArmorRenderContext} and
+ * call-sites in the scene graph keep compiling.
  */
-public class ModelObjArmor {
-    private static final Matrix4f tempTransform = new Matrix4f();
-    private final Object armorObject;     // TODO port:1.20.1 - was ArmorObject<?>
+public class ModelObjArmor extends HumanoidModel<LivingEntity> {
+
+    /**
+     * Builds an empty {@link LayerDefinition} matching the vanilla humanoid armor layout.
+     * <p>
+     * We rely on {@link HumanoidModel#createMesh(CubeDeformation, float)} for the part hierarchy so
+     * that the {@link ModelPart} fields ({@code head}, {@code body}, {@code rightArm}, ...) inherited
+     * from {@link HumanoidModel} stay bound to the canonical names. This lets Forge's
+     * {@code HumanoidArmorLayer} drive {@link #setAllVisible(boolean)} per slot exactly like
+     * vanilla armor models.
+     */
+    public static LayerDefinition createBodyLayer() {
+        MeshDefinition mesh = HumanoidModel.createMesh(CubeDeformation.NONE, 0.0F);
+        return LayerDefinition.create(mesh, 64, 32);
+    }
+
+    @Getter
+    private final ArmorObject<?> armorObject;
+    @Getter
     private final DxModelRenderer model;
+    @Getter
     private final BaseRenderContext.ArmorRenderContext renderContext = new BaseRenderContext.ArmorRenderContext(this);
-    private ArmorRenderer head;
-    private ArmorRenderer body;
-    private ArmorRenderer[] arms;
-    private ArmorRenderer[] legs;
-    private ArmorRenderer[] foot;
 
     @Getter
     private EquipmentSlot activePart;
     @Getter
     private byte activeTextureId;
 
-    public ModelObjArmor(Object armorObject, DxModelRenderer model) {
+    public ModelObjArmor(ArmorObject<?> armorObject, DxModelRenderer model, ModelPart root) {
+        super(root);
         this.armorObject = armorObject;
         this.model = model;
-        // TODO port:1.20.1 - OBJ loader is being dropped; head/body/arms/legs/foot were wired from
-        // ArmorObject getters and bound to the parent ModelBiped's bipedHead/bipedBody/... fields.
     }
 
     public void setActivePart(EquipmentSlot activePart, byte textureId) {
@@ -43,31 +71,55 @@ public class ModelObjArmor {
         this.activeTextureId = textureId;
     }
 
+    /**
+     * Vanilla armor render entry point. Called by {@code HumanoidArmorLayer} after the part-visibility
+     * for the current slot has been configured and the parent humanoid model angles have been copied
+     * into us via {@code ForgeHooksClient.copyModelProperties}.
+     * <p>
+     * TODO port:1.20.1 - delegate to {@code armorObject.getSceneGraph().render(...)} once
+     * {@link fr.dynamx.client.renders.scene.node.ArmorNode} is unstubbed. For now we fall back to the
+     * vanilla biped skeleton so the wiring is verifiable in-game even without GLTF/DxAnimator parts.
+     */
+    @Override
+    public void renderToBuffer(PoseStack poseStack, VertexConsumer buffer, int packedLight,
+                               int packedOverlay, float r, float g, float b, float a) {
+        super.renderToBuffer(poseStack, buffer, packedLight, packedOverlay, r, g, b, a);
+        // TODO port:1.20.1 - push a RenderFrame and dispatch through the ArmorNode scene graph so the
+        // pack-defined OBJ/GLTF parts get drawn. Today both ArmorNode and the OBJ ArmorRenderer are
+        // stubbed (BuildArmorScene + OBJ-loader drop), so we leave the vanilla skeleton as the only
+        // visible result of the wiring.
+    }
+
+    /**
+     * Called by {@link fr.dynamx.client.renders.scene.node.ArmorNode}. The slot dispatch lived on the
+     * legacy {@code ArmorRenderer} side; in 1.20.1 each per-part renderer will be a child scene node,
+     * so this method is kept as a stub until the scene graph is unstubbed.
+     */
     public void renderPart(Matrix4f transform, EquipmentSlot part, boolean forceVanillaRender) {
-        // TODO port:1.20.1 - rebuild against HumanoidModel + GLTF renderer
+        // TODO port:1.20.1 - rebuild against HumanoidModel + GLTF / DxAnimator pipeline.
     }
 
     public void renderHead(float scale) {
-        if (head != null) head.render(scale);
+        // TODO port:1.20.1
     }
 
     public void renderChest(float scale) {
-        if (body != null) body.render(scale);
+        // TODO port:1.20.1
     }
 
     public void renderLeftArm(float scale) {
-        if (arms != null) arms[0].render(scale);
+        // TODO port:1.20.1
     }
 
     public void renderRightArm(float scale) {
-        if (arms != null) arms[1].render(scale);
+        // TODO port:1.20.1
     }
 
     public void renderLeftLeg(float scale) {
-        if (legs != null) legs[0].render(scale);
+        // TODO port:1.20.1
     }
 
     public void renderRightLeg(float scale) {
-        if (legs != null) legs[1].render(scale);
+        // TODO port:1.20.1
     }
 }

@@ -26,7 +26,7 @@ public class ItemObject<T extends ItemObject<T>> extends AbstractItemObject<T, T
     /**
      * TODO port:1.20.1 - Was SceneNode&lt;?, ?&gt;; relaxed to Object pending Phase 7 port.
      */
-    protected Object sceneNode;
+    protected fr.dynamx.client.renders.scene.node.SceneNode<?, ?> sceneNode;
 
     public ItemObject(String packName, String fileName) {
         super(packName, fileName);
@@ -58,13 +58,16 @@ public class ItemObject<T extends ItemObject<T>> extends AbstractItemObject<T, T
     }
 
     @Override
-    public Object getSceneGraph() {
-        // TODO port:1.20.1 - Original:
-        //   if (sceneNode == null) {
-        //       if (isModelValid()) { post BuildItemScene event, sceneNode = event.getSceneGraphResult(); }
-        //       else sceneNode = new ItemNode<>(Collections.EMPTY_LIST);
-        //   }
-        //   ItemNode/BuildSceneGraphEvent live in Phase 7.
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public fr.dynamx.client.renders.scene.node.SceneNode<?, ?> getSceneGraph() {
+        if (sceneNode == null) {
+            fr.dynamx.client.renders.scene.SceneBuilder<
+                    fr.dynamx.client.renders.scene.BaseRenderContext.ItemRenderContext,
+                    ItemObject<T>> builder = new fr.dynamx.client.renders.scene.SceneBuilder<>();
+            sceneNode = builder.buildItemSceneGraph((ItemObject<T>) this,
+                    (java.util.List) getDrawableParts(),
+                    new com.jme3.math.Vector3f(1, 1, 1));
+        }
         return sceneNode;
     }
 }

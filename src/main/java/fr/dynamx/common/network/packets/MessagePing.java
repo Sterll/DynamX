@@ -10,8 +10,8 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
 import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.fml.DistExecutor;
 import net.minecraftforge.fml.LogicalSide;
+import net.minecraftforge.fml.loading.FMLEnvironment;
 
 public class MessagePing implements IDnxPacket {
     private long sentTime;
@@ -48,8 +48,8 @@ public class MessagePing implements IDnxPacket {
             if (context instanceof ServerPlayer serverPlayer) {
                 DynamXNetwork.sendTo(new MessagePing(sentTime, manual), serverPlayer);
             }
-        } else {
-            DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> clientHandle(sentTime, manual));
+        } else if (FMLEnvironment.dist == Dist.CLIENT) {
+            clientHandle(sentTime, manual);
         }
     }
 

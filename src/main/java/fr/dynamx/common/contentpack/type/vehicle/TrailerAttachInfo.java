@@ -6,6 +6,9 @@ import fr.dynamx.api.contentpack.registry.DefinitionType;
 import fr.dynamx.api.contentpack.registry.PackFileProperty;
 import fr.dynamx.api.contentpack.registry.RegisteredSubInfoType;
 import fr.dynamx.api.contentpack.registry.SubInfoTypeRegistries;
+import fr.dynamx.api.entities.modules.ModuleListBuilder;
+import fr.dynamx.common.entities.BaseVehicleEntity;
+import fr.dynamx.common.entities.modules.TrailerAttachModule;
 import lombok.Getter;
 
 /**
@@ -37,7 +40,10 @@ public class TrailerAttachInfo extends SubInfoType<ModularVehicleInfo> {
 
     @Override
     public void addModules(Object entity, Object modules) {
-        // TODO port:1.20.1 - modules.add(new TrailerAttachModule((BaseVehicleEntity<?>) entity, this));
+        if (!(modules instanceof ModuleListBuilder) || !(entity instanceof BaseVehicleEntity)) return;
+        ModuleListBuilder list = (ModuleListBuilder) modules;
+        if (!list.hasModuleOfClass(TrailerAttachModule.class))
+            list.add(new TrailerAttachModule((BaseVehicleEntity<?>) entity, this));
     }
 
     @Override

@@ -168,10 +168,7 @@ public class ModularVehicleInfo extends AbstractItemObject<ModularVehicleInfo, M
      */
     private MaterialVariantsInfo<ModularVehicleInfo> variants;
 
-    /**
-     * TODO port:1.20.1 - Was SceneNode&lt;?, ?&gt; (Phase 7).
-     */
-    protected Object sceneGraph;
+    protected fr.dynamx.client.renders.scene.node.SceneNode<?, ?> sceneGraph;
 
     @Deprecated
     @PackFileProperty(configNames = "Textures", required = false, type = DefinitionType.DynamXDefinitionTypes.STRING_ARRAY_2D)
@@ -191,15 +188,16 @@ public class ModularVehicleInfo extends AbstractItemObject<ModularVehicleInfo, M
         //   references the unported DxModelPath; pass null until Phase 7 brings the model pipeline back.
         collisionsHelper.loadCollisions(this, null, "chassis", centerOfMass, shapeYOffset, useComplexCollisions, scaleModifier, ObjectCollisionsHelper.CollisionType.VEHICLE);
 
-        // TODO port:1.20.1 - Wheel attachment requires DynamXObjectLoaders.WHEELS (Phase 3b later in this batch).
-        //   Skipping wheel info wiring for now; preserving the directing wheel / handbrake derivation logic so
-        //   downstream code keeps working with default values.
+        // Attach wheels: PartWheel.defaultWheelInfo must be wired from DynamXObjectLoaders.WHEELS
+        // so getDefaultWheelInfo() returns a valid PartWheelInfo at render time. Without this the
+        // wheel scene nodes bail out (info==null) and no wheels are rendered.
+        Map<String, PartWheelInfo> wheels = fr.dynamx.common.contentpack.DynamXObjectLoaders.WHEELS.getInfos();
         boolean hasHandbrake = false;
         int directingWheel = -1;
         List<PartWheel> partsByType = getPartsByType(PartWheel.class);
         for (int i = 0; i < partsByType.size(); i++) {
             PartWheel partWheel = partsByType.get(i);
-            // partWheel.setDefaultWheelInfo(wheels.get(partWheel.getDefaultWheelName()));
+            partWheel.setDefaultWheelInfo(wheels.get(partWheel.getDefaultWheelName()));
             if (partWheel.isHandBrakingWheel())
                 hasHandbrake = true;
             if (directingWheel == -1 && partWheel.isWheelIsSteerable())
@@ -252,17 +250,11 @@ public class ModularVehicleInfo extends AbstractItemObject<ModularVehicleInfo, M
         getLightSources().values().forEach(compoundLight -> compoundLight.addModules(entity, modules));
     }
 
-    /**
-     * TODO port:1.20.1 - Original applied a 180 deg Y rotation for ItemCameraTransforms.TransformType.GUI.
-     *   In 1.20.1 that is ItemDisplayContext.GUI; renderType is relaxed to Object until the renderer
-     *   pipeline is ported. Body delegates to super so the field is preserved.
-     */
     @Override
     @OnlyIn(Dist.CLIENT)
-    public void applyItemTransforms(Object renderType, ItemStack stack, Object model, Matrix4f transform) {
+    public void applyItemTransforms(net.minecraft.world.item.ItemDisplayContext renderType, ItemStack stack, fr.dynamx.client.renders.model.ItemDxModel model, Matrix4f transform) {
         super.applyItemTransforms(renderType, stack, model, transform);
-        if (renderType instanceof net.minecraft.world.item.ItemDisplayContext
-                && renderType == net.minecraft.world.item.ItemDisplayContext.GUI) {
+        if (renderType == net.minecraft.world.item.ItemDisplayContext.GUI) {
             transform.rotate((float) Math.PI, 0, 1, 0);
         }
     }
@@ -288,13 +280,17 @@ public class ModularVehicleInfo extends AbstractItemObject<ModularVehicleInfo, M
     }
 
     @Override
-    public Object getSceneGraph() {
-        // TODO port:1.20.1 - Original posted BuildEntityScene event then fell back to new EntityNode<>(...).
-        //   Full scene graph (wheels, doors, lights as linked children) is a Phase 7 dependency.
-        //   Lazy-init a minimal EntityNode with no children so the main body renders.
+    public fr.dynamx.client.renders.scene.node.SceneNode<?, ?> getSceneGraph() {
+        // Build the scene graph from this vehicle's drawable parts (wheels, doors, lights, ...).
+        // Without this, the EntityNode would have no children and only the chassis body would
+        // render - PartWheel scene nodes would never be visited so the wheels stay invisible.
         if (sceneGraph == null) {
-            sceneGraph = new fr.dynamx.client.renders.scene.node.EntityNode<ModularVehicleInfo>(
-                    new java.util.ArrayList<>(), new java.util.ArrayList<>());
+            fr.dynamx.client.renders.scene.SceneBuilder<
+                    fr.dynamx.client.renders.scene.BaseRenderContext.EntityRenderContext,
+                    ModularVehicleInfo> builder = new fr.dynamx.client.renders.scene.SceneBuilder<>();
+            sceneGraph = builder.buildEntitySceneGraph(this,
+                    (java.util.List) getDrawableParts(),
+                    getScaleModifier());
         }
         return sceneGraph;
     }

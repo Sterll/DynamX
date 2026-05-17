@@ -28,6 +28,7 @@ public class OBJLoader {
     private static final String NEW_GROUP = "g";
     private static final String USE_MATERIAL = "usemtl";
     private static final String NEW_MATERIAL = "mtllib";
+    private static final String SMOOTH = "s";
 
     @Getter
     private static final List<MTLLoader> mtlLoaders = new ArrayList<>();
@@ -63,7 +64,10 @@ public class OBJLoader {
                                  @Nullable MtlResolver mtlResolver,
                                  String objContent) {
         try {
-            hasNormals = true;
+            // hasNormals must start false so the computeNormals() fallback runs for OBJs that
+            // ship no `vn` lines. parseOBJIndex flips it true the moment a face token references
+            // a normal index, which is the correct signal.
+            hasNormals = false;
             IndexedModel result = new IndexedModel();
 
             List<Vector3f> positions = new ArrayList<>();
@@ -71,6 +75,9 @@ public class OBJLoader {
             List<Vector3f> normals = new ArrayList<>();
             List<IndexedModel.OBJIndex> indices = new ArrayList<>();
             List<String> indicedMaterials = new ArrayList<>();
+            List<Integer> smoothGroups = new ArrayList<>();
+            Map<ObjObjectData, List<Integer>> objectSmoothGroups = new HashMap<>();
+            int currentSmoothGroup = 0;
 
             String currentMaterial = null;
             Map<ObjObjectData, IndexedModel> objects = new HashMap<>();
@@ -93,9 +100,24 @@ public class OBJLoader {
                         case FACE:
                             for (int i = 0; i < parts.length - 3; i++) {
                                 indicedMaterials.add(currentMaterial);
+                                smoothGroups.add(currentSmoothGroup);
                                 indices.add(parseOBJIndex(parts[1]));
                                 indices.add(parseOBJIndex(parts[2 + i]));
                                 indices.add(parseOBJIndex(parts[3 + i]));
+                            }
+                            break;
+                        case SMOOTH:
+                            if (parts.length >= 2) {
+                                String sg = parts[1];
+                                if (sg.equalsIgnoreCase("off")) {
+                                    currentSmoothGroup = 0;
+                                } else {
+                                    try {
+                                        currentSmoothGroup = Integer.parseInt(sg);
+                                    } catch (NumberFormatException nfe) {
+                                        currentSmoothGroup = 0;
+                                    }
+                                }
                             }
                             break;
                         case NORMAL:
@@ -135,9 +157,11 @@ public class OBJLoader {
                                 result.getIndicedMaterials().addAll(indicedMaterials);
                                 setMaterialFinalIndex(indices, currentMaterial, result);
                                 objects.put(currentObject, result);
+                                objectSmoothGroups.put(currentObject, smoothGroups);
                             }
                             indices = new ArrayList<>();
                             indicedMaterials = new ArrayList<>();
+                            smoothGroups = new ArrayList<>();
                             result = new IndexedModel();
                             currentObject = new ObjObjectData(parts[1]);
                             break;
@@ -154,6 +178,7 @@ public class OBJLoader {
             result.getIndicedMaterials().addAll(indicedMaterials);
             setMaterialFinalIndex(indices, currentMaterial, result);
             objects.put(currentObject, result);
+            objectSmoothGroups.put(currentObject, smoothGroups);
 
             objObjects.clear();
             for (Map.Entry<ObjObjectData, IndexedModel> entry : objects.entrySet()) {
@@ -189,6 +214,10 @@ public class OBJLoader {
                 }
 
                 if (!hasNormals) im.computeNormals();
+                List<Integer> sgs = objectSmoothGroups.get(object);
+                if (sgs != null) {
+                    applySmoothingGroups(im, sgs);
+                }
                 object.setCenter(im.computeCenter());
                 im.toMesh(object);
                 objObjects.add(object);
@@ -196,6 +225,58 @@ public class OBJLoader {
         } catch (Exception e) {
             throw new RuntimeException("Error while loading obj model", e);
         }
+    }
+
+    /**
+     * Re-averages per-vertex normals for each non-zero smoothing group so faces tagged with the
+     * same `s N` directive share a continuous normal field at shared vertex positions. Triangles
+     * tagged `s off` / `s 0` keep their per-face (or per-vertex from `vn`) normals untouched.
+     */
+    private static void applySmoothingGroups(IndexedModel im, List<Integer> faceSmoothGroups) {
+        List<IndexedModel.OBJIndex> objIdx = im.getObjIndices();
+        List<Integer> outIndices = im.getIndices();
+        List<Vector3f> normals = im.getNormals();
+        int triCount = outIndices.size() / 3;
+        if (faceSmoothGroups.size() < triCount) return;
+
+        Map<SmoothKey, Vector3f> sum = new HashMap<>();
+        Map<SmoothKey, List<Integer>> members = new HashMap<>();
+        boolean any = false;
+        for (int t = 0; t < triCount; t++) {
+            int sg = faceSmoothGroups.get(t);
+            if (sg == 0) continue;
+            any = true;
+            for (int k = 0; k < 3; k++) {
+                int idx = t * 3 + k;
+                int posIdx = objIdx.get(idx).positionIndex;
+                int outVi = outIndices.get(idx);
+                SmoothKey key = new SmoothKey(sg, posIdx);
+                Vector3f n = normals.get(outVi);
+                sum.computeIfAbsent(key, kk -> new Vector3f()).add(n);
+                members.computeIfAbsent(key, kk -> new ArrayList<>()).add(outVi);
+            }
+        }
+        if (!any) return;
+        for (Map.Entry<SmoothKey, Vector3f> e : sum.entrySet()) {
+            Vector3f avg = e.getValue();
+            if (avg.lengthSquared() > 1e-12f) avg.normalize();
+            else avg.set(0, 1, 0);
+            for (int vi : members.get(e.getKey())) {
+                normals.get(vi).set(avg);
+            }
+        }
+    }
+
+    private static final class SmoothKey {
+        final int smoothGroup;
+        final int positionIndex;
+        SmoothKey(int sg, int pi) { this.smoothGroup = sg; this.positionIndex = pi; }
+        @Override public boolean equals(Object o) {
+            if (!(o instanceof SmoothKey)) return false;
+            SmoothKey k = (SmoothKey) o;
+            return k.smoothGroup == smoothGroup && k.positionIndex == positionIndex;
+        }
+        @Override public int hashCode() { return smoothGroup * 31 + positionIndex; }
     }
 
     private void setMaterialFinalIndex(List<IndexedModel.OBJIndex> indices, String currentMaterial, IndexedModel currentObject) {

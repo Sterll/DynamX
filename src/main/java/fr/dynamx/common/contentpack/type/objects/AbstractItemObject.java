@@ -205,13 +205,9 @@ public abstract class AbstractItemObject<T extends AbstractItemObject<?, ?>, A e
     }
 
     @Override
-    public Object getViewTransformsInfo(Object viewType) {
-        // TODO port:1.20.1 - Original was `ViewTransformsInfo getViewTransformsInfo(ItemCameraTransforms.TransformType)`.
-        //   In 1.20.1, viewType should be ItemDisplayContext. Cast and delegate to itemTransformsInfo.
-        if (itemTransformsInfo == null || !(viewType instanceof net.minecraft.world.item.ItemDisplayContext)) {
-            return null;
-        }
-        return itemTransformsInfo.getViewTransforms((net.minecraft.world.item.ItemDisplayContext) viewType);
+    public ViewTransformsInfo getViewTransformsInfo(net.minecraft.world.item.ItemDisplayContext viewType) {
+        if (itemTransformsInfo == null) return null;
+        return itemTransformsInfo.getViewTransforms(viewType);
     }
 
     /**

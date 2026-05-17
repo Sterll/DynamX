@@ -1,7 +1,10 @@
 package fr.dynamx.common.contentpack.parts;
 
+import com.jme3.math.FastMath;
 import com.jme3.math.Quaternion;
 import com.jme3.math.Vector3f;
+import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.math.Axis;
 import fr.aym.acslib.api.services.error.ErrorLevel;
 import fr.dynamx.api.contentpack.object.ICollisionsContainer;
 import fr.dynamx.api.contentpack.object.INamedObject;
@@ -15,33 +18,34 @@ import fr.dynamx.api.contentpack.registry.IPackFilePropertyFixer;
 import fr.dynamx.api.contentpack.registry.PackFileProperty;
 import fr.dynamx.api.contentpack.registry.RegisteredSubInfoType;
 import fr.dynamx.api.contentpack.registry.SubInfoTypeRegistries;
+import fr.dynamx.api.dxmodel.IModelTextureVariantsSupplier;
+import fr.dynamx.client.renders.model.texture.TextureVariantData;
+import fr.dynamx.client.renders.scene.BaseRenderContext;
+import fr.dynamx.client.renders.scene.IRenderContext;
+import fr.dynamx.client.renders.scene.SceneBuilder;
+import fr.dynamx.client.renders.scene.node.SceneNode;
+import fr.dynamx.client.renders.scene.node.SimpleNode;
 import fr.dynamx.common.contentpack.type.MaterialVariantsInfo;
 import fr.dynamx.common.contentpack.type.objects.AbstractItemObject;
+import fr.dynamx.common.entities.modules.AbstractLightsModule;
 import fr.dynamx.utils.errors.DynamXErrorManager;
 import lombok.Getter;
 import lombok.Setter;
+import net.minecraft.client.Minecraft;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.entity.Entity;
+import org.joml.Matrix4f;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Contains multiple {@link LightObject}.
- *
- * TODO port:1.20.1 - Original referenced:
- *   - fr.dynamx.client.renders.scene.* (SceneBuilder/SceneNode/SimpleNode/BaseRenderContext/IRenderContext) - Phase 7
- *   - fr.dynamx.client.renders.model.texture.TextureVariantData - Phase 7
- *   - fr.dynamx.api.dxmodel.IModelTextureVariantsSupplier - Phase 7
- *   - fr.dynamx.api.entities.modules.ModuleListBuilder - Phase 6
- *   - fr.dynamx.common.DynamXContext / DxModelData / DynamXUtils.readPartPosition - not yet ported
- *   - fr.dynamx.common.entities.modules.AbstractLightsModule - Phase 6
- *   - fr.dynamx.common.entities.vehicles.TrailerEntity - Phase 6
- *   - fr.dynamx.common.blocks.TEDynamXBlock - Phase 4
- *   - GlStateManager/OpenGlHelper/RenderGlobal - removed in 1.20.1 (Phase 7 will rewrite with PoseStack)
- *   The configureLightTextureVariants() body, the PartLightNode inner class, readPositionFromModel
- *   and the addToSceneGraph()/createSceneGraph() bodies are stubbed accordingly.
  */
 @Setter
 @Getter
@@ -84,8 +88,7 @@ public class PartLightSource extends SubInfoType<ILightOwner<?>> implements ISub
 
     /**
      * TODO port:1.20.1 - Original used DynamXContext.getDxModelDataFromCache / DynamXUtils.readPartPosition
-     *   to derive position/rotation from the obj/gltf model. The obj loader is not yet ported in 1.20.1;
-     *   this method now logs a pack error and falls back to a zero position when needed.
+     *   to derive position/rotation from the obj/gltf model. Falls back to zero position if not set.
      */
     public void readPositionFromModel(ResourceLocation model) {
         if (getPosition() != null) {
@@ -95,7 +98,6 @@ public class PartLightSource extends SubInfoType<ILightOwner<?>> implements ISub
             position = new Vector3f();
             return;
         }
-        // TODO port:1.20.1 - obj/gltf model data lookup goes here.
         DynamXErrorManager.addPackError(getPackName(), "position_not_found_in_model", ErrorLevel.HIGH, owner.getName(),
                 "3D object " + getObjectName() + " for part " + getName() + " - OBJ loader removed in 1.20.1, set Position explicitly");
         position = new Vector3f();
@@ -123,14 +125,8 @@ public class PartLightSource extends SubInfoType<ILightOwner<?>> implements ISub
 
     @Override
     public void addModules(Object entity, Object modules) {
-        // TODO port:1.20.1 - Original:
-        //   if (!modules.hasModuleOfClass(AbstractLightsModule.class)) {
-        //       if (entity instanceof TrailerEntity)
-        //           modules.add(new AbstractLightsModule.TrailerLightsModule(getOwner(), entity));
-        //       else
-        //           modules.add(new AbstractLightsModule.LightsModule(getOwner()));
-        //   }
-        //   AbstractLightsModule and TrailerEntity live in Phase 6.
+        // TODO port:1.20.1 - Original wired AbstractLightsModule(.TrailerLightsModule).
+        //   The actual wiring lives in BaseVehicleEntity.createModules() in the 1.20.1 port; no-op here.
     }
 
     @Override
@@ -149,17 +145,20 @@ public class PartLightSource extends SubInfoType<ILightOwner<?>> implements ISub
     }
 
     @Override
+    @SuppressWarnings({"unchecked", "rawtypes"})
     public void addToSceneGraph(IModelPackObject packInfo, Object sceneBuilder) {
-        // TODO port:1.20.1 - Original:
-        //   if (nodeDependingOnName != null) sceneBuilder.addNode(packInfo, this, nodeDependingOnName);
-        //   else sceneBuilder.addNode(packInfo, this);
-        //   SceneBuilder lives in Phase 7.
+        SceneBuilder<IRenderContext, IModelPackObject> sb = (SceneBuilder<IRenderContext, IModelPackObject>) sceneBuilder;
+        if (nodeDependingOnName != null) {
+            sb.addNode(packInfo, this, nodeDependingOnName);
+        } else {
+            sb.addNode(packInfo, this);
+        }
     }
 
     @Override
+    @SuppressWarnings({"unchecked", "rawtypes"})
     public Object createSceneGraph(Vector3f modelScale, List<Object> childGraph) {
-        // TODO port:1.20.1 - Original returned new PartLightNode<>(this, modelScale, (List) childGraph).
-        return null;
+        return new PartLightNode<>(this, modelScale, (List) childGraph);
     }
 
     /**
@@ -170,23 +169,53 @@ public class PartLightSource extends SubInfoType<ILightOwner<?>> implements ISub
     }
 
     /**
-     * Computes texture variants of this light.
-     *
-     * TODO port:1.20.1 - Original built TextureVariantData entries (Phase 7) and merged them with
-     *   the owner's IModelTextureVariantsSupplier (Phase 7). With those types unavailable we keep
-     *   only the MaterialVariantsInfo bookkeeping; texture id resolution will be re-implemented
-     *   when Phase 7 lands. The method now only ensures a variants holder is created.
+     * Computes texture variants of this light. Mirrors the 1.12 logic: ensures a variants holder
+     * exists, registers the base "off" variant, and assigns ids to each light's "on" textures
+     * (deduplicating across sources).
      */
     public void configureLightTextureVariants(boolean hotReload) {
+        TextureVariantData textureVariant;
+        Map<String, TextureVariantData> nameToVariant = new HashMap<>();
         if (variants == null) {
             variants = new MaterialVariantsInfo<>(this);
-            if (baseMaterial != null) {
-                variants.setBaseMaterial(baseMaterial);
-            }
-        } else if (baseMaterial != null && "default".equalsIgnoreCase(variants.getBaseMaterial())) {
+            textureVariant = new TextureVariantData(baseMaterial != null ? baseMaterial : "default", (byte) 0);
+            variants.addVariant(textureVariant, hotReload);
+        } else if (baseMaterial != null && variants.getBaseMaterial() != null && variants.getBaseMaterial().equalsIgnoreCase("default")) {
             variants.setBaseMaterial(baseMaterial);
+            textureVariant = new TextureVariantData(baseMaterial, (byte) 0);
+            variants.addVariant(textureVariant, hotReload);
         }
-        // TODO port:1.20.1 - Build TextureVariantData entries from each LightObject.getTextures() once Phase 7 ports the class.
+        AtomicReference<Byte> nextTextureId = new AtomicReference<>(owner instanceof IModelTextureVariantsSupplier ? ((IModelTextureVariantsSupplier) owner).getMaxVariantId() : 0);
+        variants.getTextureVariants().forEach((id, variantObj) -> {
+            if (!(variantObj instanceof TextureVariantData)) return;
+            TextureVariantData variant = (TextureVariantData) variantObj;
+            if (nameToVariant.containsKey(variant.getName())) {
+                return;
+            }
+            nameToVariant.put(variant.getName(), variant);
+            if (variant.getId() >= nextTextureId.get()) {
+                nextTextureId.set((byte) (variant.getId() + 1));
+            }
+        });
+
+        List<LightObject> sources = getSources();
+        for (LightObject source : sources) {
+            if (source.getTextures() == null) {
+                continue;
+            }
+            source.getBlinkTextures().clear();
+            for (int j = 0; j < source.getTextures().length; j++) {
+                String name = source.getTextures()[j];
+                if (nameToVariant.containsKey(name)) {
+                    source.getBlinkTextures().add(nameToVariant.get(name));
+                } else {
+                    textureVariant = new TextureVariantData(name, nextTextureId.getAndSet((byte) (nextTextureId.get() + 1)));
+                    source.getBlinkTextures().add(textureVariant);
+                    variants.addVariant(textureVariant, hotReload);
+                    nameToVariant.put(name, textureVariant);
+                }
+            }
+        }
     }
 
     public void addLightSource(LightObject object) {
@@ -206,5 +235,106 @@ public class PartLightSource extends SubInfoType<ILightOwner<?>> implements ISub
     @Override
     public List<ISubInfoType<PartLightSource>> getSubProperties() {
         return Collections.emptyList();
+    }
+
+    class PartLightNode<A extends IModelPackObject> extends SimpleNode<IRenderContext, A> {
+        public PartLightNode(PartLightSource lightSource, Vector3f scale, List<SceneNode<IRenderContext, A>> linkedChilds) {
+            super(lightSource.getPosition(), lightSource.getRotation(), PartLightSource.this.isAutomaticPosition, scale, linkedChilds);
+        }
+
+        @Override
+        public void render(IRenderContext context, A packInfo, Matrix4f parentTransform) {
+            if (context.getModel() == null) return;
+
+            boolean isEntity = context instanceof BaseRenderContext.EntityRenderContext
+                    && ((BaseRenderContext.EntityRenderContext) context).getEntity() != null;
+            boolean isBlock = context instanceof BaseRenderContext.BlockRenderContext
+                    && ((BaseRenderContext.BlockRenderContext) context).getTileEntity() != null;
+            AbstractLightsModule lights = null;
+            if (isEntity) {
+                lights = ((BaseRenderContext.EntityRenderContext) context).getEntity().getModuleByType(AbstractLightsModule.class);
+            } else if (isBlock) {
+                lights = ((BaseRenderContext.BlockRenderContext) context).getTileEntity().getModuleByType(AbstractLightsModule.class);
+            }
+            transformToRotationPoint(parentTransform);
+
+            LightObject onLightObject = null;
+            if (lights != null) {
+                for (LightObject source : getSources()) {
+                    if (lights.isLightOn(source.getLightId())) {
+                        onLightObject = source;
+                        break;
+                    }
+                }
+            }
+            boolean isOn = true;
+            if (onLightObject == null) {
+                if (getSources().isEmpty()) return;
+                isOn = false;
+                onLightObject = getSources().get(0);
+            }
+            int activeStep = 0;
+            if (isOn && onLightObject.getBlinkSequence() != null) {
+                int[] seq = onLightObject.getBlinkSequence();
+                Entity view = Minecraft.getInstance().getCameraEntity();
+                if (view != null) {
+                    int mod = view.tickCount % seq[seq.length - 1];
+                    isOn = false;
+                    for (int i = seq.length - 1; i >= 0; i--) {
+                        if (mod > seq[i]) {
+                            isOn = i % 2 == 0;
+                            activeStep = i + 1;
+                            break;
+                        }
+                    }
+                }
+            }
+            byte texId;
+            if (isOn && !onLightObject.getBlinkTextures().isEmpty()) {
+                activeStep = activeStep % onLightObject.getBlinkTextures().size();
+                Object variantObj = onLightObject.getBlinkTextures().get(activeStep);
+                texId = variantObj instanceof TextureVariantData ? ((TextureVariantData) variantObj).getId() : context.getTextureId();
+            } else {
+                texId = context.getTextureId();
+                if (variants == null || !variants.hasVariant(texId)) {
+                    texId = 0;
+                }
+            }
+
+            PoseStack pose = ((BaseRenderContext) context).getPoseStack();
+            if (pose != null) {
+                pose.pushPose();
+                if (translation != null) {
+                    pose.translate(translation.x, translation.y, translation.z);
+                }
+                if (rotation != null) {
+                    pose.mulPose(rotation);
+                }
+                if (isOn && onLightObject.getRotateDuration() > 0) {
+                    Entity view = Minecraft.getInstance().getCameraEntity();
+                    if (view != null) {
+                        float step = ((float) (view.tickCount % onLightObject.getRotateDuration())) / onLightObject.getRotateDuration();
+                        step = step * (FastMath.PI * 2);
+                        pose.mulPose(Axis.YP.rotation(step));
+                        transform.rotate(step, 0, 1, 0);
+                    }
+                }
+                if (isAutomaticPosition) {
+                    if (rotation != null) {
+                        org.joml.Quaternionf inv = new org.joml.Quaternionf();
+                        this.rotation.invert(inv);
+                        pose.mulPose(inv);
+                    }
+                    if (translation != null) {
+                        pose.translate(-translation.x, -translation.y, -translation.z);
+                    }
+                }
+                // TODO port:1.20.1 - legacy used OpenGlHelper.setLightmapTextureCoords for emissive lighting.
+                //   Re-add via RenderType.eyes or a custom packedLight override once lighting is reauthored.
+                context.getModel().renderGroup(getObjectName(), texId, context.isUseVanillaRender());
+                pose.popPose();
+            }
+            renderChildren(context, packInfo, transform);
+        }
     }
 }

@@ -3,12 +3,18 @@ package fr.dynamx.common.items;
 import fr.dynamx.api.contentpack.object.IDynamXItem;
 import fr.dynamx.api.contentpack.object.render.IModelPackObject;
 import fr.dynamx.api.contentpack.object.render.IResourcesOwner;
+import fr.dynamx.client.renders.model.renderer.DxItemModelLoader;
+import fr.dynamx.common.blocks.DynamXBlock;
 import fr.dynamx.common.contentpack.type.objects.BlockObject;
+import net.minecraft.client.renderer.BlockEntityWithoutLevelRenderer;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.block.Block;
+import net.minecraftforge.client.extensions.common.IClientItemExtensions;
+
+import java.util.function.Consumer;
 
 /**
  * TODO port:1.20.1 - Block + ItemBlock wiring changed:
@@ -76,31 +82,43 @@ public class DynamXItemBlock extends BlockItem implements IResourcesOwner, IDyna
 
     @Override
     public int getMaxMeta() {
-        // TODO port:1.20.1 - DynamXBlock not yet ported; default to 1 until Phase 4 wires its getMaxMeta().
+        if (blockIn instanceof DynamXBlock) {
+            return ((DynamXBlock<?>) blockIn).getMaxMeta();
+        }
         return 1;
     }
 
     @Override
     public boolean createJson() {
-        // TODO port:1.20.1 - DynamXBlock not yet ported; default to false.
+        if (blockIn instanceof DynamXBlock) {
+            return ((DynamXBlock<?>) blockIn).createJson();
+        }
         return false;
     }
 
     @Override
     public boolean createTranslation() {
-        // TODO port:1.20.1 - DynamXBlock not yet ported; default to true.
+        if (blockIn instanceof DynamXBlock) {
+            return ((DynamXBlock<?>) blockIn).createTranslation();
+        }
         return true;
     }
 
     @Override
+    @SuppressWarnings({"unchecked", "rawtypes"})
     public BlockObject<?> getInfo() {
-        // TODO port:1.20.1 - DynamXBlock<BlockObject<?>> not yet ported (Phase 4); returning null until then.
+        if (blockIn instanceof DynamXBlock) {
+            return ((DynamXBlock) blockIn).getInfo();
+        }
         return null;
     }
 
     @Override
+    @SuppressWarnings({"unchecked", "rawtypes"})
     public void setInfo(BlockObject<?> info) {
-        // TODO port:1.20.1 - DynamXBlock not yet ported; no-op stub.
+        if (blockIn instanceof DynamXBlock) {
+            ((DynamXBlock) blockIn).setInfo(info);
+        }
     }
 
     @Override
@@ -108,5 +126,15 @@ public class DynamXItemBlock extends BlockItem implements IResourcesOwner, IDyna
         return "DynamXItemBlock{" +
                 "dynamxMainBlock=" + blockIn +
                 '}';
+    }
+
+    @Override
+    public void initializeClient(Consumer<IClientItemExtensions> consumer) {
+        consumer.accept(new IClientItemExtensions() {
+            @Override
+            public BlockEntityWithoutLevelRenderer getCustomRenderer() {
+                return DxItemModelLoader.INSTANCE;
+            }
+        });
     }
 }

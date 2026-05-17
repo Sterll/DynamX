@@ -10,6 +10,9 @@ import fr.dynamx.common.physics.entities.EnumRagdollBodyPart;
 import fr.dynamx.common.physics.utils.RigidBodyTransform;
 import fr.dynamx.common.physics.utils.SynchronizedRigidBodyTransform;
 import fr.dynamx.utils.client.ClientDynamXUtils;
+import fr.dynamx.utils.optimization.GlQuaternionPool;
+import fr.dynamx.utils.optimization.QuaternionPool;
+import fr.dynamx.utils.optimization.Vector3fPool;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.model.HumanoidModel;
 import net.minecraft.client.model.PlayerModel;
@@ -59,6 +62,10 @@ public class RenderRagdoll<T extends RagdollEntity> extends RenderPhysicsEntity<
         ResourceLocation skinLocation = resolveSkin(entity);
         VertexConsumer consumer = bufferSource.getBuffer(playerModel.renderType(skinLocation));
 
+        GlQuaternionPool.openPool();
+        QuaternionPool.openPool();
+        Vector3fPool.openPool();
+        try {
         double interpX = entity.xOld + (entity.getX() - entity.xOld) * partialTicks;
         double interpY = entity.yOld + (entity.getY() - entity.yOld) * partialTicks;
         double interpZ = entity.zOld + (entity.getZ() - entity.zOld) * partialTicks;
@@ -98,6 +105,11 @@ public class RenderRagdoll<T extends RagdollEntity> extends RenderPhysicsEntity<
             poseStack.scale(0.0625F, 0.0625F, 0.0625F);
             part.render(poseStack, consumer, packedLight, OverlayTexture.NO_OVERLAY);
             poseStack.popPose();
+        }
+        } finally {
+            Vector3fPool.closePool();
+            QuaternionPool.closePool();
+            GlQuaternionPool.closePool();
         }
     }
 

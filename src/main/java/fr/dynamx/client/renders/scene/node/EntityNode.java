@@ -18,26 +18,14 @@ import java.util.List;
 /**
  * A type of root node, corresponding to an entity
  *
- * <p>TODO port:1.20.1 -
- * <ul>
- *   <li>Static {@code context} reference required {@code DynamXRenderUtils.getRenderBaseVehicle()};
- *       that helper isn't ported yet. The context is lazily created with a null renderer so the
- *       class compiles; this must be wired once {@code RenderBaseVehicle} is registered.</li>
- *   <li>{@code GlStateManager.enableRescaleNormal / disableRescaleNormal} are gone; in core profile
- *       rescaling is handled by the shader / {@code RenderSystem}.</li>
- *   <li>{@code GlStateManager.pushMatrix / multMatrix(ClientDynamXUtils.getMatrixBuffer(transform)) / popMatrix}
- *       must be replaced by {@code PoseStack#pushPose / mulPoseMatrix(transform) / popPose} once
- *       a PoseStack is threaded through {@link BaseRenderContext.EntityRenderContext}.</li>
- *   <li>Debug rendering used {@code RenderGlobal.drawBoundingBox(...)} which is now
- *       {@code LevelRenderer.renderLineBox(PoseStack, VertexConsumer, ...)}.</li>
- *   <li>{@code entity.prevPosX/posX} (1.12 fields) -> {@code entity.xOld / getX()} in 1.20.1.</li>
- * </ul>
+ * <p>TODO port:1.20.1 - the static {@code context} fallback used by {@link #renderItemModel} relied
+ * on {@code DynamXRenderUtils.getRenderBaseVehicle()} which isn't ported yet. The context is built
+ * with a {@code null} renderer; wire the real one in once that helper lands.
  *
  * @param <A> The type of the pack info (the owner of the scene graph)
  */
 @RequiredArgsConstructor
 public class EntityNode<A extends IPhysicsPackInfo> extends AbstractItemNode<BaseRenderContext.EntityRenderContext, A> {
-    // TODO port:1.20.1 - was: new BaseRenderContext.EntityRenderContext(DynamXRenderUtils.getRenderBaseVehicle())
     // RenderBaseVehicle isn't statically reachable in Phase 7; lazily attach a render later.
     private static final BaseRenderContext.EntityRenderContext context = new BaseRenderContext.EntityRenderContext(null);
 
@@ -45,6 +33,8 @@ public class EntityNode<A extends IPhysicsPackInfo> extends AbstractItemNode<Bas
      * The children that are linked to the entity (ie that will be rendered with the entity
      * transformations)
      */
+    private static final java.util.Set<String> DUMPED_GRAPHS = java.util.concurrent.ConcurrentHashMap.newKeySet();
+
     @Getter
     private final List<SceneNode<BaseRenderContext.EntityRenderContext, A>> linkedChildren;
     /**
@@ -73,8 +63,6 @@ public class EntityNode<A extends IPhysicsPackInfo> extends AbstractItemNode<Bas
         Vector3fPool.openPool(SubClassPool.ENTITY_RENDER_NODE);
         QuaternionPool.openPool(SubClassPool.ENTITY_RENDER_NODE);
         GlQuaternionPool.openPool(SubClassPool.ENTITY_RENDER_NODE);
-
-        // TODO port:1.20.1 - was: GlStateManager.enableRescaleNormal();
 
         ModularPhysicsEntity<?> entity = context.getEntity();
         org.joml.Quaternionf entityRotation = null;
@@ -112,10 +100,29 @@ public class EntityNode<A extends IPhysicsPackInfo> extends AbstractItemNode<Bas
         } else if (context.getModel() != null) {
             context.getModel().renderModel(context.getTextureId(), context.isUseVanillaRender());
         }
-        if (pose != null) pose.popPose();
         transform.scale(1 / packInfo.getScaleModifier().x, 1 / packInfo.getScaleModifier().y, 1 / packInfo.getScaleModifier().z);
 
-        // Render the linked children
+        // Render the linked children. They assume the PoseStack still carries the entity
+        // translation/rotation/scale - popping before rendering them would drop every part
+        // (wheels, doors, lights, ...) to world-origin with the wrong orientation, which
+        // produces the "shattered geometry" look.
+        if (DUMPED_GRAPHS.add(packInfo.getFullName())) {
+            org.apache.logging.log4j.Logger lg = org.apache.logging.log4j.LogManager.getLogger("DynamX-WheelDump");
+            lg.info("");
+            lg.info("+==============================================================================+");
+            lg.info(String.format("| [ ENTITY SCENE GRAPH :: %-52s ] |", packInfo.getFullName()));
+            lg.info("+==============================================================================+");
+            lg.info(String.format("|   linked  : %-3d                                                              |", linkedChildren.size()));
+            for (SceneNode<?, ?> c : linkedChildren) {
+                lg.info(String.format("|       |- %-66s |", c.getClass().getSimpleName()));
+            }
+            lg.info(String.format("|   unlinked: %-3d                                                              |", unlinkedChildren.size()));
+            for (SceneNode<?, ?> c : unlinkedChildren) {
+                lg.info(String.format("|       |- %-66s |", c.getClass().getSimpleName()));
+            }
+            lg.info("+==============================================================================+");
+            lg.info("");
+        }
         linkedChildren.forEach(c -> c.render(context, packInfo, transform));
 
         // Render the unlinked children, if this is a static scene graph (not in the world)
@@ -124,7 +131,6 @@ public class EntityNode<A extends IPhysicsPackInfo> extends AbstractItemNode<Bas
         }
         // Render the unlinked children, if any
         if (entity != null && !unlinkedChildren.isEmpty()) {
-            // TODO port:1.20.1 - entity.prevPosX / entity.posX no longer exist; use entity.xOld / entity.getX().
             float interpX = (float) (entity.xOld + (entity.getX() - entity.xOld) * context.getPartialTicks());
             float interpY = (float) (entity.yOld + (entity.getY() - entity.yOld) * context.getPartialTicks());
             float interpZ = (float) (entity.zOld + (entity.getZ() - entity.zOld) * context.getPartialTicks());
@@ -133,20 +139,15 @@ public class EntityNode<A extends IPhysicsPackInfo> extends AbstractItemNode<Bas
                     context.getRenderPosition().z - interpZ);
             unlinkedChildren.forEach(c -> c.render(context, packInfo, transform));
         }
-
-        // TODO port:1.20.1 - was: GlStateManager.disableRescaleNormal();
+        if (pose != null) pose.popPose();
 
         GlQuaternionPool.closePool();
         QuaternionPool.closePool();
         Vector3fPool.closePool();
-        // TODO port:1.20.1 - DynamXRenderUtils.popGlAllAttribBits() removed in core profile
     }
 
     @Override
     public void renderDebug(BaseRenderContext.EntityRenderContext context, A packInfo) {
-        // TODO port:1.20.1 - debug rendering used GlStateManager.pushMatrix + RenderGlobal.drawBoundingBox.
-        // Rewrite on top of PoseStack + LevelRenderer.renderLineBox(...) once PoseStack/MultiBufferSource
-        // are added to the render context.
         linkedChildren.forEach(c -> c.renderDebug(context, packInfo));
         unlinkedChildren.forEach(c -> c.renderDebug(context, packInfo));
     }

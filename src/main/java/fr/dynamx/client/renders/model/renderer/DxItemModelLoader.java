@@ -1,15 +1,22 @@
 package fr.dynamx.client.renders.model.renderer;
 
+import com.mojang.blaze3d.vertex.PoseStack;
+import fr.dynamx.api.contentpack.object.render.IModelPackObject;
+import fr.dynamx.api.contentpack.object.render.IResourcesOwner;
+import fr.dynamx.api.events.client.DynamXRenderItemEvent;
 import fr.dynamx.client.renders.model.ItemDxModel;
 import fr.dynamx.client.renders.scene.BaseRenderContext;
+import fr.dynamx.client.renders.scene.node.AbstractItemNode;
+import fr.dynamx.client.renders.scene.node.SceneNode;
+import fr.dynamx.common.DynamXContext;
 import net.minecraft.client.renderer.BlockEntityWithoutLevelRenderer;
-import net.minecraft.client.renderer.entity.ItemRenderer;
-import net.minecraft.client.renderer.texture.TextureManager;
+import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.resources.model.ModelManager;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
+import net.minecraftforge.common.MinecraftForge;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -28,7 +35,9 @@ import java.util.Map;
  * BEWLR + scene-graph rendering pipeline.
  */
 public class DxItemModelLoader extends BlockEntityWithoutLevelRenderer {
-    private final Map<ResourceLocation, Object> REGISTRY = new HashMap<>(); // TODO port:1.20.1 - IResourcesOwner
+    public static final DxItemModelLoader INSTANCE = new DxItemModelLoader();
+
+    private final Map<ResourceLocation, IResourcesOwner> REGISTRY = new HashMap<>();
     private final Map<Item, Map<Byte, ItemDxModel>> ITEM_TO_MODEL = new HashMap<>();
     private final BaseRenderContext.ItemRenderContext renderContext = new BaseRenderContext.ItemRenderContext();
 
@@ -55,17 +64,55 @@ public class DxItemModelLoader extends BlockEntityWithoutLevelRenderer {
         return null;
     }
 
-    public void renderByItem(ItemStack stack, float partialTicks) {
-        // TODO port:1.20.1 - rewrite to use PoseStack/MultiBufferSource and scene-graph AbstractItemNode.renderAsItemNode
-    }
-
-    public void registerItemModel(Object item, int meta, ResourceLocation location) {
-        // TODO port:1.20.1 - 1.20.1 uses ModelEvent.RegisterAdditional + Item property overrides
+    @Override
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public void renderByItem(ItemStack stack, ItemDisplayContext displayContext, PoseStack poseStack, MultiBufferSource bufferSource, int packedLight, int packedOverlay) {
+        Map<Byte, ItemDxModel> byMeta = ITEM_TO_MODEL.get(stack.getItem());
+        if (byMeta == null) {
+            // TODO port:1.20.1 - fall back to vanilla missing model render once we wire ItemRenderer access
+            return;
+        }
+        ItemDxModel model = byMeta.get((byte) 0);
+        if (model == null || model.getOwner() == null) {
+            return;
+        }
+        DxModelRenderer modelRenderer = DynamXContext.getDxModelRegistry().getModel(model.getOwner().getModel());
+        if (modelRenderer == null) {
+            return;
+        }
+        SceneNode<?, ?> sceneGraph = model.getOwner().getSceneGraph();
+        if (!(sceneGraph instanceof AbstractItemNode)) {
+            return;
+        }
+        renderType = displayContext;
+        renderContext.setModelParams(model, stack, modelRenderer, (byte) 0)
+                .setRenderParams(displayContext, 0f, true);
+        if (!MinecraftForge.EVENT_BUS.post(new DynamXRenderItemEvent(renderContext, (AbstractItemNode<?, ?>) sceneGraph, DynamXRenderItemEvent.EventStage.PRE))) {
+            ((AbstractItemNode<?, IModelPackObject>) sceneGraph).renderAsItemNode(renderContext, model.getOwner());
+            MinecraftForge.EVENT_BUS.post(new DynamXRenderItemEvent(renderContext, (AbstractItemNode<?, ?>) sceneGraph, DynamXRenderItemEvent.EventStage.POST));
+        }
     }
 
     public ItemDxModel getModel(Item of, byte meta) {
         Map<Byte, ItemDxModel> byMeta = ITEM_TO_MODEL.get(of);
         return byMeta == null ? null : byMeta.get(meta);
+    }
+
+    /**
+     * Registers an item -> {@link ItemDxModel} mapping for the given meta variant.
+     * <p>
+     * TODO port:1.20.1 - In 1.20.1 the actual rendering glue (BEWLR override on the Item, or
+     * ModelEvent.RegisterAdditional for a JSON baked model) still has to be wired alongside the
+     * scene-graph BEWLR rewrite; this method only maintains the lookup table for now.
+     */
+    public void registerItemModel(Item item, int meta, ResourceLocation location) {
+        IResourcesOwner owner = REGISTRY.get(location);
+        fr.dynamx.api.contentpack.object.render.IModelPackObject pack =
+                owner instanceof fr.dynamx.api.contentpack.object.render.IModelPackObject
+                        ? (fr.dynamx.api.contentpack.object.render.IModelPackObject) owner
+                        : null;
+        ITEM_TO_MODEL.computeIfAbsent(item, k -> new HashMap<>())
+                .put((byte) meta, new ItemDxModel(location, pack));
     }
 
     public void refreshItemInfos() {

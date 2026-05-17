@@ -65,9 +65,15 @@ public abstract class ClassPool<T> {
             pool = nPool;
 
             if (pool.length > capacityWarning) {
-                DynamX.LOGGER.warn("Optimization issue : Pool is very large : {} ! open c {} of type {}", pool.length, subPoolCount, this);
-                if (sizeWarnings < 8) {
-                    Thread.dumpStack();
+                // TODO port:1.20.1 - Throttled to avoid 60Hz spam when ClassPool auto-opens
+                //  DEFAULT_DEFAULT (see provideNewInstance above). Real fix is to wrap every pool
+                //  consumer in openPool/closePool; until then, warn at doubling intervals and only
+                //  dump a single stack so the cause stays discoverable without flooding the log.
+                if (Integer.bitCount(sizeWarnings) == 1 || sizeWarnings == 0) {
+                    DynamX.LOGGER.warn("Optimization issue : Pool is very large : {} ! open c {} of type {}", pool.length, subPoolCount, this);
+                    if (sizeWarnings == 0) {
+                        Thread.dumpStack();
+                    }
                 }
                 sizeWarnings++;
             }

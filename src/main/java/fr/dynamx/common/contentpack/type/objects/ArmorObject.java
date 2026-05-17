@@ -90,7 +90,7 @@ public class ArmorObject<T extends ArmorObject<T>> extends AbstractItemObject<T,
     /**
      * TODO port:1.20.1 - Was SceneNode&lt;?, ?&gt; (Phase 7).
      */
-    protected Object sceneNode;
+    protected fr.dynamx.client.renders.scene.node.SceneNode<?, ?> sceneNode;
 
     public ArmorObject(String packName, String fileName) {
         super(packName, fileName);
@@ -271,8 +271,16 @@ public class ArmorObject<T extends ArmorObject<T>> extends AbstractItemObject<T,
     }
 
     @Override
-    public Object getSceneGraph() {
-        // TODO port:1.20.1 - Original posted BuildArmorScene event and returned an ArmorNode. Phase 7.
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public fr.dynamx.client.renders.scene.node.SceneNode<?, ?> getSceneGraph() {
+        if (sceneNode == null) {
+            fr.dynamx.client.renders.scene.SceneBuilder<
+                    fr.dynamx.client.renders.scene.BaseRenderContext.ArmorRenderContext,
+                    ArmorObject<T>> builder = new fr.dynamx.client.renders.scene.SceneBuilder<>();
+            sceneNode = builder.buildArmorSceneGraph((ArmorObject<T>) this,
+                    (java.util.List) getDrawableParts(),
+                    new com.jme3.math.Vector3f(1, 1, 1));
+        }
         return sceneNode;
     }
 

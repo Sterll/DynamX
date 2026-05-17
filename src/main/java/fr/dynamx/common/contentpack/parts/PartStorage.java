@@ -5,6 +5,10 @@ import fr.dynamx.api.contentpack.object.subinfo.ISubInfoTypeOwner;
 import fr.dynamx.api.contentpack.registry.PackFileProperty;
 import fr.dynamx.api.contentpack.registry.RegisteredSubInfoType;
 import fr.dynamx.api.contentpack.registry.SubInfoTypeRegistries;
+import fr.dynamx.api.entities.modules.ModuleListBuilder;
+import fr.dynamx.common.blocks.TEDynamXBlock;
+import fr.dynamx.common.entities.PackPhysicsEntity;
+import fr.dynamx.common.entities.modules.StorageModule;
 import fr.dynamx.utils.DynamXConstants;
 import lombok.Getter;
 import lombok.Setter;
@@ -45,17 +49,26 @@ public class PartStorage<T extends ISubInfoTypeOwner<T>> extends InteractivePart
 
     @Override
     public void addModules(Object entity, Object modules) {
-        // TODO port:1.20.1 - Original:
-        //   if (!modules.hasModuleOfClass(StorageModule.class))
-        //       modules.add(new StorageModule(entity, this));
-        //   else modules.getByClass(StorageModule.class).addInventory(entity, this);
-        //   StorageModule lives in Phase 6.
+        if (!(modules instanceof ModuleListBuilder) || !(entity instanceof PackPhysicsEntity)) return;
+        ModuleListBuilder list = (ModuleListBuilder) modules;
+        PackPhysicsEntity<?, ?> packEntity = (PackPhysicsEntity<?, ?>) entity;
+        if (!list.hasModuleOfClass(StorageModule.class)) {
+            list.add(new StorageModule(packEntity, this));
+        } else {
+            list.getByClass(StorageModule.class).addInventory(packEntity, this);
+        }
     }
 
     @Override
     public void addBlockModules(Object blockEntity, Object modules) {
-        // TODO port:1.20.1 - Original called blockEntity.getPos() and instantiated StorageModule
-        //   with that BlockPos. TEDynamXBlock lives in Phase 4 and StorageModule in Phase 6.
+        if (!(modules instanceof ModuleListBuilder) || !(blockEntity instanceof TEDynamXBlock)) return;
+        ModuleListBuilder list = (ModuleListBuilder) modules;
+        TEDynamXBlock block = (TEDynamXBlock) blockEntity;
+        if (!list.hasModuleOfClass(StorageModule.class)) {
+            list.add(new StorageModule(block, block.getBlockPos(), this));
+        } else {
+            list.getByClass(StorageModule.class).addInventory(block, block.getBlockPos(), this);
+        }
     }
 
     @Override

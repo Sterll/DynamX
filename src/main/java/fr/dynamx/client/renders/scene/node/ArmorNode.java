@@ -4,7 +4,6 @@ import fr.dynamx.client.renders.scene.BaseRenderContext;
 import fr.dynamx.common.contentpack.type.objects.ArmorObject;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
-import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.item.ItemDisplayContext;
 import org.joml.Matrix4f;
 
@@ -15,15 +14,16 @@ import java.util.List;
  *
  * <p>TODO port:1.20.1 -
  * <ul>
- *   <li>{@code EntityEquipmentSlot} -> {@link EquipmentSlot}.</li>
- *   <li>{@code ItemCameraTransforms.TransformType} -> {@link ItemDisplayContext}.</li>
- *   <li>{@code packInfo.getObjArmor()} + {@code DynamXItemArmor.armorType} are part of the
- *       contentpack/items api (Phase 6/8); we leave the call sites stubbed because
- *       {@link fr.dynamx.client.renders.model.ModelObjArmor} is itself a heavy stub
- *       (the OBJ pipeline is being dropped).</li>
- *   <li>{@code context.getArmorModel().isSneak} -- replaced by {@code context.getEntity().isCrouching()}
- *       which we forward into {@code armorModel} via {@code setModelAttributes} once HumanoidModel
- *       rebinding is implemented.</li>
+ *   <li>{@link fr.dynamx.client.renders.model.ModelObjArmor} is now a {@code HumanoidModel<LivingEntity>}
+ *       wired through Forge's {@code IClientItemExtensions#getHumanoidArmorModel} (see
+ *       {@link fr.dynamx.client.renders.RenderDynamXArmor}). The scene-node-driven render path below
+ *       still has to be re-authored on top of that pipeline once
+ *       {@link fr.dynamx.api.events.client.BuildSceneGraphEvent.BuildArmorScene} actually produces
+ *       per-part child nodes that push triangles via {@link fr.dynamx.client.renders.RenderFrame} +
+ *       {@code RenderType.armorCutoutNoCull}.</li>
+ *   <li>The crouch offset is applied here; the new pipeline will forward it through
+ *       {@code HumanoidArmorLayer}'s default setup before
+ *       {@link fr.dynamx.client.renders.model.ModelObjArmor#renderToBuffer} runs.</li>
  * </ul>
  *
  * @param <A> The type of the pack info (the owner of the scene graph)
@@ -47,9 +47,6 @@ public class ArmorNode<A extends ArmorObject<?>> extends AbstractItemNode<BaseRe
     @Override
     public void render(BaseRenderContext.ArmorRenderContext context, A packInfo, Matrix4f parentTransform) {
         transform.identity();
-        // TODO port:1.20.1 - was:
-        //   context.getArmorModel().isSneak = context.getEntity() != null && context.getEntity().isSneaking();
-        //   if (context.getArmorModel().isSneak) { transform.translate(0.0F, 0.2F, 0.0F); }
         if (context.getEntity() != null && context.getEntity().isCrouching()) {
             transform.translate(0.0F, 0.2F, 0.0F);
         }
@@ -59,7 +56,6 @@ public class ArmorNode<A extends ArmorObject<?>> extends AbstractItemNode<BaseRe
         if (!linkedChildren.isEmpty()) {
             linkedChildren.forEach(c -> c.render(context, packInfo, transform));
         }
-        // TODO port:1.20.1 - DynamXRenderUtils.popGlAllAttribBits() removed in core profile
     }
 
     @Override

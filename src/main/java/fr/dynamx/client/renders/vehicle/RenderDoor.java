@@ -59,10 +59,11 @@ public class RenderDoor<T extends DoorEntity<?>> extends RenderPhysicsEntity<T> 
     }
 
     @Override
+    @SuppressWarnings({"unchecked", "rawtypes"})
     public void renderEntityDebug(T entity, BaseRenderContext.EntityRenderContext context) {
-        Object sceneGraph = entity.getPackInfo().getSceneGraph();
-        if (sceneGraph instanceof SceneNode) {
-            ((SceneNode<BaseRenderContext.EntityRenderContext, PartDoor>) sceneGraph).renderDebug(context, entity.getPackInfo());
+        SceneNode<?, ?> sceneGraph = entity.getPackInfo().getSceneGraph();
+        if (sceneGraph != null) {
+            ((SceneNode) sceneGraph).renderDebug(context, entity.getPackInfo());
         }
     }
 }

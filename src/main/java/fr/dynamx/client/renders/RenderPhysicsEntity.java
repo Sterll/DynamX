@@ -141,6 +141,13 @@ public abstract class RenderPhysicsEntity<T extends PhysicsEntity<?>> extends En
      * and orientation in the world. Falls back to the axis-aligned bounding box otherwise.
      */
     private void renderMissingModelFallback(T entity, float partialTicks, PoseStack poseStack, MultiBufferSource bufferSource) {
+        // Wrap any pool allocation - computeInterpolatedJomlQuaternion below pulls from
+        // GlQuaternionPool. Without an explicit scope ClassPool would auto-open DEFAULT_DEFAULT,
+        // which is never closed and leaks one slot per render call.
+        GlQuaternionPool.openPool();
+        QuaternionPool.openPool();
+        Vector3fPool.openPool();
+        try {
         var consumer = bufferSource.getBuffer(RenderType.lines());
 
         // Apply the interpolated physics rotation so the placeholder follows the vehicle's actual
@@ -184,6 +191,11 @@ public abstract class RenderPhysicsEntity<T extends PhysicsEntity<?>> extends En
         AABB nose = new AABB(0.0, -0.05, -0.05, 1.5, 0.05, 0.05);
         LevelRenderer.renderLineBox(poseStack, consumer, nose, 1.0f, 0.1f, 0.1f, 1.0f);
         poseStack.popPose();
+        } finally {
+            Vector3fPool.closePool();
+            QuaternionPool.closePool();
+            GlQuaternionPool.closePool();
+        }
     }
 
     public void spawnParticles(T physicsEntity, BaseRenderContext.EntityRenderContext context) {

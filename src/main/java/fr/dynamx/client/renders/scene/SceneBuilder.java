@@ -2,6 +2,7 @@ package fr.dynamx.client.renders.scene;
 
 import com.jme3.math.Quaternion;
 import com.jme3.math.Vector3f;
+import com.mojang.blaze3d.vertex.PoseStack;
 import fr.aym.acslib.api.services.error.ErrorLevel;
 import fr.dynamx.api.contentpack.object.part.IDrawablePart;
 import fr.dynamx.api.contentpack.object.render.IModelPackObject;
@@ -25,15 +26,6 @@ import java.util.function.BiFunction;
 
 /**
  * Builder for {@link SceneNode}s
- *
- * <p>TODO port:1.20.1 -
- * <ul>
- *   <li>{@code MinecraftForge.EVENT_BUS.post(...)} -> {@code MinecraftForge.EVENT_BUS.post(...)}.</li>
- *   <li>{@link CreatePartSceneEvent#getSceneGraphResult()} returns {@code Object} until SceneNode is
- *       exposed by the api; cast applied here.</li>
- *   <li>{@code GlStateManager.pushMatrix() / popMatrix()} inside the fake-leaf fallback are gone;
- *       the fallback now just multiplies the parent transform locally.</li>
- * </ul>
  *
  * @param <C> The type of the render context
  * @param <A> The type of the pack info (the owner of the scene graph)
@@ -279,10 +271,12 @@ public class SceneBuilder<C extends IRenderContext, A extends IModelPackObject> 
                     return new SimpleNode<IRenderContext, A>(null, (Quaternion) null, modelScale, (List) childGraph) {
                         @Override
                         public void render(IRenderContext context, A packInfo, Matrix4f parentTransform) {
-                            // TODO port:1.20.1 - was wrapped in GlStateManager.pushMatrix() / popMatrix();
-                            // PoseStack push/pop must happen here once the context exposes a PoseStack.
+                            PoseStack pose = context instanceof BaseRenderContext
+                                    ? ((BaseRenderContext) context).getPoseStack() : null;
+                            if (pose != null) pose.pushPose();
                             transformToRotationPoint(parentTransform);
                             renderChildren(context, packInfo, transform);
+                            if (pose != null) pose.popPose();
                         }
                     };
                 }

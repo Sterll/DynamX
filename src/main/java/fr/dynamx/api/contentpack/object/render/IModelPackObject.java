@@ -1,6 +1,11 @@
 package fr.dynamx.api.contentpack.object.render;
 
+import fr.dynamx.api.dxmodel.IModelTextureVariantsSupplier;
+import fr.dynamx.client.renders.model.ItemDxModel;
+import fr.dynamx.client.renders.scene.node.SceneNode;
+import fr.dynamx.common.contentpack.type.ViewTransformsInfo;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
@@ -10,12 +15,8 @@ import javax.annotation.Nullable;
 
 /**
  * An object that can be rendered as an item or in the world.
- *
- * TODO port:1.20.1 - This interface originally extended fr.dynamx.api.dxmodel.IModelTextureVariantsSupplier;
- *   that interface is in the dxmodel package (already in api/dxmodel). Re-add the extension once we confirm
- *   the package layout. For now we drop the extension to keep the type self-contained.
  */
-public interface IModelPackObject extends fr.dynamx.api.contentpack.object.INamedObject {
+public interface IModelPackObject extends fr.dynamx.api.contentpack.object.INamedObject, IModelTextureVariantsSupplier {
     /**
      * @return The model location of this object
      */
@@ -37,15 +38,11 @@ public interface IModelPackObject extends fr.dynamx.api.contentpack.object.IName
     }
 
     /**
-     * @param viewType The item view type
+     * @param viewType The item display context (first person, GUI, ...)
      * @return The transforms info for the given view type
-     *
-     * TODO port:1.20.1 - ViewTransformsInfo lives in fr.dynamx.common.contentpack.type (Phase 3b);
-     *   typed as Object until that package is ported. Caller of viewType is also typed as Object
-     *   because ItemCameraTransforms.TransformType -&gt; ItemDisplayContext in 1.20.1.
      */
     @OnlyIn(Dist.CLIENT)
-    default Object getViewTransformsInfo(Object viewType) {
+    default ViewTransformsInfo getViewTransformsInfo(ItemDisplayContext viewType) {
         return null;
     }
 
@@ -77,27 +74,23 @@ public interface IModelPackObject extends fr.dynamx.api.contentpack.object.IName
     /**
      * Applies item transforms to the model.
      *
-     * TODO port:1.20.1 - ItemDxModel is in client/renders/model (Phase 7); ItemCameraTransforms.TransformType
-     *   is replaced by ItemDisplayContext. The whole body referenced GlStateManager / FontRenderer which
-     *   no longer exist as static APIs in 1.20.1; we now expect the renderer to be re-implemented using
-     *   PoseStack / MultiBufferSource in Phase 7. Method body removed for now.
+     * <p>TODO port:1.20.1 - The full GlStateManager / FontRenderer logic from 1.12 is gone; the
+     * renderer now expects PoseStack / MultiBufferSource handling done in
+     * {@link fr.dynamx.client.renders.scene.node.AbstractItemNode}.
      *
-     * @param renderType The render type (first person, third person, ..). Typed as Object pending ItemDisplayContext mapping.
+     * @param renderType The render type (first person, third person, ..)
      * @param stack      The stack that is being rendered
-     * @param model      The model of the item. Typed as Object pending ItemDxModel port.
+     * @param model      The model of the item
      * @param transform  The matrix to apply the transforms to
      */
     @OnlyIn(Dist.CLIENT)
-    default void applyItemTransforms(Object renderType, ItemStack stack, Object model, Matrix4f transform) {
+    default void applyItemTransforms(ItemDisplayContext renderType, ItemStack stack, ItemDxModel model, Matrix4f transform) {
         // TODO port:1.20.1 - Reimplement using PoseStack / ItemDisplayContext in Phase 7.
     }
 
     /**
      * @return The scene graph of this object <br>
      * <strong>Should implement AbstractItemNode if this object has an item</strong>
-     *
-     * TODO port:1.20.1 - SceneNode lives in fr.dynamx.client.renders.scene.node (Phase 7);
-     *   typed as Object until that package is ported.
      */
-    Object getSceneGraph();
+    SceneNode<?, ?> getSceneGraph();
 }

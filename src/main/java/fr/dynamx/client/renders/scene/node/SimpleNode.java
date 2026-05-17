@@ -2,9 +2,11 @@ package fr.dynamx.client.renders.scene.node;
 
 import com.jme3.math.Quaternion;
 import com.jme3.math.Vector3f;
+import com.mojang.blaze3d.vertex.PoseStack;
 import fr.dynamx.api.contentpack.object.render.IModelPackObject;
 import fr.dynamx.client.renders.scene.IRenderContext;
 import fr.dynamx.utils.DynamXUtils;
+import fr.dynamx.utils.optimization.GlQuaternionPool;
 import lombok.Getter;
 import lombok.Setter;
 import org.joml.Matrix4f;
@@ -18,16 +20,6 @@ import java.util.List;
  * A basic node of the scene graph, with a position, a rotation and a scale, that can have linked
  * children nodes. <br>
  * The children will be rendered with the same transformations as the node.
- *
- * <p>TODO port:1.20.1 -
- * <ul>
- *   <li>{@code GlStateManager.multMatrix(...)} in {@link #glTransformToPartPos()} was used to
- *       push the JOML transform into the legacy fixed-function matrix stack. In 1.20.1 the matrix
- *       has to be multiplied into the active {@code PoseStack} (added to {@link IRenderContext}
- *       in a follow-up), then handed to the GLTF renderer / vertex consumer pipeline.</li>
- *   <li>{@code GlStateManager.translate} / {@code GlStateManager.rotate} in {@link #transformForDebug()}
- *       must be rewritten on top of {@code PoseStack#translate} / {@code PoseStack#mulPose}.</li>
- * </ul>
  *
  * @param <C> The type of the render context
  * @param <A> The type of the pack info (the owner of the scene graph)
@@ -148,30 +140,29 @@ public abstract class SimpleNode<C extends IRenderContext, A extends IModelPackO
     }
 
     /**
-     * Applies the rendering transformations of this node <br>
+     * Applies the rendering transformations of this node onto the given {@link PoseStack}. <br>
      * If the position is automatic, this should be called after applying the "dynamic"
-     * transformations, and before rendering the node <br>
+     * transformations, and before rendering the node. <br>
      * If the position isn't automatic, this doesn't need to be called.
      *
-     * <p>TODO port:1.20.1 - the legacy implementation pushed the local {@link #transform} into the
-     * fixed-function matrix stack via {@code GlStateManager.multMatrix(ClientDynamXUtils.getMatrixBuffer(transform))}.
-     * Once {@code PoseStack} is added to {@link IRenderContext}, this should call
-     * {@code context.getPoseStack().mulPoseMatrix(transform)} instead.
+     * @param poseStack The pose stack to multiply the local transform into. May be {@code null} if
+     *                  the caller only needs the JOML matrix bookkeeping (children will still use
+     *                  the {@link #transform} matrix).
      */
-    protected void glTransformToPartPos() {
-        // Apply reversed auto transform
+    protected void glTransformToPartPos(PoseStack poseStack) {
         if (isAutomaticPosition) {
             if (rotation != null) {
-                transform.rotate(rotation.invert(new Quaternionf())); //TODO POOL
+                transform.rotate(rotation.invert(new Quaternionf()));
             }
             if (translation != null) {
                 transform.translate(-translation.x / scale.x, -translation.y / scale.y, -translation.z / scale.z);
             }
         }
 
-        // TODO port:1.20.1 - was: GlStateManager.multMatrix(ClientDynamXUtils.getMatrixBuffer(transform));
+        if (poseStack != null) {
+            poseStack.mulPoseMatrix(transform);
+        }
 
-        // Restore transform (for child rendering)
         if (isAutomaticPosition) {
             if (rotation != null) {
                 transform.rotate(rotation);
@@ -183,14 +174,19 @@ public abstract class SimpleNode<C extends IRenderContext, A extends IModelPackO
     }
 
     /**
-     * Applies the transformations of this node without the scale
+     * Applies the local translation/rotation of this node (without the scale) onto the given
+     * {@link PoseStack}. Used by debug rendering paths.
      *
-     * <p>TODO port:1.20.1 - rewrite on top of {@code PoseStack#translate} / {@code PoseStack#mulPose(Quaternionf)}.
+     * @param poseStack The pose stack to mutate. {@code null} is a no-op.
      */
-    protected void transformForDebug() {
-        // TODO port:1.20.1 - was:
-        // if (translation != null) GlStateManager.translate(translation.x, translation.y, translation.z);
-        // if (rotation != null)    GlStateManager.rotate(GlQuaternionPool.get(rotation));
+    protected void transformForDebug(PoseStack poseStack) {
+        if (poseStack == null) return;
+        if (translation != null) {
+            poseStack.translate(translation.x, translation.y, translation.z);
+        }
+        if (rotation != null) {
+            poseStack.mulPose(GlQuaternionPool.get(rotation));
+        }
     }
 
     /**

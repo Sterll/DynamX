@@ -4,9 +4,14 @@ import fr.dynamx.api.contentpack.object.IDynamXItem;
 import fr.dynamx.api.contentpack.object.render.Enum3DRenderLocation;
 import fr.dynamx.api.contentpack.object.render.IModelPackObject;
 import fr.dynamx.api.contentpack.object.render.IResourcesOwner;
+import fr.dynamx.client.renders.RenderDynamXArmor;
+import fr.dynamx.client.renders.model.ModelObjArmor;
+import fr.dynamx.client.renders.model.renderer.DxItemModelLoader;
 import fr.dynamx.common.contentpack.DynamXObjectLoaders;
 import fr.dynamx.common.contentpack.type.objects.ArmorObject;
 import fr.dynamx.utils.DynamXUtils;
+import net.minecraft.client.model.HumanoidModel;
+import net.minecraft.client.renderer.BlockEntityWithoutLevelRenderer;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.Entity;
@@ -19,9 +24,11 @@ import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.level.Level;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
+import net.minecraftforge.client.extensions.common.IClientItemExtensions;
 
 import javax.annotation.Nullable;
 import java.util.List;
+import java.util.function.Consumer;
 
 /**
  * TODO port:1.20.1 - Armor in 1.20.1:
@@ -144,24 +151,56 @@ public class DynamXItemArmor<T extends ArmorObject<?>> extends ArmorItem impleme
         raw.forEach(line -> tooltip.add(Component.literal(line)));
     }
 
-    // TODO port:1.20.1 - getArmorTexture / getArmorModel hooks have moved to IClientItemExtensions in NeoForge 1.20.1.
-    //  See net.minecraftforge.client.extensions.common.IClientItemExtensions#getHumanoidArmorModel and
-    //  #getArmorTexture. Implementation deferred to the client phase.
+    /**
+     * Forge 1.20.1 still routes {@code getArmorTexture} through {@code IForgeItem} on the item itself
+     * (NeoForge moved it to {@link IClientItemExtensions} starting with 1.20.4). The path is read by
+     * {@code HumanoidArmorLayer} which feeds it into
+     * {@link net.minecraft.client.renderer.RenderType#armorCutoutNoCull(ResourceLocation)} before
+     * calling {@link ModelObjArmor#renderToBuffer}.
+     * <p>
+     * TODO port:1.20.1 - resolve the actual armor texture once {@link ArmorObject} exposes a per-slot
+     * texture (legacy code used {@code armorObject.getArmorHead/Body/...} as material names against
+     * the pack texture atlas). For now we fall back to the vanilla iron armor texture so the wiring
+     * is visibly active in-game.
+     */
     @Nullable
     @OnlyIn(Dist.CLIENT)
     public String getArmorTexture(ItemStack stack, Entity entity, EquipmentSlot slot, String type) {
-        return null; // TODO port:1.20.1
-    }
-
-    @Nullable
-    @OnlyIn(Dist.CLIENT)
-    public Object getArmorModel(LivingEntity entityLiving, ItemStack itemStack, EquipmentSlot armorSlot, Object _default) {
-        // TODO port:1.20.1 - ModelBiped -> HumanoidModel; armor model wiring deferred to the client phase.
-        return null;
+        // TODO port:1.20.1 - pack texture resolution (variant + inner/outer layer suffix).
+        boolean innerLayer = slot == EquipmentSlot.LEGS;
+        return "minecraft:textures/models/armor/iron_layer_" + (innerLayer ? 2 : 1) + ".png";
     }
 
     @Override
     public IModelPackObject getDxModel() {
         return getInfo();
+    }
+
+    /**
+     * Bundles both client extensions onto this item: the BEWLR-backed item renderer (3D in-hand /
+     * inventory render) and the {@link IClientItemExtensions#getHumanoidArmorModel} hook so Forge's
+     * vanilla {@code HumanoidArmorLayer} pulls our {@link ModelObjArmor} when this armor is worn.
+     */
+    @Override
+    public void initializeClient(Consumer<IClientItemExtensions> consumer) {
+        consumer.accept(new IClientItemExtensions() {
+            @Override
+            public BlockEntityWithoutLevelRenderer getCustomRenderer() {
+                return DxItemModelLoader.INSTANCE;
+            }
+
+            @Override
+            public HumanoidModel<?> getHumanoidArmorModel(LivingEntity livingEntity, ItemStack itemStack,
+                                                          EquipmentSlot equipmentSlot, HumanoidModel<?> original) {
+                ModelObjArmor armorModel = RenderDynamXArmor.armorModelFor(getInfo());
+                if (armorModel == null) {
+                    return original;
+                }
+                // TODO port:1.20.1 - variant byte is 0 until the data-components migration lands
+                // (see #getDescriptionId).
+                armorModel.setActivePart(equipmentSlot, (byte) 0);
+                return armorModel;
+            }
+        });
     }
 }

@@ -60,18 +60,20 @@ public class RenderBaseVehicle<T extends BaseVehicleEntity<?>> extends RenderPhy
     }
 
     @Override
+    @SuppressWarnings({"unchecked", "rawtypes"})
     public void renderEntity(T entity, BaseRenderContext.EntityRenderContext context) {
-        Object sceneGraph = entity.getPackInfo().getSceneGraph();
-        if (sceneGraph instanceof SceneNode) {
-            ((SceneNode<BaseRenderContext.EntityRenderContext, ModularVehicleInfo>) sceneGraph).render(context, entity.getPackInfo(), null);
+        SceneNode<?, ?> sceneGraph = entity.getPackInfo().getSceneGraph();
+        if (sceneGraph != null) {
+            ((SceneNode) sceneGraph).render(context, entity.getPackInfo(), null);
         }
     }
 
     @Override
+    @SuppressWarnings({"unchecked", "rawtypes"})
     public void renderEntityDebug(T entity, BaseRenderContext.EntityRenderContext context) {
-        Object sceneGraph = entity.getPackInfo().getSceneGraph();
-        if (sceneGraph instanceof SceneNode) {
-            ((SceneNode<BaseRenderContext.EntityRenderContext, ModularVehicleInfo>) sceneGraph).renderDebug(context, entity.getPackInfo());
+        SceneNode<?, ?> sceneGraph = entity.getPackInfo().getSceneGraph();
+        if (sceneGraph != null) {
+            ((SceneNode) sceneGraph).renderDebug(context, entity.getPackInfo());
         }
     }
 
@@ -86,11 +88,11 @@ public class RenderBaseVehicle<T extends BaseVehicleEntity<?>> extends RenderPhy
         //   if (modelRenderer == null) return;
         //   ((SceneNode<IRenderContext, ModularVehicleInfo>) packInfo.getSceneGraph())
         //       .render(context.setRenderParams(0,0,0,1,true).setModelParams(modelRenderer, textureId), packInfo, null);
-        Object sceneGraph = packInfo.getSceneGraph();
-        if (sceneGraph instanceof SceneNode) {
+        SceneNode<?, ?> sceneGraph = packInfo.getSceneGraph();
+        if (sceneGraph != null) {
             BaseRenderContext.EntityRenderContext entCtx = context.setRenderParams(0, 0, 0, 1, true);
             entCtx.setModelParams(null, null, textureId);
-            ((SceneNode<IRenderContext, ModularVehicleInfo>) sceneGraph).render(entCtx, packInfo, null);
+            ((SceneNode) sceneGraph).render(entCtx, packInfo, null);
         }
     }
 

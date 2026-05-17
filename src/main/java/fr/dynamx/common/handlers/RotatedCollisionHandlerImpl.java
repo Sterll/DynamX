@@ -354,14 +354,13 @@ public class RotatedCollisionHandlerImpl implements IRotatedCollisionHandler {
 
     /**
      * Equivalent of {@code EntityPlayer.isUser()} (1.12). On dedicated server this always returns
-     * false; on client it returns true iff {@code player} is the local player. The check is
-     * isolated through DistExecutor to avoid loading {@code LocalPlayer} on the server.
+     * false; on client it returns true iff {@code player} is the local player. The dist check
+     * keeps {@code Minecraft}/{@code LocalPlayer} off the server classloader.
      */
     private static boolean isLocalPlayer(Player player) {
-        if (player.level().isClientSide) {
-            return net.minecraftforge.fml.DistExecutor.unsafeRunForDist(
-                    () -> () -> net.minecraft.client.Minecraft.getInstance().player == player,
-                    () -> () -> false);
+        if (player.level().isClientSide
+                && net.minecraftforge.fml.loading.FMLEnvironment.dist == net.minecraftforge.api.distmarker.Dist.CLIENT) {
+            return net.minecraft.client.Minecraft.getInstance().player == player;
         }
         return false;
     }

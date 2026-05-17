@@ -6,6 +6,9 @@ import fr.dynamx.api.contentpack.registry.DefinitionType;
 import fr.dynamx.api.contentpack.registry.PackFileProperty;
 import fr.dynamx.api.contentpack.registry.RegisteredSubInfoType;
 import fr.dynamx.api.contentpack.registry.SubInfoTypeRegistries;
+import fr.dynamx.api.entities.modules.ModuleListBuilder;
+import fr.dynamx.common.entities.modules.engines.BoatPropellerModule;
+import fr.dynamx.common.entities.vehicles.BoatEntity;
 import lombok.Getter;
 
 /**
@@ -49,11 +52,11 @@ public class BoatPropellerInfo extends SubInfoType<ModularVehicleInfo> {
 
     @Override
     public void addModules(Object entity, Object modules) {
-        // TODO port:1.20.1 - Re-enable once Phase 6 (entities) is ported.
-        //   Original:
-        //     if(!(entity instanceof BoatEntity))
-        //         throw new IllegalStateException("The entity " + entity + " has PartSeats, but isn't a boat !");
-        //     if(!modules.hasModuleOfClass(BoatPropellerModule.class))
-        //         modules.add(new BoatPropellerModule((BoatEntity<?>) entity));
+        if (!(modules instanceof ModuleListBuilder)) return;
+        if (!(entity instanceof BoatEntity))
+            throw new IllegalStateException("The entity " + entity + " has PartSeats, but isn't a boat !");
+        ModuleListBuilder list = (ModuleListBuilder) modules;
+        if (!list.hasModuleOfClass(BoatPropellerModule.class))
+            list.add(new BoatPropellerModule((BoatEntity<?>) entity));
     }
 }

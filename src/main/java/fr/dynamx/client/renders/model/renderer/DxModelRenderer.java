@@ -1,11 +1,16 @@
 package fr.dynamx.client.renders.model.renderer;
 
+import com.mojang.blaze3d.vertex.PoseStack;
 import fr.dynamx.api.dxmodel.DxModelPath;
 import fr.dynamx.api.dxmodel.EnumDxModelFormats;
 import fr.dynamx.api.dxmodel.IModelTextureVariantsSupplier;
+import fr.dynamx.client.renders.RenderFrame;
 import fr.dynamx.common.contentpack.type.objects.BlockObject;
+import fr.dynamx.utils.maths.DynamXGeometry;
+import fr.dynamx.utils.optimization.GlQuaternionPool;
 import lombok.Getter;
 import lombok.Setter;
+import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.player.Player;
 
@@ -13,10 +18,6 @@ import org.joml.Vector4f;
 
 /**
  * Abstract base class for all DynamX model renderers (GLTF/OBJ).
- * <p>
- * TODO port:1.20.1 - The render preview path used GlStateManager + immediate-mode matrix stacks
- * which are gone in 1.20.1. Restore once {@code BaseRenderContext.BlockRenderContext} exposes a
- * {@code PoseStack}/{@code MultiBufferSource} that the preview can hook into.
  */
 public abstract class DxModelRenderer {
 
@@ -54,9 +55,39 @@ public abstract class DxModelRenderer {
     public void clearVAOs() {
     }
 
-    public void renderPreview(BlockObject<?> blockObjectInfo, Player player, BlockPos blockPos, boolean canPlace, float orientation, float partialTicks, int textureNum) {
-        // TODO port:1.20.1 - rewrite preview rendering on top of PoseStack/MultiBufferSource + RenderType.
-        // The legacy implementation used GlStateManager.pushMatrix/translate/rotate/scale + GL_ALL_ATTRIB_BITS push/pop.
+    public void renderPreview(BlockObject<?> blockObjectInfo, Player player, BlockPos blockPos, boolean canPlace,
+                              float orientation, float partialTicks, int textureNum,
+                              PoseStack poseStack, MultiBufferSource bufferSource, int packedLight) {
+        double px = player.xo + (player.getX() - player.xo) * partialTicks;
+        double py = player.yo + (player.getY() - player.yo) * partialTicks;
+        double pz = player.zo + (player.getZ() - player.zo) * partialTicks;
+
+        poseStack.pushPose();
+        poseStack.translate(-px + blockPos.getX() + 0.5, -py + blockPos.getY() + 1.5, -pz + blockPos.getZ() + 0.5);
+        poseStack.mulPose(GlQuaternionPool.get(DynamXGeometry.eulerToQuaternion(
+                blockObjectInfo.getRotation().z,
+                (blockObjectInfo.getRotation().y + orientation * 22.5f) % 360,
+                blockObjectInfo.getRotation().x)));
+        com.jme3.math.Vector3f translation = blockObjectInfo.getTranslation();
+        poseStack.translate(translation.x, translation.y, translation.z);
+        com.jme3.math.Vector3f scale = blockObjectInfo.getScaleModifier();
+        poseStack.scale(scale.x, scale.y, scale.z);
+
+        Vector4f previousColor = new Vector4f(modelColor);
+        setModelColor(new Vector4f(canPlace ? 0 : 1, canPlace ? 1 : 0, 0, 0.7f));
+
+        RenderFrame.push(poseStack, bufferSource, packedLight);
+        try {
+            // TODO port:1.20.1 - alpha 0.7f is not honored: ObjObjectRenderer emits vertices with
+            // hard-coded alpha=1 and uses RenderType.entityCutout. Switch to a translucent variant
+            // once preview blending is wired (and add a GltfModelRenderer/DxAnimator counterpart).
+            renderModel((byte) textureNum, true);
+        } finally {
+            RenderFrame.clear();
+        }
+
+        setModelColor(previousColor);
+        poseStack.popPose();
     }
 
     public abstract boolean containsObjectOrNode(String name);

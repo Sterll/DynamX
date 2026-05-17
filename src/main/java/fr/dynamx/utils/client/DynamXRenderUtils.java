@@ -114,7 +114,6 @@ public class DynamXRenderUtils {
     }
 
     public static void spawnParticles(ParticleEmitterInfo.IParticleEmitterContainer particleEmitterInfo, Level world, Vector3f initialPos, Vector3f initialRot) {
-        // TODO port:1.20.1 - World.spawnParticle -> Level.addParticle(ParticleOptions, x, y, z, vx, vy, vz).
         particleEmitterInfo.getParticleEmitters()
                 .forEach(emitterInfo -> {
                     Vector3f rotatedPoint = DynamXGeometry.getRotatedPoint(emitterInfo.position, initialRot.x, initialRot.y, initialRot.z);

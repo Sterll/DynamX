@@ -103,7 +103,7 @@ public class BlockObject<T extends BlockObject<T>> extends AbstractProp<T> imple
     /**
      * TODO port:1.20.1 - Was SceneNode&lt;?, ?&gt; (Phase 7).
      */
-    protected Object sceneNode;
+    protected fr.dynamx.client.renders.scene.node.SceneNode<?, ?> sceneNode;
 
     public BlockObject(String packName, String fileName) {
         super(packName, fileName);
@@ -146,15 +146,22 @@ public class BlockObject<T extends BlockObject<T>> extends AbstractProp<T> imple
     }
 
     @Override
+    @SuppressWarnings({"unchecked", "rawtypes"})
     public IDynamXItem<T> createItem(InfoList<T> loader) {
-        // TODO port:1.20.1 - Original posted CreatePackItemEvent.SimpleBlock then fell back to new DynamXBlock<>(this).
-        //   Both depend on Phase 4 (TEDynamXBlock / DynamXBlock) and Phase 5 (events).
-        return null;
+        return (IDynamXItem<T>) new fr.dynamx.common.blocks.DynamXBlock<>((T) this);
     }
 
     @Override
-    public Object getSceneGraph() {
-        // TODO port:1.20.1 - Original posted BuildBlockScene event then fell back to BlockNode. Phase 7.
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public fr.dynamx.client.renders.scene.node.SceneNode<?, ?> getSceneGraph() {
+        if (sceneNode == null) {
+            fr.dynamx.client.renders.scene.SceneBuilder<
+                    fr.dynamx.client.renders.scene.BaseRenderContext.BlockRenderContext,
+                    BlockObject<T>> builder = new fr.dynamx.client.renders.scene.SceneBuilder<>();
+            sceneNode = builder.buildBlockSceneGraph((BlockObject<T>) this,
+                    (java.util.List) getDrawableParts(),
+                    getScaleModifier());
+        }
         return sceneNode;
     }
 
