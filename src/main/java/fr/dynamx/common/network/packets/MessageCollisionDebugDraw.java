@@ -1,41 +1,60 @@
 package fr.dynamx.common.network.packets;
 
+import fr.aym.acslib.utils.DeserializedData;
+import fr.aym.acslib.utils.packetserializer.ISerializablePacket;
 import fr.dynamx.api.network.EnumNetworkType;
 import fr.dynamx.api.network.IDnxPacket;
-import io.netty.buffer.ByteBuf;
+import fr.dynamx.utils.debug.DynamXDebugOptions;
+import fr.dynamx.utils.debug.TerrainDebugData;
+import net.minecraft.client.Minecraft;
+import net.minecraft.world.entity.player.Player;
+import net.minecraftforge.fml.LogicalSide;
 
 import java.util.Map;
 
 /**
  * Sent to clients with terrain debug data to draw collision boxes.
  */
-// TODO port:1.20.1 - ISerializablePacket (ACsLib) + DeserializedData not yet ported; the body is
-// stubbed and the legacy custom serializer is replaced by a no-op until Phase 5b restores it.
-public class MessageCollisionDebugDraw implements IDnxPacket {
-    // TODO port:1.20.1 - TerrainDebugData not yet ported; relax to Object map.
-    private Map<Integer, Object> chunkOrBlockData;
-    private Map<Integer, Object> slopeData;
+// TODO port:1.20.1 - The ACsLib PacketSerializer that backs ISerializablePacket is still a stub in
+// the 1.20.1 port (no-op writeTo/readFrom). The wire format will become functional again once the
+// serializer is ported. The receive logic below is fully restored.
+public class MessageCollisionDebugDraw implements IDnxPacket, ISerializablePacket {
+    private Map<Integer, TerrainDebugData> chunkOrBlockData;
+    private Map<Integer, TerrainDebugData> slopeData;
 
     public MessageCollisionDebugDraw() {
     }
 
-    public MessageCollisionDebugDraw(Map<Integer, ?> chunkOrBlockData, Map<Integer, ?> slopeData) {
-        this.chunkOrBlockData = (Map<Integer, Object>) chunkOrBlockData;
-        this.slopeData = (Map<Integer, Object>) slopeData;
+    public MessageCollisionDebugDraw(Map<Integer, TerrainDebugData> chunkOrBlockData, Map<Integer, TerrainDebugData> slopeData) {
+        this.chunkOrBlockData = chunkOrBlockData;
+        this.slopeData = slopeData;
     }
 
     @Override
-    public void toBytes(ByteBuf buf) {
-        // TODO port:1.20.1 - ACsLib PacketSerializer needs port; serialization stubbed.
+    public Object[] getObjectsToSave() {
+        return new Object[]{chunkOrBlockData, slopeData};
     }
 
     @Override
-    public void fromBytes(ByteBuf buf) {
-        // TODO port:1.20.1 - ACsLib PacketSerializer needs port; deserialization stubbed.
+    @SuppressWarnings("unchecked")
+    public void populateWithSavedObjects(DeserializedData objects) {
+        this.chunkOrBlockData = objects.next();
+        this.slopeData = objects.next();
     }
 
-    public static void handle(MessageCollisionDebugDraw message /*, IPayloadContext ctx */) {
-        // TODO port:1.20.1 - Re-port using Minecraft.getInstance().tell once DynamXDebugOptions is ported.
+    @Override
+    public void handleUDPReceive(Player context, LogicalSide side) {
+        if (side != LogicalSide.CLIENT) {
+            return;
+        }
+        Minecraft.getInstance().execute(() -> {
+            if (DynamXDebugOptions.BLOCK_BOXES.isActive()) {
+                DynamXDebugOptions.BLOCK_BOXES.setDataIn(chunkOrBlockData);
+            }
+            if (DynamXDebugOptions.SLOPE_BOXES.isActive()) {
+                DynamXDebugOptions.SLOPE_BOXES.setDataIn(slopeData);
+            }
+        });
     }
 
     @Override

@@ -3,11 +3,25 @@ package fr.dynamx.common.contentpack.sync;
 import fr.dynamx.DynamX;
 import fr.dynamx.api.network.EnumNetworkType;
 import fr.dynamx.api.network.IDnxPacket;
+import fr.dynamx.common.DynamXMain;
+import fr.dynamx.common.contentpack.DynamXObjectLoaders;
+import fr.dynamx.common.contentpack.loader.InfoLoader;
+import fr.dynamx.common.network.DynamXNetwork;
+import fr.dynamx.utils.DynamXConfig;
+import fr.dynamx.utils.DynamXUtils;
+import fr.dynamx.utils.optimization.Vector3fPool;
 import io.netty.buffer.ByteBuf;
+import net.minecraft.client.Minecraft;
+import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.player.Player;
+import net.minecraftforge.fml.LogicalSide;
 
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * Pack-sync payload exchanged between client and server.
@@ -95,29 +109,79 @@ public class MessagePacksHashs implements IDnxPacket {
         });
     }
 
-    /**
-     * TODO port:1.20.1 - Original implemented IMessageHandler&lt;MessagePacksHashs, IMessage&gt;
-     *   and used MessageContext.getServerHandler().player + .getNetworkManager().closeChannel(...).
-     *   The IMessageHandler / MessageContext API is gone in NeoForge (use SimpleChannel
-     *   IPayloadHandler in 1.20.1). The body is stubbed; logic will be ported in Phase 6.
-     */
-    public static class HandlerServer {
-        public Object onMessage(MessagePacksHashs message, Object ctx) {
-            DynamX.LOGGER.warn("[PackSync] HandlerServer.onMessage called but the NeoForge channel is not yet wired (Phase 6).");
-            return null;
+    @Override
+    public void handleUDPReceive(Player context, LogicalSide side) {
+        if (side == LogicalSide.SERVER) {
+            handleServer(context);
+        } else {
+            handleClient();
         }
     }
 
-    /**
-     * TODO port:1.20.1 - Original applied the diff on the client thread, refreshed the model
-     *   registry, hot-swapped world pack infos and displayed an overlay message. All of these
-     *   depend on DynamXContext / DynamXMain.proxy / DxModelRegistry / Minecraft.gui setOverlayMessage.
-     *   The body is stubbed; logic will be ported in Phase 6.
-     */
-    public static class HandlerClient {
-        public Object onMessage(MessagePacksHashs message, Object ctx) {
-            DynamX.LOGGER.warn("[PackSync] HandlerClient.onMessage called but the NeoForge channel is not yet wired (Phase 6).");
-            return null;
+    private void handleServer(Player context) {
+        if (!(context instanceof ServerPlayer serverPlayer)) {
+            return;
         }
+        if (!DynamXConfig.syncPacks) {
+            DynamXMain.log.warn("[PackSync] Sync requested by {}, but disabled on server", serverPlayer);
+            return;
+        }
+        try {
+            Map<String, List<String>> delta = PackSyncHandler.getFullDelta(objects);
+            if (delta.values().stream().allMatch(List::isEmpty)) {
+                DynamXMain.log.debug("[PackSync] No delta for {}", serverPlayer);
+                return;
+            }
+            Map<String, Map<String, byte[]>> fullData = new HashMap<>();
+            for (Map.Entry<String, List<String>> entry : delta.entrySet()) {
+                String s = entry.getKey();
+                List<String> l = entry.getValue();
+                fullData.put(s, new HashMap<>());
+                InfoLoader<?> loader = DynamXObjectLoaders.getInfoLoaders().stream()
+                        .filter(i -> i.getPrefix().equals(s)).findFirst().orElse(null);
+                if (loader == null) {
+                    continue;
+                }
+                loader.encodeObjects(l, fullData.get(s));
+            }
+            DynamXMain.log.info("[PackSync] Sending {} changed pack files to {}",
+                    fullData.entrySet().stream().map(e -> e.getKey() + "->" + e.getValue().size()).collect(Collectors.toList()),
+                    serverPlayer);
+            DynamXNetwork.sendTo(new MessagePacksHashs(fullData), serverPlayer);
+        } catch (Exception e) {
+            DynamXMain.log.error("[PackSync] Failed to sync changed pack files for " + serverPlayer, e);
+            serverPlayer.connection.disconnect(Component.literal("Invalid DynamX pack " + e.getMessage()));
+        }
+    }
+
+    private void handleClient() {
+        DynamXMain.log.info("[PackSync] Received server packs, applying diff of {} elements...",
+                objects.entrySet().stream().map(e -> e.getKey() + "->" + e.getValue().size()).collect(Collectors.toList()));
+        Minecraft mc = Minecraft.getInstance();
+        mc.gui.setOverlayMessage(Component.literal("Synchronizing DynamX packs..."), false);
+        mc.execute(() -> {
+            Vector3fPool.openPool();
+            try {
+                for (Map.Entry<String, Map<String, byte[]>> entry : objects.entrySet()) {
+                    String s = entry.getKey();
+                    Map<String, byte[]> l = entry.getValue();
+                    InfoLoader<?> loader = DynamXObjectLoaders.getInfoLoaders().stream()
+                            .filter(i -> i.getPrefix().equals(s)).findFirst().orElse(null);
+                    if (loader != null) {
+                        loader.receiveObjects(l);
+                    }
+                }
+                DynamXUtils.hotswapWorldPackInfos(DynamXMain.proxy.getClientWorld());
+                mc.gui.setOverlayMessage(Component.literal(""), false);
+            } catch (Exception e) {
+                DynamXMain.log.fatal("Cannot sync DynamX packs. Connection to the server will be closed.", e);
+                if (mc.getConnection() != null) {
+                    mc.getConnection().getConnection().disconnect(
+                            Component.literal("Failed to sync DynamX packs. Update your client packs."));
+                }
+            } finally {
+                Vector3fPool.closePool();
+            }
+        });
     }
 }

@@ -2,6 +2,7 @@ package fr.dynamx.common.contentpack.sync;
 
 import fr.dynamx.DynamX;
 import fr.dynamx.api.contentpack.object.INamedObject;
+import fr.dynamx.common.DynamXContext;
 import fr.dynamx.common.contentpack.DynamXObjectLoaders;
 import fr.dynamx.common.contentpack.loader.PackFilePropertyData;
 import fr.dynamx.common.contentpack.loader.SubInfoTypeAnnotationCache;
@@ -48,10 +49,7 @@ public class PackSyncHandler {
         }
         computeAll();
         DynamX.LOGGER.debug("[PackSync] Requesting pack sync...");
-        // TODO port:1.20.1 - Original:
-        //   DynamXContext.getNetwork().sendToServer(new MessagePacksHashs(objects));
-        //   DynamXContext is not yet ported; the NeoForge channel will be re-wired in Phase 6+.
-        DynamX.LOGGER.debug("[PackSync] Sync request stubbed pending Phase 6+ network rewire (payload size: {} groups)", objects.size());
+        DynamXContext.getNetwork().sendToServer(new MessagePacksHashs(objects));
     }
 
     public byte[] hash(INamedObject object) {

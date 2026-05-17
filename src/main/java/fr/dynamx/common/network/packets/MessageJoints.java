@@ -1,25 +1,26 @@
 package fr.dynamx.common.network.packets;
 
 import fr.dynamx.common.entities.PhysicsEntity;
+import fr.dynamx.common.physics.joints.EntityJoint;
+import fr.dynamx.common.physics.joints.EntityJointsHandler;
 import io.netty.buffer.ByteBuf;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Player;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 
 public class MessageJoints extends PhysicsEntityMessage<MessageJoints> {
-    // TODO port:1.20.1 - EntityJoint.CachedJoint not yet ported (Phase 7 — physics joints).
-    // Until then we keep an opaque list of CachedJoint records using local fields.
-    private List<CachedJoint> jointList;
+    private List<EntityJoint.CachedJoint> jointList;
 
     public MessageJoints() {
         super(null);
     }
 
-    public MessageJoints(PhysicsEntity<?> entity, List<CachedJoint> jointList) {
+    public MessageJoints(PhysicsEntity<?> entity, List<EntityJoint.CachedJoint> jointList) {
         super(entity);
         this.jointList = jointList;
     }
@@ -29,7 +30,7 @@ public class MessageJoints extends PhysicsEntityMessage<MessageJoints> {
         super.toBytes(buf);
         buf.writeInt(jointList.size());
         FriendlyByteBuf fb = (buf instanceof FriendlyByteBuf) ? (FriendlyByteBuf) buf : new FriendlyByteBuf(buf);
-        for (CachedJoint g : jointList) {
+        for (EntityJoint.CachedJoint g : jointList) {
             fb.writeUtf(g.getId().toString());
             fb.writeByte(g.getJid());
             fb.writeUtf(g.getType().toString());
@@ -44,14 +45,40 @@ public class MessageJoints extends PhysicsEntityMessage<MessageJoints> {
         FriendlyByteBuf fb = (buf instanceof FriendlyByteBuf) ? (FriendlyByteBuf) buf : new FriendlyByteBuf(buf);
         int size = fb.readInt();
         for (int i = 0; i < size; i++) {
-            jointList.add(new CachedJoint(UUID.fromString(fb.readUtf()), fb.readByte(),
+            jointList.add(new EntityJoint.CachedJoint(UUID.fromString(fb.readUtf()), fb.readByte(),
                     new ResourceLocation(fb.readUtf()), fb.readBoolean()));
         }
     }
 
     @Override
     protected void processMessageClient(PhysicsEntityMessage<?> message, PhysicsEntity<?> entity, Player player) {
-        // TODO port:1.20.1 - Re-port the joint synchronisation once Phase 7 (physics joints) lands.
+        if (entity.getJointsHandler() == null) {
+            System.err.println("[DynamX] Cannot sync joints of " + entity + " : joint handler is null !");
+            return;
+        }
+        List<EntityJoint.CachedJoint> joints = new ArrayList<>(((MessageJoints) message).getJointList());
+        EntityJointsHandler handler = entity.getJointsHandler();
+        Collection<EntityJoint<?>> curJoints = handler.getJoints();
+        curJoints.removeIf(j -> {
+            EntityJoint.CachedJoint found = null;
+            for (EntityJoint.CachedJoint g : joints) {
+                if (g.getId().equals(j.getOtherEntity(entity).getUUID())) {
+                    found = g;
+                    break;
+                }
+            }
+            if (found != null) {
+                joints.remove(found);
+                return false;
+            }
+            handler.onRemoveJoint(j);
+            return true;
+        });
+        for (EntityJoint.CachedJoint g : joints) {
+            if (g.isJointOwner()) {
+                handler.onNewJointSynchronized(g);
+            }
+        }
     }
 
     @Override
@@ -59,31 +86,7 @@ public class MessageJoints extends PhysicsEntityMessage<MessageJoints> {
         throw new IllegalStateException();
     }
 
-    public List<CachedJoint> getJointList() {
+    public List<EntityJoint.CachedJoint> getJointList() {
         return jointList;
-    }
-
-    /**
-     * Minimal placeholder for fr.dynamx.common.physics.joints.EntityJoint.CachedJoint
-     * (kept local until Phase 7 ports the real type).
-     */
-    // TODO port:1.20.1 - replace with real EntityJoint.CachedJoint reference after Phase 7.
-    public static class CachedJoint {
-        private final UUID id;
-        private final byte jid;
-        private final ResourceLocation type;
-        private final boolean jointOwner;
-
-        public CachedJoint(UUID id, byte jid, ResourceLocation type, boolean jointOwner) {
-            this.id = id;
-            this.jid = jid;
-            this.type = type;
-            this.jointOwner = jointOwner;
-        }
-
-        public UUID getId() { return id; }
-        public byte getJid() { return jid; }
-        public ResourceLocation getType() { return type; }
-        public boolean isJointOwner() { return jointOwner; }
     }
 }

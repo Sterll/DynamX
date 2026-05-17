@@ -1,18 +1,32 @@
 package fr.dynamx.common.network.packets;
 
+import fr.aym.acslib.services.impl.thrload.DynamXThreadedModLoader;
 import fr.dynamx.api.network.EnumNetworkType;
 import fr.dynamx.api.network.IDnxPacket;
+import fr.dynamx.api.physics.IPhysicsWorld;
+import fr.dynamx.api.physics.terrain.ITerrainElement;
+import fr.dynamx.client.handlers.ClientEventHandler;
+import fr.dynamx.common.DynamXContext;
+import fr.dynamx.common.physics.terrain.cache.RemoteTerrainCache;
 import fr.dynamx.utils.VerticalChunkPos;
+import fr.dynamx.utils.debug.Profiler;
 import io.netty.buffer.ByteBuf;
+import net.minecraft.world.entity.player.Player;
+import net.minecraftforge.fml.LogicalSide;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.zip.GZIPOutputStream;
 
 public class MessageChunkData implements IDnxPacket {
     private static final byte version = 3;
+
+    private static final ExecutorService POOL = Executors.newFixedThreadPool(2,
+            new DynamXThreadedModLoader.DefaultThreadFactory("DnxCliCollsLoader"));
 
     private byte[] dataType;
     private VerticalChunkPos pos;
@@ -27,17 +41,17 @@ public class MessageChunkData implements IDnxPacket {
         this.data = data;
     }
 
-    // TODO port:1.20.1 - List<ITerrainElement> overload kept generic; ITerrainElement may not be fully
-    // ported yet, so we accept List<?> and pull the legacy fields reflectively-free via interface.
-    public MessageChunkData(VerticalChunkPos pos, byte[] dataType, List<?> terrainElements) {
+    public MessageChunkData(VerticalChunkPos pos, byte[] dataType, List<ITerrainElement> terrainElements) {
         this.pos = pos;
         this.dataType = dataType;
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         try {
             ObjectOutputStream oos = new ObjectOutputStream(new GZIPOutputStream(out));
             oos.writeInt(terrainElements.size());
-            // TODO port:1.20.1 - Legacy wrote ITerrainElement.getFactory().ordinal() + e.save(NETWORK, out).
-            // Until ITerrainElement is ported, leave size-only stub.
+            for (ITerrainElement e : terrainElements) {
+                oos.writeByte(e.getFactory().ordinal());
+                e.save(ITerrainElement.TerrainSaveType.NETWORK, oos);
+            }
             oos.close();
             this.data = out.toByteArray();
         } catch (IOException e) {
@@ -74,13 +88,35 @@ public class MessageChunkData implements IDnxPacket {
         buf.writeBytes(data);
     }
 
-    /**
-     * Legacy client-side Handler retained as a nested class with a static handle() entry point.
-     */
-    // TODO port:1.20.1 - Wire as a client-side PayloadHandler via PayloadRegistrar in Phase 5b.
-    public static class Handler {
-        public static void handle(MessageChunkData message /*, IPayloadContext ctx */) {
-            // TODO port:1.20.1 - Re-port body using DynamXContext.getPhysicsWorld + RemoteTerrainCache once Phase 2/8 land.
+    @Override
+    public void handleUDPReceive(Player context, LogicalSide side) {
+        if (side != LogicalSide.CLIENT) {
+            return;
         }
+        POOL.submit(() -> {
+            Profiler profiler = Profiler.get();
+            profiler.start(Profiler.Profiles.TERRAIN_LOADER_TICK);
+            try {
+                if (ClientEventHandler.MC == null || ClientEventHandler.MC.level == null) {
+                    return;
+                }
+                IPhysicsWorld physicsWorld = DynamXContext.getPhysicsWorld(ClientEventHandler.MC.level);
+                if (physicsWorld == null) {
+                    return;
+                }
+                ((RemoteTerrainCache) physicsWorld.getTerrainManager().getCache())
+                        .receiveChunkData(pos, dataType[0], dataType[1], data);
+            } finally {
+                profiler.end(Profiler.Profiles.TERRAIN_LOADER_TICK);
+                profiler.update();
+                if (profiler.isActive()) {
+                    List<String> st = profiler.getData();
+                    if (!st.isEmpty()) {
+                        profiler.printData("Network terrain thread");
+                        profiler.reset();
+                    }
+                }
+            }
+        });
     }
 }

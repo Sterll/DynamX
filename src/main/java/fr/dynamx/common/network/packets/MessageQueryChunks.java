@@ -2,8 +2,14 @@ package fr.dynamx.common.network.packets;
 
 import fr.dynamx.api.network.EnumNetworkType;
 import fr.dynamx.api.network.IDnxPacket;
+import fr.dynamx.api.physics.IPhysicsWorld;
+import fr.dynamx.client.handlers.ClientEventHandler;
+import fr.dynamx.common.DynamXContext;
+import fr.dynamx.common.physics.terrain.cache.RemoteTerrainCache;
 import fr.dynamx.utils.VerticalChunkPos;
 import io.netty.buffer.ByteBuf;
+import net.minecraft.world.entity.player.Player;
+import net.minecraftforge.fml.LogicalSide;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -49,14 +55,23 @@ public class MessageQueryChunks implements IDnxPacket {
         return requests;
     }
 
-    /**
-     * Legacy bi-directional Handler retained as a nested class with a static handle() entry point.
-     */
-    public static class Handler {
-        public static void handle(MessageQueryChunks message /*, IPayloadContext ctx */) {
-            // TODO port:1.20.1 - Re-port the chunk loading orchestration body.
-            // It references IPhysicsWorld, ITerrainManager, ChunkLoadingTicket, ChunkGraph,
-            // RemoteTerrainCache, FileTerrainCache, Profiler — most of which sit in Phase 2/8.
+    @Override
+    public void handleUDPReceive(Player context, LogicalSide side) {
+        if (side == LogicalSide.CLIENT) {
+            if (ClientEventHandler.MC == null || ClientEventHandler.MC.level == null) {
+                return;
+            }
+            IPhysicsWorld physicsWorld = DynamXContext.getPhysicsWorld(ClientEventHandler.MC.level);
+            if (physicsWorld == null) {
+                return;
+            }
+            requests.forEach((pos, dataType) -> ((RemoteTerrainCache) physicsWorld.getTerrainManager().getCache())
+                    .receiveChunkData(pos, dataType[0], dataType[1], null));
+            return;
         }
+        // TODO port:1.20.1 - server-side chunk orchestration depends on
+        // IDnxNetworkSystem#sendToClientFromOtherThread which still throws UnsupportedOperationException
+        // (Phase 5 network impl). The legacy body queues responses through
+        // DynamXContext.getNetwork().sendToClientFromOtherThread(...). Re-port once that lands.
     }
 }
