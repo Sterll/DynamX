@@ -43,9 +43,10 @@ import java.util.zip.ZipFile;
  *     {@link #getProtectedResources} accessor returns null entries until MPS is back.
  *   - fr.dynamx.api.events.{ContentPackSystemEvent, EventPhase} - Phase 5.
  *   - fr.dynamx.common.{DynamXContext, DynamXMain} - replaced by DynamX.LOGGER and a
- *     local {@code resourcesDirectory} static set during {@link #init}.
- *   - fr.dynamx.utils.DynamXLoadingTasks - not yet ported; the end-task notification is
- *     replaced by a log line.
+ *     local {@code resourcesDirectory} static set during {@link #init}. DynamXContext is
+ *     wired; {@link #reload} calls {@code getDxModelDataCache().clear()} directly.
+ *   - fr.dynamx.utils.DynamXLoadingTasks - wired; {@link #reload} notifies the end-task
+ *     via {@code DynamXLoadingTasks.endTask(PACK)} when the reload was triggered through it.
  *   - net.minecraft.block.Block -&gt; net.minecraft.world.level.block.Block (1.20.1).
  *     {@code Block.getBlockFromName} no longer exists; replaced by
  *     {@code BuiltInRegistries.BLOCK.get(new ResourceLocation(...))}.
@@ -204,10 +205,10 @@ public class ContentPackLoader {
     /**
      * Reloads all packs.
      *
-     * TODO port:1.20.1 - {@code loadBlocksConfigs} parameter is preserved verbatim. The
-     *   "MinecraftForge.EVENT_BUS.post(ContentPackSystemEvent.Load.PRE)" / .POST calls are
-     *   stubbed (Phase 5) - log messages take their place.
-     *   DynamXContext.getDxModelDataCache().clear() is also stubbed (Phase 7).
+     * TODO port:1.20.1 - The {@code MinecraftForge.EVENT_BUS.post(ContentPackSystemEvent.Load.PRE/.POST)}
+     *   calls are still stubbed (Phase 5) and replaced by log messages. The model-data cache
+     *   clear and the loading-task end notification are wired to
+     *   {@link fr.dynamx.common.DynamXContext} and {@link fr.dynamx.utils.DynamXLoadingTasks}.
      */
     public static void reload(File resDir, boolean loadBlocksConfigs) {
         isHotReloading = initialized;
