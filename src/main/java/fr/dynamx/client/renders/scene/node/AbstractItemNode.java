@@ -12,6 +12,7 @@ import fr.dynamx.utils.optimization.GlQuaternionPool;
 import fr.dynamx.utils.optimization.QuaternionPool;
 import fr.dynamx.utils.optimization.SubClassPool;
 import fr.dynamx.utils.optimization.Vector3fPool;
+import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
 import org.joml.Matrix4f;
@@ -108,15 +109,21 @@ public abstract class AbstractItemNode<C extends IRenderContext, A extends IMode
      * @param transform The transformation matrix
      */
     public void renderItemModel(BaseRenderContext.ItemRenderContext context, A packInfo, Matrix4f transform) {
-        // TODO port:1.20.1 - was:
-        //   GlStateManager.pushMatrix();
-        //   GlStateManager.multMatrix(ClientDynamXUtils.getMatrixBuffer(transform));
-        //   context.getModel().renderModel(context.getTextureId(), context.getRenderType() == ItemCameraTransforms.TransformType.GUI);
-        //   GlStateManager.popMatrix();
-        // Re-author on top of PoseStack#mulPoseMatrix + GLTF render pipeline.
-        if (context.getModel() != null) {
-            context.getModel().renderModel(context.getTextureId(),
-                    context.getRenderType() == ItemDisplayContext.GUI);
+        if (context.getModel() == null) {
+            return;
+        }
+        PoseStack poseStack = context.getPoseStack();
+        boolean gui = context.getRenderType() == ItemDisplayContext.GUI;
+        if (poseStack == null) {
+            context.getModel().renderModel(context.getTextureId(), gui);
+            return;
+        }
+        poseStack.pushPose();
+        try {
+            poseStack.mulPoseMatrix(transform);
+            context.getModel().renderModel(context.getTextureId(), gui);
+        } finally {
+            poseStack.popPose();
         }
     }
 }
