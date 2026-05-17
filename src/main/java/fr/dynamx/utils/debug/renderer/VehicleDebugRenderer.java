@@ -1,31 +1,34 @@
 package fr.dynamx.utils.debug.renderer;
 
+import com.jme3.bounding.BoundingBox;
 import com.jme3.math.Vector3f;
+import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.blaze3d.vertex.VertexConsumer;
+import fr.dynamx.api.network.sync.SimulationHolder;
 import fr.dynamx.api.physics.IRotatedCollisionHandler;
 import fr.dynamx.client.network.ClientPhysicsEntitySynchronizer;
+import fr.dynamx.client.renders.RenderFrame;
 import fr.dynamx.client.renders.RenderPhysicsEntity;
+import fr.dynamx.common.DynamXContext;
 import fr.dynamx.common.contentpack.parts.PartPropsContainer;
+import fr.dynamx.common.contentpack.type.vehicle.FrictionPoint;
 import fr.dynamx.common.contentpack.type.vehicle.TrailerAttachInfo;
 import fr.dynamx.common.entities.BaseVehicleEntity;
 import fr.dynamx.common.entities.PhysicsEntity;
 import fr.dynamx.utils.debug.DynamXDebugOptions;
+import fr.dynamx.utils.maths.DynamXGeometry;
+import fr.dynamx.utils.optimization.BoundingBoxPool;
 import fr.dynamx.utils.optimization.MutableBoundingBox;
+import fr.dynamx.utils.optimization.SubClassPool;
+import fr.dynamx.utils.optimization.Vector3fPool;
+import net.minecraft.client.renderer.LevelRenderer;
+import net.minecraft.client.renderer.RenderType;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
+import java.util.ConcurrentModificationException;
 import java.util.List;
 
-/**
- * Contains all {@link DebugRenderer}s for vehicles.
- *
- * <p>TODO port:1.20.1 - All draws used {@code RenderGlobal.drawBoundingBox},
- * {@code RenderGlobal.drawSelectionBoundingBox}, {@code GlStateManager.push/pop/translate},
- * {@code GlStateManager.glBegin/glVertex3f/glEnd}. These are all gone in 1.20.1 core-profile.
- * Rewrite using {@code LevelRenderer.renderLineBox(PoseStack, VertexConsumer, ...)} with a
- * {@code RenderType.LINES} buffer. All draw bodies are stubbed but state-collection logic remains.</p>
- *
- * @see BoatDebugRenderer
- */
 public class VehicleDebugRenderer {
     public static <T extends PhysicsEntity<?>> void addAll(RenderPhysicsEntity<T> to, boolean hasSeats) {
         to.addDebugRenderers(
@@ -36,6 +39,18 @@ public class VehicleDebugRenderer {
                 new PropsContainerDebug());
         if (hasSeats)
             to.addDebugRenderers(new DebugRenderer.StoragesDebug());
+    }
+
+    static void drawLine(PoseStack pose, VertexConsumer consumer,
+                         float x1, float y1, float z1, float x2, float y2, float z2,
+                         float r, float g, float b, float a) {
+        org.joml.Matrix4f mat = pose.last().pose();
+        float dx = x2 - x1, dy = y2 - y1, dz = z2 - z1;
+        float len = (float) Math.sqrt(dx * dx + dy * dy + dz * dz);
+        if (len < 1.0e-4f) len = 1.0e-4f;
+        float nx = dx / len, ny = dy / len, nz = dz / len;
+        consumer.vertex(mat, x1, y1, z1).color(r, g, b, a).normal(pose.last().normal(), nx, ny, nz).endVertex();
+        consumer.vertex(mat, x2, y2, z2).color(r, g, b, a).normal(pose.last().normal(), nx, ny, nz).endVertex();
     }
 
     public static class FrictionPointsDebug implements DebugRenderer<BaseVehicleEntity<?>> {
@@ -51,7 +66,28 @@ public class VehicleDebugRenderer {
 
         @Override
         public void render(BaseVehicleEntity<?> entity, RenderPhysicsEntity<BaseVehicleEntity<?>> renderer, double x, double y, double z, float partialTicks) {
-            // TODO port:1.20.1 - draws stubbed (GL_LINES and bounding-box immediate-mode gone).
+            if (entity.getPackInfo().getFrictionPoints().isEmpty()) return;
+            RenderFrame.Frame frame = RenderFrame.current();
+            if (frame == null) return;
+            PoseStack pose = frame.poseStack();
+            VertexConsumer consumer = frame.bufferSource().getBuffer(RenderType.lines());
+
+            Vec3 mv = entity.getDeltaMovement();
+            float horizSpeed = Vector3fPool.get((float) mv.x, 0, (float) mv.z).length();
+            for (FrictionPoint f : entity.getPackInfo().getFrictionPoints()) {
+                Vector3f pushDown = new Vector3f((float) -mv.x, -horizSpeed, (float) -mv.z);
+                pushDown.multLocal(f.getIntensity());
+                Vector3f pos = f.getPosition();
+                pos = DynamXGeometry.rotateVectorByQuaternion(pos, entity.renderRotation);
+
+                LevelRenderer.renderLineBox(pose, consumer,
+                        pos.x - 0.04f, pos.y - 0.04f, pos.z - 0.04f,
+                        pos.x + 0.04f, pos.y + 0.04f, pos.z + 0.04f,
+                        0f, 1f, 0f, 1f);
+                drawLine(pose, consumer, pos.x, pos.y, pos.z,
+                        pos.x + pushDown.x, pos.y + pushDown.y, pos.z + pushDown.z,
+                        1f, 0f, 0f, 1f);
+            }
         }
     }
 
@@ -63,19 +99,17 @@ public class VehicleDebugRenderer {
 
         @Override
         public void render(BaseVehicleEntity<?> entity, RenderPhysicsEntity<BaseVehicleEntity<?>> renderer, double x, double y, double z, float partialTicks) {
-            // TODO port:1.20.1 - replace RenderGlobal.drawBoundingBox with LevelRenderer.renderLineBox.
+            RenderFrame.Frame frame = RenderFrame.current();
+            if (frame == null) return;
+            VertexConsumer consumer = frame.bufferSource().getBuffer(RenderType.lines());
             Vector3f p1 = entity.getPackInfo().getSubPropertyByType(TrailerAttachInfo.class).getAttachPoint();
-            // stub draw at p1 (size 0.05f) magenta (0.5,0,1,1)
-            //noinspection ResultOfMethodCallIgnored
-            p1.hashCode();
+            LevelRenderer.renderLineBox(frame.poseStack(), consumer,
+                    p1.x, p1.y - 0.05f, p1.z - 0.05f,
+                    p1.x + 0.05f, p1.y + 0.05f, p1.z + 0.05f,
+                    0.5f, 0f, 1f, 1f);
         }
     }
 
-    /**
-     * Player collision debug : shows un-rotated and rotated boxes of player and vehicle
-     *
-     * @see IRotatedCollisionHandler
-     */
     public static class PlayerCollisionsDebug implements DebugRenderer<BaseVehicleEntity<?>> {
         public static AABB lastTemp;
         public static Vec3 pos;
@@ -96,16 +130,61 @@ public class VehicleDebugRenderer {
 
         @Override
         public void render(BaseVehicleEntity<?> entity, RenderPhysicsEntity<BaseVehicleEntity<?>> renderer, double x, double y, double z, float partialTicks) {
-            // TODO port:1.20.1 - all RenderGlobal.drawBoundingBox/drawSelectionBoundingBox draws stubbed.
-            // Keep iteration logic so collision-box state still gets touched if needed.
+            RenderFrame.Frame frame = RenderFrame.current();
+            if (frame == null) return;
+            PoseStack stack = frame.poseStack();
+            VertexConsumer consumer = frame.bufferSource().getBuffer(RenderType.lines());
+
+            stack.pushPose();
+            stack.translate(-entity.getX(), -entity.getY(), -entity.getZ());
             try {
                 for (MutableBoundingBox bb : entity.getCollisionBoxes()) {
-                    //noinspection ResultOfMethodCallIgnored
-                    bb.hashCode();
+                    LevelRenderer.renderLineBox(stack, consumer,
+                            bb.minX, bb.minY, bb.minZ,
+                            bb.maxX, bb.maxY, bb.maxZ,
+                            1f, 1f, 0f, 1f);
                 }
-            } catch (java.util.ConcurrentModificationException e) {
+            } catch (ConcurrentModificationException e) {
                 e.printStackTrace();
             }
+
+            if (lastTemp != null) {
+                LevelRenderer.renderLineBox(stack, consumer, lastTemp, 0f, 1f, 1f, 1f);
+            }
+            if (motion != null && pos != null) {
+                drawLine(stack, consumer, (float) pos.x, (float) pos.y, (float) pos.z,
+                        motion.x * 10f + (float) pos.x, motion.y * 10f + (float) pos.y, motion.z * 10f + (float) pos.z,
+                        1f, 0f, 0f, 1f);
+            }
+            if (rotatedmotion != null && pos != null) {
+                drawLine(stack, consumer, (float) pos.x, (float) pos.y, (float) pos.z,
+                        rotatedmotion.x * 10f + (float) pos.x, rotatedmotion.y * 10f + (float) pos.y, rotatedmotion.z * 10f + (float) pos.z,
+                        0f, 1f, 0f, 1f);
+            }
+            if (realmotionrot != null && pos != null) {
+                drawLine(stack, consumer, (float) pos.x, (float) pos.y, (float) pos.z,
+                        realmotionrot.x * 10f + (float) pos.x, realmotionrot.y * 10f + (float) pos.y, realmotionrot.z * 10f + (float) pos.z,
+                        1f, 0f, 1f, 1f);
+            }
+            if (realmotion != null && pos != null) {
+                drawLine(stack, consumer, (float) pos.x, (float) pos.y, (float) pos.z,
+                        realmotion.x * 10f + (float) pos.x, realmotion.y * 10f + (float) pos.y, realmotion.z * 10f + (float) pos.z,
+                        0f, 0f, 1f, 1f);
+            }
+
+            BoundingBoxPool.getPool().openSubPool(SubClassPool.BOUNDING_BOX_DEFAULT);
+            DynamXContext.getPlayerToCollision().forEach((player, playerPhysicsHandler) -> {
+                if (playerPhysicsHandler.getBodyIn() != null) {
+                    BoundingBox bb = playerPhysicsHandler.getBodyIn().boundingBox(BoundingBoxPool.get());
+                    Vector3f min = bb.getMin(Vector3fPool.get());
+                    Vector3f max = bb.getMax(Vector3fPool.get());
+                    LevelRenderer.renderLineBox(stack, consumer,
+                            min.x, min.y, min.z, max.x, max.y, max.z,
+                            0.2f, 0.5f, 0.7f, 1f);
+                }
+            });
+            BoundingBoxPool.getPool().closeSubPool();
+            stack.popPose();
         }
     }
 
@@ -122,16 +201,31 @@ public class VehicleDebugRenderer {
 
         @Override
         public void render(BaseVehicleEntity<?> entity, RenderPhysicsEntity<BaseVehicleEntity<?>> renderer, double x, double y, double z, float partialTicks) {
-            // TODO port:1.20.1 - DynamXRenderUtils.drawBoundingBox immediate-mode gone; stub.
             List<PartPropsContainer> containers = entity.getPackInfo().getPartsByType(PartPropsContainer.class);
-            //noinspection ResultOfMethodCallIgnored
-            containers.size();
+            if (containers.isEmpty()) return;
+            RenderFrame.Frame frame = RenderFrame.current();
+            if (frame == null) return;
+            PoseStack stack = frame.poseStack();
+            VertexConsumer consumer = frame.bufferSource().getBuffer(RenderType.lines());
+
+            for (PartPropsContainer container : containers) {
+                stack.pushPose();
+                stack.translate(-entity.getX(), -entity.getY(), -entity.getZ());
+
+                Vector3f cpos = DynamXGeometry.rotateVectorByQuaternion(container.getPosition(), entity.physicsRotation);
+                MutableBoundingBox rotatedSize = DynamXContext.getCollisionHandler().rotateBB(Vector3fPool.get(0, 0, 0), container.getBoundingBox(), entity.physicsRotation);
+                rotatedSize = rotatedSize.offset(cpos);
+                rotatedSize = rotatedSize.offset(entity.physicsPosition);
+                LevelRenderer.renderLineBox(stack, consumer,
+                        rotatedSize.minX, rotatedSize.minY, rotatedSize.minZ,
+                        rotatedSize.maxX, rotatedSize.maxY, rotatedSize.maxZ,
+                        1f, 0f, 0f, 1f);
+
+                stack.popPose();
+            }
         }
     }
 
-    /**
-     * Network debug : render previous entity states
-     */
     public static class NetworkDebug implements DebugRenderer<BaseVehicleEntity<?>> {
         @Override
         public boolean shouldRender(BaseVehicleEntity<?> entity) {
@@ -145,8 +239,22 @@ public class VehicleDebugRenderer {
 
         @Override
         public void render(BaseVehicleEntity<?> entity, RenderPhysicsEntity<BaseVehicleEntity<?>> renderer, double x, double y, double z, float partialTicks) {
-            // TODO port:1.20.1 - second-pass entity render at the server position needs the new
-            // BaseRenderContext + PoseStack pipeline. Stubbed for now.
+            Vector3f epos = entity.physicsPosition;
+            Vector3f serverPos = ((ClientPhysicsEntitySynchronizer) entity.getSynchronizer()).getServerPos();
+            if (serverPos == null) return;
+            RenderFrame.Frame frame = RenderFrame.current();
+            if (frame == null) return;
+            VertexConsumer consumer = frame.bufferSource().getBuffer(RenderType.lines());
+
+            double dx = -epos.x + serverPos.x;
+            double dy = -epos.y + serverPos.y;
+            double dz = -epos.z + serverPos.z;
+            boolean driver = entity.getSynchronizer().getSimulationHolder() == SimulationHolder.DRIVER;
+            AABB box = entity.getBoundingBox()
+                    .move(dx, dy, dz)
+                    .move(-entity.getX(), -entity.getY(), -entity.getZ());
+            LevelRenderer.renderLineBox(frame.poseStack(), consumer, box,
+                    driver ? 0.9f : 0.1f, 0.1f, 0.8f, 1f);
         }
     }
 }
