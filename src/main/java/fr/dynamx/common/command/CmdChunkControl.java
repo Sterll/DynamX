@@ -47,12 +47,19 @@ public class CmdChunkControl implements ISubCommand {
     }
 
     @Override
-    public void register(CommandDispatcher<CommandSourceStack> dispatcher) {
-        // TODO port:1.20.1 - Brigadier port: argument tree (graphmode|getelements|getslopes|clear|getgraph|resetstate|fullinfo).
-    }
-
-    @Override
-    public void getTabCompletions(MinecraftServer server, CommandSourceStack sender, String[] args, @Nullable BlockPos targetPos, List<String> r) {
-        // TODO port:1.20.1 - replaced by Brigadier argument suggestions.
+    public com.mojang.brigadier.builder.LiteralArgumentBuilder<CommandSourceStack> buildBrigadier() {
+        com.mojang.brigadier.builder.LiteralArgumentBuilder<CommandSourceStack> root =
+                net.minecraft.commands.Commands.literal(getName());
+        String[] actions = {"graphmode", "getelements", "getslopes", "clearslopes",
+                "getgraph", "resetstate", "fullinfo"};
+        for (String action : actions) {
+            root = root.then(net.minecraft.commands.Commands.literal(action)
+                    .executes(ctx -> {
+                        execute(ctx.getSource().getServer(), ctx.getSource(),
+                                new String[]{getName(), action});
+                        return 1;
+                    }));
+        }
+        return root;
     }
 }

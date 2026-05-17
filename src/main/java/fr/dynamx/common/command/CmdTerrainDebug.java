@@ -54,12 +54,19 @@ public class CmdTerrainDebug implements ISubCommand {
     }
 
     @Override
-    public void register(CommandDispatcher<CommandSourceStack> dispatcher) {
-        // TODO port:1.20.1 - Brigadier port: literal("terrain_debug").then(argument("value", BoolArgumentType.bool())).
-    }
-
-    @Override
-    public void getTabCompletions(MinecraftServer server, CommandSourceStack sender, String[] args, @Nullable BlockPos targetPos, List<String> r) {
-        // TODO port:1.20.1 - replaced by Brigadier argument suggestions (BoolArgumentType.bool()).
+    public com.mojang.brigadier.builder.LiteralArgumentBuilder<CommandSourceStack> buildBrigadier() {
+        return net.minecraft.commands.Commands.literal(getName())
+                .executes(ctx -> {
+                    execute(ctx.getSource().getServer(), ctx.getSource(), new String[]{getName()});
+                    return 1;
+                })
+                .then(net.minecraft.commands.Commands.argument("value",
+                                com.mojang.brigadier.arguments.BoolArgumentType.bool())
+                        .executes(ctx -> {
+                            boolean value = com.mojang.brigadier.arguments.BoolArgumentType.getBool(ctx, "value");
+                            execute(ctx.getSource().getServer(), ctx.getSource(),
+                                    new String[]{getName(), Boolean.toString(value)});
+                            return 1;
+                        }));
     }
 }
