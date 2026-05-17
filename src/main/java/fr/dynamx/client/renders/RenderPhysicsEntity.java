@@ -3,6 +3,7 @@ package fr.dynamx.client.renders;
 import com.mojang.blaze3d.vertex.PoseStack;
 import fr.dynamx.api.contentpack.object.part.IShapeInfo;
 import fr.dynamx.api.events.client.DynamXEntityRenderEvent;
+import fr.dynamx.client.handlers.ClientDebugSystem;
 import fr.dynamx.client.renders.model.renderer.DxModelRenderer;
 import fr.dynamx.client.renders.scene.BaseRenderContext;
 import fr.dynamx.client.renders.scene.node.SceneNode;
@@ -199,15 +200,14 @@ public abstract class RenderPhysicsEntity<T extends PhysicsEntity<?>> extends En
     }
 
     public void spawnParticles(T physicsEntity, BaseRenderContext.EntityRenderContext context) {
-        // TODO port:1.20.1 - particle spawning was:
-        //   if (physicsEntity instanceof PackPhysicsEntity) {
-        //     PackPhysicsEntity<?, ?> packPhysicsEntity = (PackPhysicsEntity<?, ?>) physicsEntity;
-        //     if (packPhysicsEntity.getPackInfo() instanceof ParticleEmitterInfo.IParticleEmitterContainer) {
-        //       DynamXRenderUtils.spawnParticles((ParticleEmitterInfo.IParticleEmitterContainer) packPhysicsEntity.getPackInfo(),
-        //           physicsEntity.world, physicsEntity.physicsPosition, physicsEntity.physicsRotation);
-        //     }
-        //   }
-        // Rewrite with Level#addParticle once ParticleEmitterInfo is ported.
+        if (physicsEntity instanceof PackPhysicsEntity<?, ?> packPhysicsEntity
+                && packPhysicsEntity.getPackInfo() instanceof fr.dynamx.common.contentpack.type.ParticleEmitterInfo.IParticleEmitterContainer container) {
+            fr.dynamx.utils.client.DynamXRenderUtils.spawnParticles(
+                    container,
+                    physicsEntity.level(),
+                    physicsEntity.physicsPosition,
+                    physicsEntity.physicsRotation);
+        }
     }
 
     /**
@@ -261,10 +261,7 @@ public abstract class RenderPhysicsEntity<T extends PhysicsEntity<?>> extends En
      * Can be cancelled via the dedicated event
      */
     public final void renderDebug(T entity, BaseRenderContext.EntityRenderContext context) {
-        // TODO port:1.20.1 - was guarded by ClientDebugSystem.enableDebugDrawing which lives in
-        // fr.dynamx.client.handlers (not ported yet). Defaulted to false so debug rendering is
-        // disabled until that class lands; the structure of this method is preserved.
-        if (false /* ClientDebugSystem.enableDebugDrawing */) {
+        if (ClientDebugSystem.enableDebugDrawing) {
             List<DebugRenderer<T>> validRotatedRenders = debugRenderers.stream().filter(r -> r.shouldRender(entity) && r.hasEntityRotation(entity)).collect(Collectors.toList());
             List<DebugRenderer<T>> validPureRenders = debugRenderers.stream().filter(r -> r.shouldRender(entity) && !r.hasEntityRotation(entity)).collect(Collectors.toList());
             QuaternionPool.openPool();
