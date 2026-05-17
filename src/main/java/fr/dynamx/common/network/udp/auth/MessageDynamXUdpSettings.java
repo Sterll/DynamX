@@ -2,9 +2,15 @@ package fr.dynamx.common.network.udp.auth;
 
 import fr.dynamx.api.network.EnumNetworkType;
 import fr.dynamx.api.network.IDnxPacket;
+import fr.dynamx.common.DynamXContext;
+import fr.dynamx.common.DynamXMain;
+import fr.dynamx.common.network.DynamXClientNetworkSystem;
 import fr.dynamx.utils.DynamXConfig;
 import io.netty.buffer.ByteBuf;
+import net.minecraft.client.Minecraft;
 import net.minecraft.network.FriendlyByteBuf;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.fml.loading.FMLEnvironment;
 
 public class MessageDynamXUdpSettings implements IDnxPacket {
     private int voiceServerType;
@@ -26,10 +32,9 @@ public class MessageDynamXUdpSettings implements IDnxPacket {
 
     @Override
     public void fromBytes(ByteBuf buf) {
+        if (DynamXConfig.udpDebug)
+            DynamXMain.log.info("[UDP-DEBUG] Read auth proposal");
         FriendlyByteBuf fb = (buf instanceof FriendlyByteBuf) ? (FriendlyByteBuf) buf : new FriendlyByteBuf(buf);
-        if (DynamXConfig.udpDebug) {
-            System.out.println("[UDP-DEBUG] Read auth proposal");
-        }
         this.voiceServerType = fb.readInt();
         this.udpPort = fb.readInt();
         this.hash = fb.readUtf();
@@ -39,10 +44,9 @@ public class MessageDynamXUdpSettings implements IDnxPacket {
 
     @Override
     public void toBytes(ByteBuf buf) {
+        if (DynamXConfig.udpDebug)
+            DynamXMain.log.info("[UDP-DEBUG] Write auth proposal");
         FriendlyByteBuf fb = (buf instanceof FriendlyByteBuf) ? (FriendlyByteBuf) buf : new FriendlyByteBuf(buf);
-        if (DynamXConfig.udpDebug) {
-            System.out.println("[UDP-DEBUG] Write auth proposal");
-        }
         fb.writeInt(this.voiceServerType);
         fb.writeInt(this.udpPort);
         fb.writeUtf(this.hash);
@@ -50,18 +54,36 @@ public class MessageDynamXUdpSettings implements IDnxPacket {
         fb.writeBoolean(this.syncDynamXPacks);
     }
 
-    public int getVoiceServerType() { return voiceServerType; }
-    public int getUdpPort() { return udpPort; }
-    public String getHash() { return hash; }
-    public String getIp() { return ip; }
-    public boolean isSyncDynamXPacks() { return syncDynamXPacks; }
+    public int getVoiceServerType() {
+        return voiceServerType;
+    }
 
-    public static void handle(MessageDynamXUdpSettings packet /*, IPayloadContext ctx */) {
-        if (DynamXConfig.udpDebug) {
-            System.out.println("[UDP-DEBUG] Received auth proposal");
-        }
-        // TODO port:1.20.1 - Re-port body using DynamXContext.getNetwork() + Minecraft.getInstance().execute(...).
+    public int getUdpPort() {
+        return udpPort;
+    }
+
+    public String getHash() {
+        return hash;
+    }
+
+    public String getIp() {
+        return ip;
+    }
+
+    public boolean isSyncDynamXPacks() {
+        return syncDynamXPacks;
+    }
+
+    public static void handle(MessageDynamXUdpSettings packet) {
+        if (DynamXConfig.udpDebug)
+            DynamXMain.log.info("[UDP-DEBUG] Received auth proposal");
+        DynamXMain.log.info("Received udp auth proposal. PackSync is {}.", packet.syncDynamXPacks);
         DynamXConfig.syncPacks = packet.syncDynamXPacks;
+        if (FMLEnvironment.dist == Dist.CLIENT) {
+            Minecraft.getInstance().execute(() ->
+                    ((DynamXClientNetworkSystem) DynamXContext.getNetwork()).startNetwork(
+                            EnumNetworkType.values()[packet.voiceServerType], packet.hash, packet.ip, packet.udpPort));
+        }
     }
 
     @Override

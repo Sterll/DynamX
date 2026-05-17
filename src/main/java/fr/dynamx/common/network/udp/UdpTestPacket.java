@@ -17,7 +17,6 @@ public class UdpTestPacket extends UDPPacket {
     }
 
     public UdpTestPacket(int id, String sample, long sendTime, long rcvTime) {
-        System.out.println("RCV " + id);
         this.id = id;
         this.sample = sample;
         this.sendTime = sendTime;
@@ -32,12 +31,8 @@ public class UdpTestPacket extends UDPPacket {
     @Override
     public void write(ByteBuf var1) {
         var1.writeInt(id);
-        // TODO port:1.20.1 - ByteBufUtils.writeUTF8String → FriendlyByteBuf#writeUtf
-        if (var1 instanceof FriendlyByteBuf) {
-            ((FriendlyByteBuf) var1).writeUtf(sample);
-        } else {
-            new FriendlyByteBuf(var1).writeUtf(sample);
-        }
+        FriendlyByteBuf fb = (var1 instanceof FriendlyByteBuf) ? (FriendlyByteBuf) var1 : new FriendlyByteBuf(var1);
+        fb.writeUtf(sample);
         var1.writeLong(sendTime);
         var1.writeLong(rcvTime);
     }
