@@ -2,45 +2,43 @@ package fr.dynamx.api.events;
 
 import fr.dynamx.api.contentpack.object.IDynamXItem;
 import fr.dynamx.api.contentpack.object.subinfo.ISubInfoTypeOwner;
+import fr.dynamx.common.contentpack.loader.InfoList;
+import fr.dynamx.common.contentpack.type.ObjectInfo;
+import fr.dynamx.common.contentpack.type.objects.AbstractItemObject;
+import fr.dynamx.common.contentpack.type.objects.PropObject;
+import fr.dynamx.common.contentpack.type.vehicle.ModularVehicleInfo;
 import lombok.Getter;
 import lombok.Setter;
-import net.minecraftforge.eventbus.api.Event;
 import net.minecraftforge.eventbus.api.Cancelable;
+import net.minecraftforge.eventbus.api.Event;
 
 import javax.annotation.Nullable;
 
 /**
  * Fired when creating an item for a pack object.
  *
- * TODO port:1.20.1 - Originally bounded as &lt;B extends ObjectInfo&lt;?&gt; &amp; ISubInfoTypeOwner&lt;?&gt;&gt;.
- *   ObjectInfo lives in fr.dynamx.common.contentpack.type (Phase 3b); the bound is relaxed
- *   here to ISubInfoTypeOwner only. Re-tighten once ObjectInfo is ported.
- * TODO port:1.20.1 - InfoList lives in fr.dynamx.common.contentpack.loader (Phase 3b);
- *   the loader field is typed as Object until then.
- *
  * @see CreatePackItemEvent
  */
-@Cancelable
-public abstract class CreatePackItemEvent<B extends ISubInfoTypeOwner<?>, C extends IDynamXItem<B>> extends Event {
+public abstract class CreatePackItemEvent<B extends ObjectInfo<?> & ISubInfoTypeOwner<?>, C extends IDynamXItem<B>> extends Event {
     /**
      * The loader of this object.
      */
     @Getter
-    private final Object loader;
+    private final InfoList<B> loader;
     /**
-     * The ObjectInfo of the item to create
+     * The ObjectInfo of the item to create.
      */
     @Getter
     private final B objectInfo;
     /**
-     * The item to use, set it to override the default behavior
+     * The item to use, set it to override the default behavior.
      */
     @Getter
     @Setter
     @Nullable
     private C objectItem;
 
-    public CreatePackItemEvent(Object loader, B objectInfo) {
+    public CreatePackItemEvent(InfoList<B> loader, B objectInfo) {
         this.loader = loader;
         this.objectInfo = objectInfo;
     }
@@ -52,26 +50,42 @@ public abstract class CreatePackItemEvent<B extends ISubInfoTypeOwner<?>, C exte
         return objectItem != null;
     }
 
-    public static class VehicleItem<B extends ISubInfoTypeOwner<?>, C extends IDynamXItem<B>> extends CreatePackItemEvent<B, C> {
-        public VehicleItem(Object loader, B objectInfo) {
+    /**
+     * Called by the ContentPackSystem when creating the item of a {@link ModularVehicleInfo}.
+     */
+    @Cancelable
+    public static class VehicleItem<B extends ObjectInfo<?> & ISubInfoTypeOwner<?>, C extends IDynamXItem<B>> extends CreatePackItemEvent<B, C> {
+        public VehicleItem(InfoList<B> loader, B objectInfo) {
             super(loader, objectInfo);
         }
     }
 
-    public static class SimpleItem<B extends ISubInfoTypeOwner<?>, C extends IDynamXItem<B>> extends CreatePackItemEvent<B, C> {
-        public SimpleItem(Object loader, B objectInfo) {
+    /**
+     * Called by the ContentPackSystem when creating the item of a {@link AbstractItemObject}.
+     */
+    @Cancelable
+    public static class SimpleItem<B extends ObjectInfo<?> & ISubInfoTypeOwner<?>, C extends IDynamXItem<B>> extends CreatePackItemEvent<B, C> {
+        public SimpleItem(InfoList<B> loader, B objectInfo) {
             super(loader, objectInfo);
         }
     }
 
-    public static class SimpleBlock<B extends ISubInfoTypeOwner<?>, C extends IDynamXItem<B>> extends CreatePackItemEvent<B, C> {
-        public SimpleBlock(Object loader, B objectInfo) {
+    /**
+     * Called by the ContentPackSystem when creating the block of a {@link fr.dynamx.common.contentpack.type.objects.BlockObject}.
+     */
+    @Cancelable
+    public static class SimpleBlock<B extends ObjectInfo<?> & ISubInfoTypeOwner<?>, C extends IDynamXItem<B>> extends CreatePackItemEvent<B, C> {
+        public SimpleBlock(InfoList<B> loader, B objectInfo) {
             super(loader, objectInfo);
         }
     }
 
-    public static class PropsItem<B extends ISubInfoTypeOwner<?>, C extends IDynamXItem<B>> extends CreatePackItemEvent<B, C> {
-        public PropsItem(Object loader, B objectInfo) {
+    /**
+     * Called by the ContentPackSystem when creating the item of a {@link PropObject}.
+     */
+    @Cancelable
+    public static class PropsItem<B extends ObjectInfo<?> & ISubInfoTypeOwner<?>, C extends IDynamXItem<B>> extends CreatePackItemEvent<B, C> {
+        public PropsItem(InfoList<B> loader, B objectInfo) {
             super(loader, objectInfo);
         }
     }

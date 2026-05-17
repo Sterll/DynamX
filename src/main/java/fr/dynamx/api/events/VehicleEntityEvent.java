@@ -1,6 +1,16 @@
 package fr.dynamx.api.events;
 
 import fr.dynamx.api.contentpack.object.part.InteractivePart;
+import fr.dynamx.api.entities.modules.IVehicleController;
+import fr.dynamx.client.gui.VehicleHud;
+import fr.dynamx.client.handlers.hud.CarController;
+import fr.dynamx.common.contentpack.parts.BasePartSeat;
+import fr.dynamx.common.contentpack.type.vehicle.PartWheelInfo;
+import fr.dynamx.common.entities.BaseVehicleEntity;
+import fr.dynamx.common.entities.PackPhysicsEntity;
+import fr.dynamx.common.entities.modules.SeatsModule;
+import fr.dynamx.common.entities.modules.WheelsModule;
+import fr.dynamx.common.entities.modules.engines.BasicEngineModule;
 import lombok.Getter;
 import lombok.Setter;
 import net.minecraft.nbt.CompoundTag;
@@ -8,44 +18,37 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.fml.LogicalSide;
-
-// TODO port:1.20.1 - Helper to translate LogicalSide (server/client logical) to Dist (physical jar side).
-import net.minecraftforge.eventbus.api.Event;
 import net.minecraftforge.eventbus.api.Cancelable;
+import net.minecraftforge.eventbus.api.Event;
+import net.minecraftforge.fml.LogicalSide;
 
 import javax.annotation.Nullable;
 import java.util.List;
 
 /**
  * Vehicle entity events.
- *
- * TODO port:1.20.1 - PackPhysicsEntity / BaseVehicleEntity / SeatsModule / WheelsModule /
- *   BasicEngineModule / BasePartSeat / PartWheelInfo / IVehicleController / VehicleHud /
- *   CarController all live in fr.dynamx.common.entities / fr.dynamx.client.* (Phases 5/6/7).
- *   They are typed as Object here to keep the API surface compilable.
  */
-@Cancelable
 public class VehicleEntityEvent extends Event {
     @Getter
     private final Dist side;
 
     @Getter
-    private final Object entity; // TODO port:1.20.1 - PackPhysicsEntity<?, ?>
+    private final PackPhysicsEntity<?, ?> entity;
 
-    public VehicleEntityEvent(Dist side, Object vehicleEntity) {
+    public VehicleEntityEvent(Dist side, PackPhysicsEntity<?, ?> vehicleEntity) {
         this.entity = vehicleEntity;
         this.side = side;
     }
 
-    // TODO port:1.20.1 - LogicalSide variant kept for the legacy call-site signature; mapped to Dist.
-    public VehicleEntityEvent(LogicalSide side, Object vehicleEntity) {
+    // TODO port:1.20.1 - LogicalSide variant kept for legacy call-sites; mapped to Dist.
+    public VehicleEntityEvent(LogicalSide side, PackPhysicsEntity<?, ?> vehicleEntity) {
         this(side == LogicalSide.CLIENT ? Dist.CLIENT : Dist.DEDICATED_SERVER, vehicleEntity);
     }
 
     /**
      * Called on server side when a player entity interacts with a vehicle
      */
+    @Cancelable
     public static class PlayerInteract extends VehicleEntityEvent {
         @Getter
         private final Player player;
@@ -55,11 +58,16 @@ public class VehicleEntityEvent extends Event {
         @Getter
         private final InteractionType interactionType;
 
-        public PlayerInteract(Player player, Object vehicleEntity, @Nullable InteractivePart<?, ?> part) {
+        public PlayerInteract(Player player, PackPhysicsEntity<?, ?> vehicleEntity, @Nullable InteractivePart<?, ?> part) {
             super(Dist.DEDICATED_SERVER, vehicleEntity);
             this.player = player;
             this.part = part;
             this.interactionType = part == null ? InteractionType.VEHICLE : InteractionType.PART;
+        }
+
+        // TODO port:1.20.1 - Object overload for callers that still hand a raw entity object.
+        public PlayerInteract(Player player, Object vehicleEntity, @Nullable InteractivePart<?, ?> part) {
+            this(player, (PackPhysicsEntity<?, ?>) vehicleEntity, part);
         }
 
         public boolean withPart() {
@@ -82,18 +90,19 @@ public class VehicleEntityEvent extends Event {
         @Getter
         private final Entity entityMounted;
         @Getter
-        private final Object module; // TODO port:1.20.1 - SeatsModule
+        private final SeatsModule module;
         @Getter
-        private final Object seat;   // TODO port:1.20.1 - BasePartSeat
+        private final BasePartSeat seat;
 
-        public EntityMount(Dist side, Entity entityMounted, Object vehicleEntity, Object module, Object seat) {
+        public EntityMount(Dist side, Entity entityMounted, PackPhysicsEntity<?, ?> vehicleEntity, SeatsModule module, BasePartSeat seat) {
             super(side, vehicleEntity);
             this.entityMounted = entityMounted;
             this.module = module;
             this.seat = seat;
         }
 
-        public EntityMount(LogicalSide side, Entity entityMounted, Object vehicleEntity, Object module, Object seat) {
+        // TODO port:1.20.1 - LogicalSide variant kept for callers using EffectiveSide / SeatsModule path.
+        public EntityMount(LogicalSide side, Entity entityMounted, PackPhysicsEntity<?, ?> vehicleEntity, SeatsModule module, BasePartSeat seat) {
             this(side == LogicalSide.CLIENT ? Dist.CLIENT : Dist.DEDICATED_SERVER, entityMounted, vehicleEntity, module, seat);
         }
     }
@@ -105,34 +114,31 @@ public class VehicleEntityEvent extends Event {
         @Getter
         private final Entity entityDismounted;
         @Getter
-        private final Object module; // TODO port:1.20.1 - SeatsModule
+        private final SeatsModule module;
         @Getter
-        private final Object seat;   // TODO port:1.20.1 - BasePartSeat
+        private final BasePartSeat seat;
 
-        public EntityDismount(Dist side, Entity entityDismounted, Object vehicleEntity, Object module, Object seat) {
+        public EntityDismount(Dist side, Entity entityDismounted, PackPhysicsEntity<?, ?> vehicleEntity, SeatsModule module, BasePartSeat seat) {
             super(side, vehicleEntity);
             this.entityDismounted = entityDismounted;
             this.module = module;
             this.seat = seat;
         }
 
-        public EntityDismount(LogicalSide side, Entity entityDismounted, Object vehicleEntity, Object module, Object seat) {
+        public EntityDismount(LogicalSide side, Entity entityDismounted, PackPhysicsEntity<?, ?> vehicleEntity, SeatsModule module, BasePartSeat seat) {
             this(side == LogicalSide.CLIENT ? Dist.CLIENT : Dist.DEDICATED_SERVER, entityDismounted, vehicleEntity, module, seat);
         }
     }
 
     /**
      * Fired when loading a vehicle from NBT.
-     *
-     * TODO port:1.20.1 - Originally inspected vehicleEntity.world.isRemote to pick a Side;
-     *   in 1.20.1 use entity.level().isClientSide. Defaults to CLIENT pending the entity port.
      */
     public static class LoadFromNBT extends VehicleEntityEvent {
         @Getter
         private final CompoundTag nbtTagCompound;
 
-        public LoadFromNBT(CompoundTag nbtTagCompound, Object vehicleEntity) {
-            super(Dist.CLIENT, vehicleEntity);
+        public LoadFromNBT(CompoundTag nbtTagCompound, BaseVehicleEntity<?> vehicleEntity) {
+            super(vehicleEntity.level().isClientSide ? Dist.CLIENT : Dist.DEDICATED_SERVER, vehicleEntity);
             this.nbtTagCompound = nbtTagCompound;
         }
     }
@@ -144,32 +150,28 @@ public class VehicleEntityEvent extends Event {
         @Getter
         private final CompoundTag nbtTagCompound;
 
-        public SaveToNBT(CompoundTag nbtTagCompound, Object vehicleEntity) {
-            super(Dist.CLIENT, vehicleEntity);
+        public SaveToNBT(CompoundTag nbtTagCompound, BaseVehicleEntity<?> vehicleEntity) {
+            super(vehicleEntity.level().isClientSide ? Dist.CLIENT : Dist.DEDICATED_SERVER, vehicleEntity);
             this.nbtTagCompound = nbtTagCompound;
         }
     }
 
     /**
-     * Fired when creating a vehicle HUD.
+     * Fired when creating a vehicle HUD (it's a gui displayed as an HUD). <br>
+     * Cancelling the event will remove DynamX components from the HUD.
      */
+    @Cancelable
     public static class CreateHud extends VehicleEntityEvent {
         @Getter
-        private final Object vehicleHud; // TODO port:1.20.1 - VehicleHud
+        private final VehicleHud vehicleHud;
         @Getter
         private final List<ResourceLocation> styleSheets;
         @Getter
         private final boolean isPlayerDriving;
         @Getter
-        private final List<Object> controllers; // TODO port:1.20.1 - List<IVehicleController>
+        private final List<IVehicleController> controllers;
 
-        // TODO port:1.20.1 - relaxed controllers to List<?> so callers can pass either List<IVehicleController> or List<Object>.
-        @SuppressWarnings({"unchecked", "rawtypes"})
-        public CreateHud(Object vehicleHUD, List<ResourceLocation> styleSheets, boolean isPlayerDriving, Object vehicleEntity, List<?> controllers) {
-            this(vehicleHUD, styleSheets, isPlayerDriving, vehicleEntity, (List<Object>) (List) controllers, true);
-        }
-
-        private CreateHud(Object vehicleHUD, List<ResourceLocation> styleSheets, boolean isPlayerDriving, Object vehicleEntity, List<Object> controllers, boolean unused) {
+        public CreateHud(VehicleHud vehicleHUD, List<ResourceLocation> styleSheets, boolean isPlayerDriving, PackPhysicsEntity<?, ?> vehicleEntity, List<IVehicleController> controllers) {
             super(Dist.CLIENT, vehicleEntity);
             this.vehicleHud = vehicleHUD;
             this.styleSheets = styleSheets;
@@ -181,13 +183,14 @@ public class VehicleEntityEvent extends Event {
     /**
      * Called on client side when the engine sounds of the entity are updated.
      */
+    @Cancelable
     public static class UpdateSounds extends VehicleEntityEvent {
         @Getter
         private final EventPhase eventPhase;
         @Getter
-        private final Object module; // TODO port:1.20.1 - BasicEngineModule
+        private final BasicEngineModule module;
 
-        public UpdateSounds(Object vehicleEntity, Object module, EventPhase phase) {
+        public UpdateSounds(BaseVehicleEntity<?> vehicleEntity, BasicEngineModule module, EventPhase phase) {
             super(Dist.CLIENT, vehicleEntity);
             this.eventPhase = phase;
             this.module = module;
@@ -197,18 +200,19 @@ public class VehicleEntityEvent extends Event {
     /**
      * Called when a vehicle's wheel is changed.
      */
+    @Cancelable
     public static class ChangeWheel extends VehicleEntityEvent {
         @Getter
         private final byte wheelPartId;
         @Getter
-        private final Object oldWheel;       // TODO port:1.20.1 - PartWheelInfo
+        private final PartWheelInfo oldWheel;
         @Getter
         @Setter
-        private Object newWheel;             // TODO port:1.20.1 - PartWheelInfo
+        private PartWheelInfo newWheel;
         @Getter
-        private final Object wheelsModule;   // TODO port:1.20.1 - WheelsModule
+        private final WheelsModule wheelsModule;
 
-        public ChangeWheel(Dist side, Object vehicleEntity, Object wheelsModule, Object oldWheel, Object newWheel, byte wheelPartId) {
+        public ChangeWheel(Dist side, BaseVehicleEntity<?> vehicleEntity, WheelsModule wheelsModule, PartWheelInfo oldWheel, PartWheelInfo newWheel, byte wheelPartId) {
             super(side, vehicleEntity);
             this.wheelsModule = wheelsModule;
             this.wheelPartId = wheelPartId;
@@ -216,19 +220,20 @@ public class VehicleEntityEvent extends Event {
             this.newWheel = newWheel;
         }
 
-        public ChangeWheel(LogicalSide side, Object vehicleEntity, Object wheelsModule, Object oldWheel, Object newWheel, byte wheelPartId) {
+        // TODO port:1.20.1 - LogicalSide variant kept for callers using EffectiveSide.get().
+        public ChangeWheel(LogicalSide side, BaseVehicleEntity<?> vehicleEntity, WheelsModule wheelsModule, PartWheelInfo oldWheel, PartWheelInfo newWheel, byte wheelPartId) {
             this(side == LogicalSide.CLIENT ? Dist.CLIENT : Dist.DEDICATED_SERVER, vehicleEntity, wheelsModule, oldWheel, newWheel, wheelPartId);
         }
     }
 
     /**
-     * Called on CarController post update.
+     * Called on {@link CarController} post update.
      */
-    public static class ControllerUpdate<T> extends VehicleEntityEvent {
+    public static class ControllerUpdate<T extends IVehicleController> extends VehicleEntityEvent {
         @Getter
         private final T controller;
 
-        public ControllerUpdate(Object vehicleEntity, T controller) {
+        public ControllerUpdate(BaseVehicleEntity<?> vehicleEntity, T controller) {
             super(Dist.CLIENT, vehicleEntity);
             this.controller = controller;
         }

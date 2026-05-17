@@ -1,264 +1,139 @@
 package fr.dynamx.client.gui;
 
-import fr.aym.acsguis.api.ACsGuiApi;
-import fr.aym.acsguis.api.ACsGuiFrame;
-import fr.aym.acsguis.component.button.GuiCheckBox;
-import fr.aym.acsguis.component.layout.GridLayout;
-import fr.aym.acsguis.component.layout.GuiScaler;
-import fr.aym.acsguis.component.panel.GuiFrame;
-import fr.aym.acsguis.component.panel.GuiPanel;
-import fr.aym.acsguis.component.panel.GuiScrollPane;
-import fr.aym.acsguis.component.textarea.GuiLabel;
-import fr.aym.acsguis.cssengine.positionning.Size;
-import fr.aym.acsguis.event.listeners.mouse.IMouseMoveListener;
-import fr.aym.acsguis.utils.GuiConstants;
-import fr.aym.acsguis.utils.GuiCssError;
-import fr.dynamx.utils.DynamXConstants;
 import fr.dynamx.utils.DynamXLoadingTasks;
 import fr.dynamx.utils.debug.DynamXDebugOption;
 import fr.dynamx.utils.debug.DynamXDebugOptions;
 import fr.dynamx.utils.errors.DynamXErrorManager;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
-import net.minecraft.resources.ResourceLocation;
-
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.Checkbox;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.network.chat.Component;
 
 /**
- * Custom debug GUI (entry point for /dynamx debug_gui).
- *
- * <p>TODO port:1.20.1 - mostly ACsGuis bindings:</p>
- * <ul>
- *   <li>{@code TextFormatting} -> {@code ChatFormatting}.</li>
- *   <li>{@code Minecraft.getMinecraft().addScheduledTask} -> {@code Minecraft.getInstance().execute}.</li>
- *   <li>{@code Minecraft.getMinecraft().displayGuiScreen} -> {@code Minecraft.getInstance().setScreen}.</li>
- *   <li>{@code net.minecraft.util.ResourceLocation} -> {@code net.minecraft.resources.ResourceLocation}.</li>
- * </ul>
+ * Ecran de debug DynamX (entree de /dynamx debug_gui). Port 1.20.1 : remplace l'ancien
+ * {@code GuiFrame} ACsGuis par un {@link Screen} vanilla. Trois sections : accueil (reload),
+ * options de debug et lien vers les erreurs.
  */
-@ACsGuiFrame
-public class NewGuiDnxDebug extends GuiFrame {
-    private final GuiPanel homePanel;
-    private final GuiLabel homeButton;
+public class NewGuiDnxDebug extends Screen {
+    private static Panel activePanel = Panel.HOME;
 
-    private final GuiScrollPane debugPanel;
-    private final GuiLabel debugButton;
-
-    private static Panel activePanel = Panel.NONE;
-
-    @ACsGuiFrame.RegisteredStyleSheet
-    public static final ResourceLocation STYLE = new ResourceLocation(DynamXConstants.ID, "css/new_dnx_debug.css");
+    private Button reloadPacksBtn;
+    private Button reloadModelsBtn;
+    private Button reloadAllBtn;
 
     public NewGuiDnxDebug() {
-        super(new GuiScaler.Identity());
-        setCssId("home");
-
-        GuiScrollPane header = new GuiScrollPane();
-        header.setCssId("header");
-        header.setLayout(new GridLayout(new Size.SizeValue(60, GuiConstants.ENUM_SIZE.ABSOLUTE),
-                new Size.SizeValue(1, GuiConstants.ENUM_SIZE.RELATIVE), new Size.SizeValue(0, GuiConstants.ENUM_SIZE.RELATIVE), GridLayout.GridDirection.VERTICAL, 1));
-        add(header);
-
-        header.add((homeButton = new GuiLabel("Home")).addClickListener((mx, my, button) -> {
-            if (button == 0)
-                setHomePanel();
-        }));
-        header.add((debugButton = new GuiLabel("Debug")).addClickListener((mx, my, button) -> {
-            if (button == 0)
-                setDebugPanel();
-        }));
-        header.add(new GuiLabel("Errors").addClickListener((mx, my, button) -> {
-            if (button == 0)
-                ACsGuiApi.asyncLoadThenShowGui("LoadingErrors", GuiLoadingErrors::new);
-        }));
-        header.add(new GuiLabel("Css").addClickListener((mx, my, button) -> {
-            if (button == 0)
-                Minecraft.getInstance().execute(() -> Minecraft.getInstance().setScreen(new GuiCssError().getGuiScreen()));
-        }));
-
-        homePanel = new GuiPanel();
-        homePanel.setCssId("homePanel").setCssClass("debug_menu_panel");
-        homePanel.setLayout(GridLayout.columnLayout(20, 5));
-        generateDebugCategory(homePanel, DynamXDebugOptions.DebugCategories.HOME);
-        GuiLabel box = new GuiLabel("Reload packs");
-        box.setCssId("reload_packs").setCssClass("reload_button");
-        box.addClickListener((x, y, bu) -> {
-            box.setEnabled(false);
-            box.setText("Reloading...");
-            DynamXLoadingTasks.reload(DynamXLoadingTasks.TaskContext.CLIENT, DynamXLoadingTasks.PACK).thenAccept(empty -> {
-                box.setEnabled(true);
-                if (DynamXErrorManager.getErrorManager().hasErrors(DynamXErrorManager.INIT_ERRORS, DynamXErrorManager.PACKS_ERRORS))
-                    box.setText(ChatFormatting.RED + "Some packs have errors");
-                else
-                    box.setText("Packs reloaded");
-            });
-        });
-        homePanel.add(box);
-        GuiLabel box2 = new GuiLabel("Reload models");
-        box2.setCssId("reload_models").setCssClass("reload_button");
-        box2.addClickListener((x, y, bu) -> {
-            box2.setEnabled(false);
-            box2.setText("Reloading...");
-            DynamXLoadingTasks.reload(DynamXLoadingTasks.TaskContext.CLIENT, DynamXLoadingTasks.MODEL).thenAccept(empty -> {
-                box2.setEnabled(true);
-                if (DynamXErrorManager.getErrorManager().hasErrors(DynamXErrorManager.MODEL_ERRORS))
-                    box2.setText(ChatFormatting.RED + "Some models have problems");
-                else
-                    box2.setText("Models reloaded");
-            });
-        });
-        homePanel.add(box2);
-        GuiLabel box3 = new GuiLabel("Reload css styles");
-        box3.setCssId("reload_css").setCssClass("reload_button");
-        box3.addClickListener((x, y, bu) -> {
-            box3.setEnabled(false);
-            box3.setText("Reloading...");
-            DynamXLoadingTasks.reload(DynamXLoadingTasks.TaskContext.CLIENT, DynamXLoadingTasks.CSS).thenAccept(empty -> {
-                box3.setEnabled(true);
-                if (DynamXErrorManager.getErrorManager().hasErrors(ACsGuiApi.getCssErrorType()))
-                    box3.setText(ChatFormatting.RED + "Some css styles have errors");
-                else
-                    box3.setText("Css styles reloaded");
-            });
-        });
-        homePanel.add(box3);
-        GuiLabel box4 = new GuiLabel("Reload all");
-        box4.setCssId("reload_all").setCssClass("reload_button");
-        box4.addClickListener((x, y, bu) -> {
-            box4.setEnabled(false);
-            box4.setText("Reloading...");
-            DynamXLoadingTasks.reload(DynamXLoadingTasks.TaskContext.CLIENT, DynamXLoadingTasks.PACK, DynamXLoadingTasks.MODEL, DynamXLoadingTasks.CSS).thenAccept(empty -> {
-                box4.setEnabled(true);
-                if (DynamXErrorManager.getErrorManager().hasErrors(DynamXErrorManager.INIT_ERRORS, DynamXErrorManager.PACKS_ERRORS, DynamXErrorManager.MODEL_ERRORS, ACsGuiApi.getCssErrorType()))
-                    box4.setText(ChatFormatting.RED + "Check the errors menu");
-                else
-                    box4.setText("Reloading finished");
-            });
-        });
-        homePanel.add(box4);
-
-        debugPanel = new GuiScrollPane();
-        debugPanel.setCssId("debugPanel").setCssClass("debug_menu_panel");
-        debugPanel.setLayout(GridLayout.columnLayout(20, 2));
-        generateDebugCategory(debugPanel, DynamXDebugOptions.DebugCategories.GENERAL);
-        generateDebugCategory(debugPanel, DynamXDebugOptions.DebugCategories.VEHICLES);
-        generateDebugCategory(debugPanel, DynamXDebugOptions.DebugCategories.TERRAIN);
-
-        switch (activePanel) {
-            case DEBUG:
-                activePanel = Panel.NONE;
-                setDebugPanel();
-                break;
-            case HOME:
-                activePanel = Panel.NONE;
-            default:
-                setHomePanel();
-        }
-
-        setEnableDebugPanel(true);
+        super(Component.literal("DynamX Debug"));
     }
 
     @Override
-    public List<ResourceLocation> getCssStyles() {
-        return Collections.singletonList(STYLE);
+    protected void init() {
+        super.init();
+        int headerY = 8;
+        int x = 8;
+        addRenderableWidget(Button.builder(Component.literal("Home"), b -> {
+            activePanel = Panel.HOME;
+            rebuild();
+        }).bounds(x, headerY, 60, 20).build());
+        addRenderableWidget(Button.builder(Component.literal("Debug"), b -> {
+            activePanel = Panel.DEBUG;
+            rebuild();
+        }).bounds(x + 64, headerY, 60, 20).build());
+        addRenderableWidget(Button.builder(Component.literal("Errors"), b -> {
+            Minecraft.getInstance().setScreen(new GuiLoadingErrors());
+        }).bounds(x + 128, headerY, 60, 20).build());
+        buildActive();
     }
 
-    @Override
-    public boolean doesPauseGame() {
-        return false;
+    private void rebuild() {
+        Minecraft.getInstance().setScreen(this);
     }
 
-    @Override
-    public boolean needsCssReload() {
-        return false;
-    }
+    private void buildActive() {
+        int startY = 40;
+        int x = 8;
+        if (activePanel == Panel.HOME) {
+            reloadPacksBtn = addRenderableWidget(Button.builder(Component.literal("Reload packs"), b -> {
+                reloadPacksBtn.active = false;
+                reloadPacksBtn.setMessage(Component.literal("Reloading..."));
+                DynamXLoadingTasks.reload(DynamXLoadingTasks.TaskContext.CLIENT, DynamXLoadingTasks.PACK).thenAccept(empty -> {
+                    reloadPacksBtn.active = true;
+                    if (DynamXErrorManager.getErrorManager().hasErrors(DynamXErrorManager.INIT_ERRORS, DynamXErrorManager.PACKS_ERRORS))
+                        reloadPacksBtn.setMessage(Component.literal(ChatFormatting.RED + "Some packs have errors"));
+                    else
+                        reloadPacksBtn.setMessage(Component.literal("Packs reloaded"));
+                });
+            }).bounds(x, startY, 160, 20).build());
 
-    protected void setHomePanel() {
-        switch (activePanel) {
-            case HOME:
-                break;
-            case DEBUG:
-                remove(debugPanel);
-            default:
-                add(homePanel);
-                homeButton.setCssClass("header_selected");
-                debugButton.setCssClass("");
-                activePanel = Panel.HOME;
-                break;
+            reloadModelsBtn = addRenderableWidget(Button.builder(Component.literal("Reload models"), b -> {
+                reloadModelsBtn.active = false;
+                reloadModelsBtn.setMessage(Component.literal("Reloading..."));
+                DynamXLoadingTasks.reload(DynamXLoadingTasks.TaskContext.CLIENT, DynamXLoadingTasks.MODEL).thenAccept(empty -> {
+                    reloadModelsBtn.active = true;
+                    if (DynamXErrorManager.getErrorManager().hasErrors(DynamXErrorManager.MODEL_ERRORS))
+                        reloadModelsBtn.setMessage(Component.literal(ChatFormatting.RED + "Some models have problems"));
+                    else
+                        reloadModelsBtn.setMessage(Component.literal("Models reloaded"));
+                });
+            }).bounds(x, startY + 24, 160, 20).build());
+
+            reloadAllBtn = addRenderableWidget(Button.builder(Component.literal("Reload all"), b -> {
+                reloadAllBtn.active = false;
+                reloadAllBtn.setMessage(Component.literal("Reloading..."));
+                DynamXLoadingTasks.reload(DynamXLoadingTasks.TaskContext.CLIENT, DynamXLoadingTasks.PACK, DynamXLoadingTasks.MODEL).thenAccept(empty -> {
+                    reloadAllBtn.active = true;
+                    if (DynamXErrorManager.getErrorManager().hasErrors(DynamXErrorManager.INIT_ERRORS, DynamXErrorManager.PACKS_ERRORS, DynamXErrorManager.MODEL_ERRORS))
+                        reloadAllBtn.setMessage(Component.literal(ChatFormatting.RED + "Check the errors menu"));
+                    else
+                        reloadAllBtn.setMessage(Component.literal("Reloading finished"));
+                });
+            }).bounds(x, startY + 48, 160, 20).build());
+            generateDebugCategory(DynamXDebugOptions.DebugCategories.HOME, startY + 80);
+        } else {
+            int y = startY;
+            y = generateDebugCategory(DynamXDebugOptions.DebugCategories.GENERAL, y);
+            y = generateDebugCategory(DynamXDebugOptions.DebugCategories.VEHICLES, y);
+            generateDebugCategory(DynamXDebugOptions.DebugCategories.TERRAIN, y);
         }
     }
 
-    protected void setDebugPanel() {
-        switch (activePanel) {
-            case DEBUG:
-                break;
-            case HOME:
-                remove(homePanel);
-            default:
-                add(debugPanel);
-                debugButton.setCssClass("header_selected");
-                homeButton.setCssClass("");
-                activePanel = Panel.DEBUG;
-                break;
-        }
-    }
-
-    protected void generateDebugCategory(GuiPanel debugPanel, DynamXDebugOptions.DebugCategories category) {
+    private int generateDebugCategory(DynamXDebugOptions.DebugCategories category, int startY) {
+        int x = 8;
+        int y = startY;
         String subCategory = null;
-        Map<DynamXDebugOption, GuiCheckBox> terrainButtons = new HashMap<>();
         for (DynamXDebugOption option : category.getOptions()) {
             if (option.getSubCategory() != null && !option.getSubCategory().equals(subCategory)) {
                 subCategory = option.getSubCategory();
-                GuiLabel label1 = new GuiLabel(subCategory + " :");
-                debugPanel.add(label1.setCssClass("option-subcategory"));
+                y += 14;
             }
-            GuiPanel line = new GuiPanel();
-            line.setCssClass("option-desc");
-            boolean active = option.isActive();
-
-            GuiCheckBox b1 = new GuiCheckBox(option.getDisplayName());
-            b1.setCheckedSymbol("");
-            if (option.getDescription() != null)
-                b1.setHoveringText(Collections.singletonList(option.getDescription()));
-            b1.setChecked(active);
-            terrainButtons.put(option, b1);
-            DynamXDebugOptions.DebugCategories finalCategory = category;
-            line.add(b1.setCssClass("switch-button-chk-" + (active ? "active" : "inactive")).addClickListener((mx, my, button) -> {
-                if (!b1.isChecked())
-                    option.disable();
-                else
-                    option.enable();
-                for (DynamXDebugOption noption : finalCategory.getOptions()) {
-                    boolean nactive = noption.isActive();
-                    terrainButtons.get(noption).setChecked(nactive);
-                    terrainButtons.get(noption).setCssClass("switch-button-chk-" + (nactive ? "active" : "inactive"));
+            Checkbox box = new Checkbox(x, y, 200, 18, Component.literal(option.getDisplayName()), option.isActive()) {
+                @Override
+                public void onPress() {
+                    super.onPress();
+                    if (selected())
+                        option.enable();
+                    else
+                        option.disable();
                 }
-            }));
-            if (option.serverRequestMask() == 0) {
-                b1.addMoveListener(new IMouseMoveListener() {
-                    @Override
-                    public void onMouseMoved(int i, int i1) {
-                    }
-
-                    @Override
-                    public void onMouseHover(int i, int i1) {
-                        if (!b1.isChecked())
-                            option.enable();
-                        else option.disable();
-                    }
-
-                    @Override
-                    public void onMouseUnhover(int i, int i1) {
-                        if (!b1.isChecked())
-                            option.disable();
-                        else option.enable();
-                    }
-                });
-            }
-            debugPanel.add(line);
+            };
+            addRenderableWidget(box);
+            y += 22;
         }
+        return y + 8;
+    }
+
+    @Override
+    public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTicks) {
+        renderBackground(graphics);
+        super.render(graphics, mouseX, mouseY, partialTicks);
+        graphics.drawString(font, getTitle(), 8, this.height - 14, 0xFFAAAAAA);
+    }
+
+    @Override
+    public boolean isPauseScreen() {
+        return false;
     }
 
     public enum Panel {

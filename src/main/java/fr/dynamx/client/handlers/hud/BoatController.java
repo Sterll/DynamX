@@ -1,16 +1,17 @@
 package fr.dynamx.client.handlers.hud;
 
-import fr.aym.acsguis.component.GuiComponent;
-import fr.aym.acsguis.component.panel.GuiPanel;
-import fr.aym.acsguis.component.textarea.UpdatableGuiLabel;
 import fr.dynamx.api.entities.IModuleContainer;
 import fr.dynamx.api.entities.VehicleEntityProperties;
 import fr.dynamx.api.events.VehicleEntityEvent;
+import fr.dynamx.client.gui.VehicleHudPart;
 import fr.dynamx.common.entities.BaseVehicleEntity;
 import fr.dynamx.common.entities.modules.engines.BoatPropellerModule;
 import fr.dynamx.utils.DynamXConstants;
 import lombok.Getter;
 import lombok.Setter;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
@@ -20,9 +21,7 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * <p>TODO port:1.20.1 - {@code MinecraftForge.EVENT_BUS} -> {@code MinecraftForge.EVENT_BUS};
- * {@code @SideOnly(Side.CLIENT)} -> {@code @OnlyIn(Dist.CLIENT)}; {@code net.minecraft.util.ResourceLocation}
- * -> {@code net.minecraft.resources.ResourceLocation}.</p>
+ * Controleur bateau (port 1.20.1). HUD vanilla : affiche uniquement la vitesse via {@link GuiGraphics}.
  */
 public class BoatController extends BaseController {
     public static final ResourceLocation STYLE = new ResourceLocation(DynamXConstants.ID, "css/vehicle_hud.css");
@@ -62,19 +61,24 @@ public class BoatController extends BaseController {
         }
     }
 
-    //HUD
-
     @Override
     @OnlyIn(Dist.CLIENT)
-    public GuiComponent createHud() {
-        GuiPanel panel = new GuiPanel();
-        GuiPanel speed = new GuiPanel();
-        speed.setCssClass("speed_pane");
-        float[] engineProperties = engine.getEngineProperties();
-        speed.add(new UpdatableGuiLabel("%s", (UpdatableGuiLabel.LabelValueFunction) val -> val.set(engine.isEngineStarted() ? (int) engineProperties[VehicleEntityProperties.EnumEngineProperties.SPEED.ordinal()] : "--", "")).setCssId("engine_speed"));
-        panel.add(speed);
-        panel.setCssId("engine_hud");
-        return panel;
+    public VehicleHudPart createHud() {
+        return new VehicleHudPart() {
+            @Override
+            public void render(GuiGraphics graphics, int screenWidth, int screenHeight, float partialTicks) {
+                Font font = Minecraft.getInstance().font;
+                float[] engineProperties = engine.getEngineProperties();
+                if (engineProperties == null)
+                    return;
+                String speedTxt = engine.isEngineStarted()
+                        ? String.valueOf((int) engineProperties[VehicleEntityProperties.EnumEngineProperties.SPEED.ordinal()])
+                        : "--";
+                int x = screenWidth - 100;
+                int y = screenHeight - 30;
+                graphics.drawString(font, speedTxt + " km/h", x, y, 0xFFFFFFFF, false);
+            }
+        };
     }
 
     @Override

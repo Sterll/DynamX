@@ -6,8 +6,8 @@ import fr.dynamx.utils.DynamXConstants;
 import net.minecraft.resources.ResourceLocation;
 
 /**
- * <p>TODO port:1.20.1 - direct port; only ResourceLocation package update
- * ({@code net.minecraft.util} -> {@code net.minecraft.resources}).</p>
+ * Compteur de vitesse : utilise la texture rpm_curve et lit le regime moteur
+ * pour piloter le remplissage. Hereditairement {@link CircleCounterPanel}.
  */
 public class SpeedometerPanel extends CircleCounterPanel {
     private final CarController carController;
@@ -21,12 +21,8 @@ public class SpeedometerPanel extends CircleCounterPanel {
     }
 
     @Override
-    public boolean tick() {
-        if (!super.tick()) {
-            return false;
-        }
+    public void tick() {
         prevValue = value;
         value = carController.engine.getEngineProperty(VehicleEntityProperties.EnumEngineProperties.REVS) * maxRevs;
-        return true;
     }
 }

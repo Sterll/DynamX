@@ -33,8 +33,12 @@ public class GuiTexturedButton extends Button {
     @Override
     protected void renderWidget(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
         super.renderWidget(guiGraphics, mouseX, mouseY, partialTick);
-        // TODO port:1.20.1 - draw the custom texture overlay:
-        //   guiGraphics.blit(texture, getX() + 2, getY() + 2, 0, 0, width - 4, height - 4, 128, 128);
-        // and on hover, guiGraphics.renderTooltip(font, getMessage(), mouseX, mouseY).
+        int ix = getX() + 2;
+        int iy = getY() + 2;
+        int iw = Math.max(0, width - 4);
+        int ih = Math.max(0, height - 4);
+        if (iw > 0 && ih > 0) {
+            guiGraphics.blit(texture, ix, iy, 0, 0, iw, ih, iw, ih);
+        }
     }
 }

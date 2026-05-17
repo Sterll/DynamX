@@ -1,102 +1,83 @@
 package fr.dynamx.client.gui;
 
 import com.jme3.math.FastMath;
-import fr.aym.acsguis.component.layout.GuiScaler;
-import fr.aym.acsguis.component.panel.GuiFrame;
-import fr.aym.acsguis.utils.ComponentRenderContext;
 import fr.dynamx.common.items.tools.ItemWrench;
 import fr.dynamx.common.items.tools.WrenchMode;
-import fr.dynamx.utils.DynamXConstants;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.resources.language.I18n;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
 
-import java.awt.Color;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-
 /**
- * Radial wrench-mode selector overlay.
- *
- * <p>TODO port:1.20.1 - the disk + sector drawing used immediate-mode {@code GL_TRIANGLE_FAN/GL_LINE_STRIP} via
- * {@code GlStateManager.glBegin/glVertex2f}. All of this is gone in core profile; the replacement requires
- * a {@code Tesselator} with a {@code BufferBuilder} setup against {@code DefaultVertexFormat.POSITION_COLOR}
- * (or a custom {@code RenderType}) and a shader. We keep the API surface and the mode-finder math but
- * stub the actual {@code drawDisk} call.</p>
- *
- * <p>Other API changes:</p>
- * <ul>
- *   <li>{@code I18n.format} -> {@link I18n#get(String, Object...)}.</li>
- *   <li>{@code mc.player.getHeldItemMainhand()} -> {@code mc.player.getMainHandItem()}.</li>
- *   <li>{@code Minecraft.getMinecraft().displayGuiScreen} -> {@code Minecraft.getInstance().setScreen}.</li>
- *   <li>{@code mc.fontRenderer.getStringWidth/FONT_HEIGHT} -> {@code mc.font.width/lineHeight}.</li>
- * </ul>
+ * Selecteur radial de mode pour la cle a molette. Port 1.20.1 : remplace l'ancien
+ * {@code GuiFrame} ACsGuis par un {@link Screen} vanilla. Le disque rendu en triangle-fan
+ * est remplace par un fond semi-transparent et un libelle centre.
  */
-public class GuiWrenchSelection extends GuiFrame {
-    private final List<String> infos = new ArrayList<>();
+public class GuiWrenchSelection extends Screen {
     private WrenchMode currentMode;
 
     public GuiWrenchSelection() {
-        super(new GuiScaler.Identity());
-        setPauseGame(false);
-
-        addClickListener((mouseX1, mouseY1, mouseButton1) -> {
-            WrenchMode wrenchMode = getModeWithMousePos(mouseX1, mouseY1);
-            WrenchMode.sendWrenchMode(wrenchMode);
-            Minecraft.getInstance().setScreen(null);
-        });
-
-        ItemStack itemStack = mc.player.getMainHandItem();
-        if (itemStack.getItem() instanceof ItemWrench) {
-            currentMode = WrenchMode.getCurrentMode(itemStack);
-        }
-    }
-
-    /**
-     * <p>TODO port:1.20.1 - body fully stubbed. Replace the immediate-mode disk + sector draws with
-     * {@code Tesselator.getInstance()} + {@code BufferBuilder.begin(VertexFormat.Mode.TRIANGLE_FAN, ...)}
-     * inside a {@code GuiGraphics} pose stack.</p>
-     */
-    public static void drawDisk(float x, float y, float innerRadius, float outerRadius, Color color, float alpha) {
-        // TODO port:1.20.1 - re-implement using Tesselator + DefaultVertexFormat.POSITION_COLOR + GameRenderer.getPositionColorShader().
+        super(Component.literal("Wrench selection"));
     }
 
     @Override
-    public void drawBackground(int mouseX, int mouseY, float partialTicks, ComponentRenderContext renderContext) {
-        super.drawBackground(mouseX, mouseY, partialTicks, renderContext);
-        drawDisk(getWidth() / 2f, getHeight() / 2f, 110, 60, Color.BLACK, 0.5f);
+    protected void init() {
+        super.init();
+        if (minecraft != null && minecraft.player != null) {
+            ItemStack itemStack = minecraft.player.getMainHandItem();
+            if (itemStack.getItem() instanceof ItemWrench) {
+                currentMode = WrenchMode.getCurrentMode(itemStack);
+            }
+        }
+    }
 
-        infos.clear();
-        WrenchMode wrenchMode = getModeWithMousePos(mouseX, mouseY);
-        infos.add(I18n.get(wrenchMode.getLabel()));
-        // TODO port:1.20.1 - GuiAPIClientHelper.drawHoveringText replaced with GuiGraphics.renderTooltip.
+    @Override
+    public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        if (button == 0) {
+            WrenchMode wrenchMode = getModeWithMousePos((int) mouseX, (int) mouseY);
+            WrenchMode.sendWrenchMode(wrenchMode);
+            Minecraft.getInstance().setScreen(null);
+            return true;
+        }
+        return super.mouseClicked(mouseX, mouseY, button);
+    }
 
-        // TODO port:1.20.1 - text overlay stubbed. Replace with GuiGraphics.drawString + Pose scale.
+    @Override
+    public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTicks) {
+        graphics.fill(0, 0, this.width, this.height, 0x88000000);
+        int cx = this.width / 2;
+        int cy = this.height / 2;
+        graphics.fill(cx - 110, cy - 110, cx + 110, cy + 110, 0x60000000);
+        WrenchMode mode = getModeWithMousePos(mouseX, mouseY);
+        String label = I18n.get(mode.getLabel());
+        graphics.drawCenteredString(font, label, cx, cy - font.lineHeight / 2, 0xFFFFFFFF);
+        if (currentMode != null) {
+            graphics.drawCenteredString(font, I18n.get("wrench.current") + " : " + I18n.get(currentMode.getLabel()), cx, cy + 20, 0xFFCCCCCC);
+        }
+        super.render(graphics, mouseX, mouseY, partialTicks);
     }
 
     private WrenchMode getModeWithMousePos(int mouseX, int mouseY) {
-        float mx = mouseX - getWidth() / 2;
-        float my = mouseY - getHeight() / 2;
+        float mx = mouseX - this.width / 2f;
+        float my = mouseY - this.height / 2f;
         int maxModes = WrenchMode.getWrenchModes().size() - 1;
+        if (maxModes <= 0)
+            return WrenchMode.getWrenchModes().get(0);
         double theta = FastMath.atan2(my, mx);
         theta += FastMath.PI / maxModes;
         theta += FastMath.PI;
         theta = theta % (FastMath.PI * 2);
 
         int mode = (int) (theta / (2 * FastMath.PI / maxModes));
-
-        return WrenchMode.getWrenchModes().get(mode == 5 ? 6 : maxModes - mode - 1);
+        int index = mode == 5 ? 6 : maxModes - mode - 1;
+        index = Math.max(0, Math.min(WrenchMode.getWrenchModes().size() - 1, index));
+        return WrenchMode.getWrenchModes().get(index);
     }
 
     @Override
-    public List<ResourceLocation> getCssStyles() {
-        return Collections.singletonList(new ResourceLocation(DynamXConstants.ID, "css/wrench_selection.css"));
-    }
-
-    @Override
-    public boolean needsCssReload() {
-        return true;
+    public boolean isPauseScreen() {
+        return false;
     }
 }

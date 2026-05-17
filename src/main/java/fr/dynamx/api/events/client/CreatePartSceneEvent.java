@@ -14,10 +14,9 @@ import javax.annotation.Nullable;
 import java.util.List;
 
 /**
- * Fired when creating the scene node of a {@link IDrawablePart}.
- *
- * <p>TODO port:1.20.1 - SceneNode.SceneRenderListener / SceneNode.SceneContainer are not yet implemented;
- *   {@link #listenPartScene(Object)} is a no-op stub until they land.
+ * Fired when creating the {@link SceneNode} of a {@link IDrawablePart}. <br>
+ * This event can be used to override the scene graph of a part. <br>
+ * You can also add a {@link SceneNode.SceneRenderListener} to the scene graph, allowing you to listen and cancel the rendering of the part.
  */
 @Getter
 @RequiredArgsConstructor
@@ -35,7 +34,7 @@ public class CreatePartSceneEvent extends Event {
      */
     private final Vector3f modelScale;
     /**
-     * The children of the part.
+     * The children of the part. Can be null if the node doesn't have any children.
      */
     @Nullable
     private final List<SceneNode<?, ?>> childGraph;
@@ -58,11 +57,13 @@ public class CreatePartSceneEvent extends Event {
     }
 
     /**
-     * Adds a listener to the scene graph that will be used to render the part.
+     * Adds a listener to the scene graph that will be used to render the part. <br>
+     * Multiple listeners can be added by addons, every listener will be called (except if one of them cancel the rendering), starting by the last added.
      *
-     * <p>TODO port:1.20.1 - SceneNode.SceneRenderListener / SceneNode.SceneContainer not yet ported.
+     * @param listener The listener to add
      */
-    public void listenPartScene(Object listener) {
-        // TODO port:1.20.1 - overrideSceneNode = new SceneNode.SceneContainer(listener, part, getSceneGraphResult());
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public void listenPartScene(SceneNode.SceneRenderListener<?, ?> listener) {
+        overrideSceneNode = new SceneNode.SceneContainer(listener, part, getSceneGraphResult());
     }
 }

@@ -1,37 +1,31 @@
 package fr.dynamx.client.handlers.hud;
 
-import fr.aym.acsguis.component.GuiComponent;
-import fr.aym.acsguis.component.panel.GuiPanel;
-import fr.aym.acsguis.component.textarea.UpdatableGuiLabel;
 import fr.dynamx.api.entities.IModuleContainer;
 import fr.dynamx.api.entities.VehicleEntityProperties;
 import fr.dynamx.api.events.VehicleEntityEvent;
+import fr.dynamx.client.gui.VehicleHudPart;
 import fr.dynamx.client.handlers.KeyHandler;
 import fr.dynamx.common.entities.BaseVehicleEntity;
 import fr.dynamx.common.entities.modules.engines.HelicopterEngineModule;
 import fr.dynamx.common.entities.vehicles.HelicopterEntity;
 import fr.dynamx.utils.DynamXConstants;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.fml.common.Mod;
 
 import java.util.Collections;
 import java.util.List;
 
 /**
- * <p>TODO port:1.20.1 - migration:</p>
- * <ul>
- *   <li>{@code @Mod.EventBusSubscriber(value = Side.CLIENT)} -> {@code @Mod.EventBusSubscriber(value = Dist.CLIENT)}.</li>
- *   <li>{@code MouseEvent} mouse-move data (event.getDx/getDy) -> {@code InputEvent.MouseScrollingEvent}
- *       doesn't carry dx/dy; the heli mouse rotation needs to be read from {@code Minecraft.getInstance().mouseHandler}
- *       via {@code MouseHandler#xpos}, {@code ypos} and tick-deltas, or from {@code MovementInputUpdateEvent}.</li>
- *   <li>{@code MC.gameSettings.invertMouse} -> {@code MC.options.invertYMouse().get()}.</li>
- *   <li>{@code MC.player.getRidingEntity()} -> {@code MC.player.getVehicle()}.</li>
- *   <li>{@code MinecraftForge.EVENT_BUS} -> {@code MinecraftForge.EVENT_BUS}; KeyBinding -> KeyMapping renames.</li>
- * </ul>
+ * Controleur helicoptere (port 1.20.1). HUD vanilla via {@link GuiGraphics}.
+ *
+ * <p>TODO port:1.20.1 - la gestion souris (anciennement {@code MouseEvent#getDx/getDy}) doit etre relue
+ * depuis {@code Minecraft#mouseHandler} dans un evenement de tick, voir {@link #tickMouse(Object)}.</p>
  */
 @Mod.EventBusSubscriber(modid = DynamXConstants.ID, value = Dist.CLIENT)
 public class HelicopterController extends BaseController {
@@ -54,21 +48,18 @@ public class HelicopterController extends BaseController {
     }
 
     /**
-     * <p>TODO port:1.20.1 - was {@code MouseEvent} which carried dx/dy. 1.20's
-     * {@code InputEvent.MouseScrollingEvent} only has the scroll delta. The mouse-pitch/roll
-     * for the heli needs to be read from {@code MovementInputUpdateEvent} or directly polled
-     * from {@code Minecraft.getInstance().mouseHandler}.</p>
+     * <p>TODO port:1.20.1 - rebrancher sur un evenement client tick pour lire {@code mouseHandler.xpos/ypos}.</p>
      */
     @OnlyIn(Dist.CLIENT)
-    public static void tickMouse(/* InputEvent.MouseScrollingEvent */ Object event) {
-        // TODO port:1.20.1 - @SubscribeEvent removed; restore once parameter is a real Event subtype.
+    public static void tickMouse(Object event) {
+        // TODO port:1.20.1 - stub en attendant d'avoir le bon evenement source.
     }
 
     @Override
     @OnlyIn(Dist.CLIENT)
     protected void updateControls() {
         HelicopterEngineModule engine = entity.getModuleByType(HelicopterEngineModule.class);
-        if (engine.getEngineProperties() != null && engine != null) {
+        if (engine != null && engine.getEngineProperties() != null) {
             if (KeyHandler.KEY_POWERUP.consumeClick() && isEngineStarted) {
                 engine.setPower(engine.getPower() + 0.05f);
             }
@@ -115,21 +106,26 @@ public class HelicopterController extends BaseController {
         }
     }
 
-    //HUD
-
     @Override
     @OnlyIn(Dist.CLIENT)
-    public GuiComponent createHud() {
-        GuiPanel panel = new GuiPanel();
-        GuiPanel speed = new GuiPanel();
-        speed.setCssClass("speed_pane");
-        float[] engineProperties = engine.getEngineProperties();
-        speed.add(new UpdatableGuiLabel("%s", (UpdatableGuiLabel.LabelValueFunction) val -> val.set(engine.isEngineStarted() ? (int) engineProperties[VehicleEntityProperties.EnumEngineProperties.SPEED.ordinal()] : "--", "")).setCssId("engine_speed"));
-        speed.add(new UpdatableGuiLabel("Power %.2f", (UpdatableGuiLabel.LabelValueFunction) val -> val.set(Math.abs(engine.getPower()))).setCssId("engine_gear"));
-        panel.add(new UpdatableGuiLabel("View locked %b", (UpdatableGuiLabel.LabelValueFunction) val -> val.set(HelicopterEntity.isMouseLocked())).setCssId("engine_gear"));
-        panel.setCssId("engine_hud");
-        panel.add(speed);
-        return panel;
+    public VehicleHudPart createHud() {
+        return new VehicleHudPart() {
+            @Override
+            public void render(GuiGraphics graphics, int screenWidth, int screenHeight, float partialTicks) {
+                Font font = Minecraft.getInstance().font;
+                float[] engineProperties = engine.getEngineProperties();
+                int x = screenWidth - 120;
+                int y = screenHeight - 50;
+                if (engineProperties != null) {
+                    String speedTxt = engine.isEngineStarted()
+                            ? String.valueOf((int) engineProperties[VehicleEntityProperties.EnumEngineProperties.SPEED.ordinal()])
+                            : "--";
+                    graphics.drawString(font, speedTxt + " km/h", x, y, 0xFFFFFFFF, false);
+                }
+                graphics.drawString(font, String.format("Power %.2f", Math.abs(engine.getPower())), x, y + 12, 0xFFFFFFFF, false);
+                graphics.drawString(font, "View locked " + HelicopterEntity.isMouseLocked(), 4, 4, 0xFFFFFFFF, false);
+            }
+        };
     }
 
     @Override
