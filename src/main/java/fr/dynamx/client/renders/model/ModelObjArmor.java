@@ -2,8 +2,10 @@ package fr.dynamx.client.renders.model;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
+import fr.dynamx.client.renders.RenderFrame;
 import fr.dynamx.client.renders.model.renderer.DxModelRenderer;
 import fr.dynamx.client.renders.scene.BaseRenderContext;
+import fr.dynamx.client.renders.scene.node.SceneNode;
 import fr.dynamx.common.contentpack.type.objects.ArmorObject;
 import lombok.Getter;
 import net.minecraft.client.model.HumanoidModel;
@@ -11,6 +13,7 @@ import net.minecraft.client.model.geom.ModelPart;
 import net.minecraft.client.model.geom.builders.CubeDeformation;
 import net.minecraft.client.model.geom.builders.LayerDefinition;
 import net.minecraft.client.model.geom.builders.MeshDefinition;
+import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.LivingEntity;
 import org.joml.Matrix4f;
@@ -81,13 +84,25 @@ public class ModelObjArmor extends HumanoidModel<LivingEntity> {
      * vanilla biped skeleton so the wiring is verifiable in-game even without GLTF/DxAnimator parts.
      */
     @Override
+    @SuppressWarnings({"rawtypes", "unchecked"})
     public void renderToBuffer(PoseStack poseStack, VertexConsumer buffer, int packedLight,
                                int packedOverlay, float r, float g, float b, float a) {
         super.renderToBuffer(poseStack, buffer, packedLight, packedOverlay, r, g, b, a);
-        // TODO port:1.20.1 - push a RenderFrame and dispatch through the ArmorNode scene graph so the
-        // pack-defined OBJ/GLTF parts get drawn. Today both ArmorNode and the OBJ ArmorRenderer are
-        // stubbed (BuildArmorScene + OBJ-loader drop), so we leave the vanilla skeleton as the only
-        // visible result of the wiring.
+        SceneNode<?, ?> sceneGraph = armorObject == null ? null : armorObject.getSceneGraph();
+        if (sceneGraph == null || model == null || activePart == null) {
+            return;
+        }
+        MultiBufferSource singleBuffer = renderType -> buffer;
+        renderContext.setModelParams(null, activePart, model, activeTextureId);
+        renderContext.setPoseStack(poseStack);
+        renderContext.setBufferSource(singleBuffer);
+        renderContext.setPackedLight(packedLight);
+        RenderFrame.push(poseStack, singleBuffer, packedLight);
+        try {
+            ((SceneNode) sceneGraph).render(renderContext, armorObject, new Matrix4f());
+        } finally {
+            RenderFrame.clear();
+        }
     }
 
     /**
