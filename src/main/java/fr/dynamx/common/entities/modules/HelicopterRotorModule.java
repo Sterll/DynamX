@@ -17,7 +17,7 @@ import net.minecraftforge.fml.LogicalSide;
  * Rotor visuals + downwash particles.
  */
 // TODO port:1.20.1 - IEntityAdditionalSpawnData replaced with ByteBuf reflection helpers on
-// ModularPhysicsEntity. EnumParticleTypes -> ParticleTypes.
+// ModularPhysicsEntity.
 public class HelicopterRotorModule implements IPhysicsModule<BaseVehiclePhysicsHandler<?>>, IPhysicsModule.IEntityUpdateListener {
     protected final BaseVehicleEntity<? extends BaseVehiclePhysicsHandler<?>> entity;
     private HelicopterEngineModule engine;
