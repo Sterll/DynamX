@@ -8,11 +8,11 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Holds collisions data of DynamX blocks in each chunk <br>
+ * Holds collisions data of DynamX blocks in each chunk.
  * Used for destroy and interaction raytracing.
  *
- * <p>In 1.20.1 NeoForge this is stored as an {@code AttachmentType} on chunks (see
- * {@link DynamXChunkDataProvider}); the legacy Forge {@code Capability} system was removed.
+ * Attached to {@link net.minecraft.world.level.chunk.LevelChunk} via the Forge 1.20.1 Capabilities
+ * system; the {@link DynamXChunkDataProvider} provides instances at chunk attach time.
  */
 public class DynamXChunkData {
     @Getter

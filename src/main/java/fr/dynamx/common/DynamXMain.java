@@ -247,11 +247,12 @@ public class DynamXMain {
         fr.dynamx.common.core.DynamXEntities.register(modBus);
         fr.dynamx.common.core.DynamXCreativeTabs.register(modBus);
 
-        // Attachment-type registration for chunk data (stubbed until Capabilities migration).
+        // Capability registration for the per-chunk DynamX collision data. Wires
+        // RegisterCapabilitiesEvent (mod bus) + AttachCapabilitiesEvent<LevelChunk> (forge bus).
         try {
             fr.dynamx.common.capability.DynamXChunkDataProvider.register(modBus);
         } catch (Throwable t) {
-            log.error("Failed to register DynamX chunk-data attachment", t);
+            log.error("Failed to register DynamX chunk-data capability", t);
         }
 
         // Client-side mod-bus event wiring (entity renderers, etc.). Loaded reflectively so the

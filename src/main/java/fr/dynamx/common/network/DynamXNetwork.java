@@ -16,113 +16,116 @@ import fr.dynamx.common.network.sync.MessagePhysicsEntitySync;
 import fr.dynamx.common.network.sync.MessageSeatsSync;
 import fr.dynamx.common.network.udp.auth.MessageDynamXUdpSettings;
 import fr.dynamx.utils.DynamXConfig;
-import fr.dynamx.utils.DynamXConstants;
 import io.netty.buffer.ByteBuf;
-import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.Entity;
 import net.minecraftforge.fml.LogicalSide;
-import net.minecraftforge.network.NetworkDirection;
-import net.minecraftforge.network.NetworkRegistry;
+import net.minecraftforge.network.PacketDistributor;
 import net.minecraftforge.network.simple.SimpleChannel;
 
-import java.util.Optional;
-import java.util.function.Supplier;
-
 /**
- * The DynamX network holding packets registry. <br>
- * In Forge 1.12 this used {@link net.minecraftforge.fml.common.network.simpleimpl.SimpleNetworkWrapper} to register
- * and dispatch messages. In NeoForge 1.20.1 message registration is performed through a
- * {@link net.minecraftforge.network.registration.PayloadRegistrar} listening to
- * {@link net.minecraftforge.network.event.RegisterPayloadHandlersEvent}, and dispatch uses
- * {@link net.minecraftforge.network.PacketDistributor}.
+ * DynamX network entry point.
  *
- * The legacy registry tables (UDP_PACKETS, getUdpPacketById, getUdpMessageId) are preserved because
- * EncapsulatedUDPPacket still uses them to map packet ids on the UDP wire.
+ * In Forge 1.12 this was a {@link net.minecraftforge.fml.common.network.simpleimpl.SimpleNetworkWrapper}
+ * wrapper. In Forge 1.20.1 we still use {@link SimpleChannel} (the NeoForge-only PayloadRegistrar
+ * is not present in MinecraftForge 47.x), but registration is centralized in {@link DynamXPayloads}.
+ * This class owns the UDP id table, jME3 packet serializers, and the dispatch helpers used
+ * elsewhere in the codebase.
  */
-// TODO port:1.20.1 - The whole SimpleNetworkWrapper machinery is gone. Once Phase 5b lands the
-// PayloadRegistrar wiring, replace the registerMessage / registerMessageWithUDP helpers with
-// playToClient / playToServer / playBidirectional calls and convert each IDnxPacket implementer
-// into a CustomPacketPayload (with StreamCodec). For now the init() method only constructs the
-// network system + populates the UDP id table so the rest of the codebase keeps compiling.
 public class DynamXNetwork {
+    /**
+     * UDP wire id to packet class. Populated below; consumed by
+     * {@link fr.dynamx.common.network.udp.EncapsulatedUDPPacket}.
+     */
     public static final BiMap<Integer, Class<? extends IDnxPacket>> UDP_PACKETS = HashBiMap.create();
 
-    private static final String PROTOCOL_VERSION = "1";
-    public static final SimpleChannel CHANNEL = NetworkRegistry.ChannelBuilder
-            .named(new ResourceLocation(DynamXConstants.ID, "main"))
-            .clientAcceptedVersions(PROTOCOL_VERSION::equals)
-            .serverAcceptedVersions(PROTOCOL_VERSION::equals)
-            .networkProtocolVersion(() -> PROTOCOL_VERSION)
-            .simpleChannel();
+    /**
+     * Alias so existing call-sites that read {@code DynamXNetwork.CHANNEL} keep compiling.
+     */
+    public static final SimpleChannel CHANNEL = DynamXPayloads.CHANNEL;
 
-    private static int id;
     private static int udpId;
+    private static boolean registered;
 
     /**
-     * Creates a new {@link IDnxNetworkSystem} for this side and registers all packets. <br>
-     * The network instance is stored in DynamXContext (not yet ported in Phase 4b).
+     * Creates the {@link IDnxNetworkSystem} for this side and, on the first call, registers every
+     * DynamX packet on {@link DynamXPayloads#CHANNEL} plus the jME3 packet serializers.
      */
-    // TODO port:1.20.1 - Side is now LogicalSide (or net.minecraftforge.api.distmarker.Dist for client/dedicated).
-    // Server-side DynamXServerNetworkSystem is part of Phase 5b (server network handlers); until then
-    // we always return a client network system on logical client and null on server.
     public static IDnxNetworkSystem init(LogicalSide side) {
         EnumNetworkType type = DynamXConfig.useUdp ? EnumNetworkType.DYNAMX_UDP : EnumNetworkType.VANILLA_TCP;
-        IDnxNetworkSystem network;
-        if (side == LogicalSide.SERVER) {
-            // TODO port:1.20.1 - swap for DynamXServerNetworkSystem when UDP server lands.
-            network = new fr.dynamx.server.network.DynamXServerNetworkSystem(type);
-        } else {
-            network = new DynamXClientNetworkSystem(type);
+
+        if (!registered) {
+            registerPackets();
+            registerSerializers();
+            registered = true;
         }
-        // TODO port:1.20.1 - getChannel() returns null in 1.20.1; the legacy `channel` variable is unused.
 
-        // The block below documents the legacy registration order so the UDP packet ids
-        // match the server side once both ends are ported. Each call is replaced by a TODO and
-        // simply populates the UDP_PACKETS BiMap when the legacy registerMessageWithUDP was used.
+        if (side == LogicalSide.SERVER) {
+            return new fr.dynamx.server.network.DynamXServerNetworkSystem(type);
+        }
+        return new DynamXClientNetworkSystem(type);
+    }
 
-        //Udp packets
+    /**
+     * Registers every DynamX packet on the SimpleChannel. Order must match between client and
+     * server because SimpleChannel is index-based; both sides walk this method body.
+     */
+    private static void registerPackets() {
+        // UDP packets (also flow over the TCP fallback). The UDP id assignment must follow the
+        // legacy order so saved-state and existing remote clients wire up identically.
 
-        //Bi-way
+        // Bi-way
         registerMessageWithUDP(MessagePhysicsEntitySync.class, LogicalSide.CLIENT, LogicalSide.SERVER);
         registerMessageWithUDP(MessageMultiPhysicsEntitySync.class, LogicalSide.CLIENT, LogicalSide.SERVER);
         registerMessageWithUDP(MessagePing.class, LogicalSide.SERVER, LogicalSide.CLIENT);
         registerMessageWithUDP(MessageWalkingPlayer.class, LogicalSide.CLIENT, LogicalSide.SERVER);
 
-        //To server
+        // To server
         registerMessageWithUDP(MessageRequestFullEntitySync.class, LogicalSide.SERVER);
 
-        //Standard packets
+        // Standard packets
 
-        //Bi-way
-        registerMessage(MessageQueryChunks.class, LogicalSide.CLIENT, LogicalSide.SERVER);
-        registerMessage(MessageOpenDebugGui.class, LogicalSide.SERVER, LogicalSide.CLIENT);
+        // Bi-way
+        DynamXPayloads.register(MessageQueryChunks.class, LogicalSide.CLIENT, LogicalSide.SERVER);
+        DynamXPayloads.register(MessageOpenDebugGui.class, LogicalSide.SERVER, LogicalSide.CLIENT);
 
-        //To client
-        registerMessage(MessageDynamXUdpSettings.class, LogicalSide.CLIENT);
-        registerMessage(MessageSyncConfig.class, LogicalSide.CLIENT);
-        registerMessage(MessagePacksHashs.class, LogicalSide.CLIENT);
-        registerMessage(MessageSeatsSync.class, LogicalSide.CLIENT);
-        registerMessage(MessageUpdateChunk.class, LogicalSide.CLIENT);
-        registerMessage(MessageChunkData.class, LogicalSide.CLIENT);
-        registerMessage(MessageForcePlayerPos.class, LogicalSide.CLIENT);
-        registerMessage(MessageJoints.class, LogicalSide.CLIENT);
-        registerMessage(MessageSyncPlayerPicking.class, LogicalSide.CLIENT);
-        registerMessage(MessageSwitchAutoSlopesMode.class, LogicalSide.CLIENT);
-        registerMessage(MessageCollisionDebugDraw.class, LogicalSide.CLIENT);
-        registerMessage(MessageCollisionDebugDraw.class, LogicalSide.CLIENT);
-        registerMessage(MessageHandleExplosion.class, LogicalSide.CLIENT);
+        // To client
+        DynamXPayloads.register(MessageDynamXUdpSettings.class, LogicalSide.CLIENT);
+        DynamXPayloads.register(MessageSyncConfig.class, LogicalSide.CLIENT);
+        DynamXPayloads.register(MessagePacksHashs.class, LogicalSide.CLIENT, LogicalSide.SERVER);
+        DynamXPayloads.register(MessageSeatsSync.class, LogicalSide.CLIENT);
+        DynamXPayloads.register(MessageUpdateChunk.class, LogicalSide.CLIENT);
+        DynamXPayloads.register(MessageChunkData.class, LogicalSide.CLIENT);
+        DynamXPayloads.register(MessageForcePlayerPos.class, LogicalSide.CLIENT);
+        DynamXPayloads.register(MessageJoints.class, LogicalSide.CLIENT);
+        DynamXPayloads.register(MessageSyncPlayerPicking.class, LogicalSide.CLIENT);
+        DynamXPayloads.register(MessageSwitchAutoSlopesMode.class, LogicalSide.CLIENT);
+        DynamXPayloads.register(MessageCollisionDebugDraw.class, LogicalSide.CLIENT);
+        DynamXPayloads.register(MessageHandleExplosion.class, LogicalSide.CLIENT);
 
-        //To server
-        registerMessage(MessagePacksHashs.class, LogicalSide.SERVER);
-        registerMessage(MessageEntityInteract.class, LogicalSide.SERVER);
-        registerMessage(MessagePickObject.class, LogicalSide.SERVER);
-        registerMessage(MessageChangeDoorState.class, LogicalSide.SERVER);
-        registerMessage(MessageSyncBlockCustomization.class, LogicalSide.SERVER);
-        registerMessage(MessageSlopesConfigGui.class, LogicalSide.SERVER);
-        registerMessage(MessageDebugRequest.class, LogicalSide.SERVER);
-        registerMessage(MessageAttachTrailer.class, LogicalSide.SERVER);
+        // To server
+        DynamXPayloads.register(MessageEntityInteract.class, LogicalSide.SERVER);
+        DynamXPayloads.register(MessagePickObject.class, LogicalSide.SERVER);
+        DynamXPayloads.register(MessageChangeDoorState.class, LogicalSide.SERVER);
+        DynamXPayloads.register(MessageSyncBlockCustomization.class, LogicalSide.SERVER);
+        DynamXPayloads.register(MessageSlopesConfigGui.class, LogicalSide.SERVER);
+        DynamXPayloads.register(MessageDebugRequest.class, LogicalSide.SERVER);
+        DynamXPayloads.register(MessageAttachTrailer.class, LogicalSide.SERVER);
+    }
 
-        //Packet serializers (jME3 Vector3f / Quaternion adapters used by acslib's PacketSerializer)
+    /**
+     * Same as {@link DynamXPayloads#register} but also assigns a UDP-wire id used by
+     * {@link fr.dynamx.common.network.udp.EncapsulatedUDPPacket}.
+     */
+    private static void registerMessageWithUDP(Class<? extends IDnxPacket> message, LogicalSide... sides) {
+        if (udpId > 245)
+            throw new RuntimeException("There is too many packets, limit is 245 for the UDP !");
+        DynamXPayloads.register(message, sides);
+        UDP_PACKETS.put(udpId, message);
+        udpId++;
+    }
+
+    private static void registerSerializers() {
         PacketSerializer.addCustomSerializer(new PacketDataSerializer<Vector3f>() {
             @Override
             public Class<Vector3f> objectType() {
@@ -160,72 +163,6 @@ public class DynamXNetwork {
                 return new Quaternion(byteBuf.readFloat(), byteBuf.readFloat(), byteBuf.readFloat(), byteBuf.readFloat());
             }
         });
-
-        return network;
-    }
-
-    /**
-     * Registers a packet on the SimpleChannel. The channel is bi-directional; the side argument
-     * controls the direction Forge enforces (a CLIENT receiver means the packet flows to client).
-     */
-    private static <T extends IDnxPacket> void registerMessage(Class<T> message, LogicalSide... sides) {
-        for (LogicalSide side : sides) {
-            NetworkDirection direction = side == LogicalSide.CLIENT
-                    ? NetworkDirection.PLAY_TO_CLIENT
-                    : NetworkDirection.PLAY_TO_SERVER;
-            CHANNEL.messageBuilder(message, id++, direction)
-                    .encoder((msg, buf) -> msg.toBytes(buf))
-                    .decoder(buf -> newPacket(message, buf))
-                    .consumerMainThread((msg, ctxSupplier) -> {
-                        net.minecraftforge.network.NetworkEvent.Context ctx = ctxSupplier.get();
-                        try {
-                            net.minecraft.world.entity.player.Player player;
-                            LogicalSide receiveSide;
-                            if (ctx.getDirection().getReceptionSide().isServer()) {
-                                player = ctx.getSender();
-                                receiveSide = LogicalSide.SERVER;
-                            } else {
-                                player = net.minecraftforge.fml.loading.FMLEnvironment.dist
-                                        == net.minecraftforge.api.distmarker.Dist.CLIENT
-                                        ? ClientNetworkBridge.getLocalPlayer()
-                                        : null;
-                                receiveSide = LogicalSide.CLIENT;
-                            }
-                            // PhysicsEntityMessage subclasses already implement handleUDPReceive
-                            // via processMessage; other packets default to a no-op until ported.
-                            msg.handleUDPReceive(player, receiveSide);
-                        } catch (UnsupportedOperationException expected) {
-                            // Packet hasn't been ported yet — drop silently.
-                        } catch (Throwable t) {
-                            org.apache.logging.log4j.LogManager.getLogger("DynamX")
-                                    .error("Failed to handle packet " + message.getSimpleName(), t);
-                        }
-                        ctx.setPacketHandled(true);
-                    })
-                    .add();
-        }
-    }
-
-    private static <T extends IDnxPacket> T newPacket(Class<T> message, FriendlyByteBuf buf) {
-        try {
-            T packet = message.getDeclaredConstructor().newInstance();
-            packet.fromBytes(buf);
-            return packet;
-        } catch (ReflectiveOperationException e) {
-            throw new RuntimeException("Failed to instantiate DynamX packet " + message.getName(), e);
-        }
-    }
-
-    /**
-     * Same as {@link #registerMessage} but also assigns a UDP-wire id used by
-     * {@link fr.dynamx.common.network.udp.EncapsulatedUDPPacket}.
-     */
-    private static void registerMessageWithUDP(Class<? extends IDnxPacket> message, LogicalSide... sides) {
-        if (udpId > 245)
-            throw new RuntimeException("There is too many packets, limit is 245 for the UDP !");
-        registerMessage(message, sides);
-        UDP_PACKETS.put(udpId, message);
-        udpId++;
     }
 
     public static IDnxPacket getUdpPacketById(int id) {
@@ -245,15 +182,15 @@ public class DynamXNetwork {
         CHANNEL.sendToServer(msg);
     }
 
-    public static void sendTo(IDnxPacket msg, net.minecraft.server.level.ServerPlayer player) {
-        CHANNEL.send(net.minecraftforge.network.PacketDistributor.PLAYER.with(() -> player), msg);
+    public static void sendTo(IDnxPacket msg, ServerPlayer player) {
+        CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), msg);
     }
 
     public static void sendToAll(IDnxPacket msg) {
-        CHANNEL.send(net.minecraftforge.network.PacketDistributor.ALL.noArg(), msg);
+        CHANNEL.send(PacketDistributor.ALL.noArg(), msg);
     }
 
-    public static void sendToAllTracking(IDnxPacket msg, net.minecraft.world.entity.Entity entity) {
-        CHANNEL.send(net.minecraftforge.network.PacketDistributor.TRACKING_ENTITY.with(() -> entity), msg);
+    public static void sendToAllTracking(IDnxPacket msg, Entity entity) {
+        CHANNEL.send(PacketDistributor.TRACKING_ENTITY.with(() -> entity), msg);
     }
 }

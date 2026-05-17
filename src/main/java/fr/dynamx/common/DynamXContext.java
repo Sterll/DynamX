@@ -178,30 +178,4 @@ public class DynamXContext {
         return DX_MODEL_DATA_CACHE;
     }
 
-    /**
-     * Tiny accessor so we can call the {@code protected} {@link CommonProxy#dimensionKey(Level)}
-     * shim from this class. Once {@code PHYSICS_WORLD_PER_DIMENSION} is re-keyed to
-     * {@code ResourceKey<Level>}, this can go.
-     */
-    /**
-     * Tiny accessor exposing the package-protected {@link CommonProxy#dimensionKey(Level)} static
-     * shim. Cannot use override because the original is static; a subclass is used purely for
-     * package-visibility access until {@code PHYSICS_WORLD_PER_DIMENSION} is re-keyed.
-     */
-    private static final class CommonProxyDimensionAccessor extends CommonProxy {
-        // TODO port:1.20.1 - kept only so this class lives in the right package; once
-        // PHYSICS_WORLD_PER_DIMENSION is keyed by ResourceKey<Level>, drop this entirely.
-        @Override
-        public boolean ownsSimulation(PhysicsEntity<?> entity) {
-            return false;
-        }
-
-        @Override
-        public void scheduleTask(Level mcWorld, Runnable task) {
-        }
-
-        @Override
-        public void schedulePacksInit() {
-        }
-    }
 }
