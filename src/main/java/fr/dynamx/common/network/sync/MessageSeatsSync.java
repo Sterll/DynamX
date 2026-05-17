@@ -1,12 +1,19 @@
 package fr.dynamx.common.network.sync;
 
+import fr.dynamx.api.entities.IModuleContainer;
+import fr.dynamx.common.DynamXContext;
+import fr.dynamx.common.contentpack.parts.BasePartSeat;
 import fr.dynamx.common.entities.PhysicsEntity;
+import fr.dynamx.common.entities.modules.SeatsModule;
 import fr.dynamx.common.network.packets.PhysicsEntityMessage;
 import io.netty.buffer.ByteBuf;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
 
 import java.util.HashMap;
 import java.util.Map;
+
+import static fr.dynamx.common.DynamXMain.log;
 
 public class MessageSeatsSync extends PhysicsEntityMessage<MessageSeatsSync> {
     private final Map<Byte, Integer> seatToEntity = new HashMap<>();
@@ -15,17 +22,15 @@ public class MessageSeatsSync extends PhysicsEntityMessage<MessageSeatsSync> {
         super(null);
     }
 
-    // TODO port:1.20.1 - Originally IModuleContainer.ISeatsContainer (not yet ported, Phase 8).
-    // Relaxed parameter to Object to keep API surface; receive helper handles real container later.
-    public MessageSeatsSync(Object vehicleEntity) {
-        super(extractEntity(vehicleEntity));
-        // TODO port:1.20.1 - Populate seatToEntity once ISeatsContainer + BasePartSeat are ported.
-    }
-
-    private static PhysicsEntity<?> extractEntity(Object vehicleEntity) {
-        // TODO port:1.20.1 - Real impl: ((ISeatsContainer) vehicleEntity).cast() returns PhysicsEntity<?>.
-        if (vehicleEntity instanceof PhysicsEntity) return (PhysicsEntity<?>) vehicleEntity;
-        return null;
+    public MessageSeatsSync(IModuleContainer.ISeatsContainer vehicleEntity) {
+        super((PhysicsEntity<?>) vehicleEntity.cast());
+        Object seatsObj = vehicleEntity.getSeats();
+        if (seatsObj instanceof SeatsModule) {
+            SeatsModule seats = (SeatsModule) seatsObj;
+            for (Map.Entry<BasePartSeat, Entity> e : seats.getSeatToPassengerMap().entrySet()) {
+                seatToEntity.put(e.getKey().getId(), e.getValue().getId());
+            }
+        }
     }
 
     @Override
@@ -38,7 +43,16 @@ public class MessageSeatsSync extends PhysicsEntityMessage<MessageSeatsSync> {
 
     @Override
     protected void processMessageClient(PhysicsEntityMessage<?> message, PhysicsEntity<?> entity, Player player) {
-        // TODO port:1.20.1 - Re-port using ISeatsContainer#getSeats#updateSeats + DynamXContext.getPhysicsWorld.
+        if (!(entity instanceof IModuleContainer.ISeatsContainer) || !((IModuleContainer.ISeatsContainer) entity).hasSeats()) {
+            if (entity != null) {
+                log.error("Received seats packet for an entity that have no seats! Entity: {}", entity);
+            }
+            return;
+        }
+        Object seatsObj = ((IModuleContainer.ISeatsContainer) entity).getSeats();
+        if (!(seatsObj instanceof SeatsModule)) return;
+        SeatsModule seats = (SeatsModule) seatsObj;
+        DynamXContext.getPhysicsWorld(entity.level()).schedule(() -> seats.updateSeats((MessageSeatsSync) message, entity.getSynchronizer()));
     }
 
     @Override

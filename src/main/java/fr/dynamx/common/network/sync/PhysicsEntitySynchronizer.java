@@ -5,9 +5,9 @@ import fr.dynamx.api.network.sync.EntityVariable;
 import fr.dynamx.api.network.sync.SimulationHolder;
 import fr.dynamx.api.network.sync.SyncTarget;
 import fr.dynamx.api.network.sync.SynchronizedEntityVariableRegistry;
+import fr.dynamx.common.entities.ModularPhysicsEntity;
 import fr.dynamx.common.entities.PhysicsEntity;
 import fr.dynamx.common.network.sync.variables.SynchronizedEntityVariableSnapshot;
-// TODO port:1.20.1 - fr.dynamx.utils.debug.Profiler not yet ported; relax to Object until Phase 4b.
 import fr.dynamx.utils.optimization.HashMapPool;
 import fr.dynamx.utils.optimization.PooledHashMap;
 import lombok.Getter;
@@ -93,26 +93,27 @@ public abstract class PhysicsEntitySynchronizer<T extends PhysicsEntity<?>> {
     public void setSimulationHolder(SimulationHolder simulationHolder, Player simulationPlayerHolder, SimulationHolder.UpdateContext changeContext) {
         this.simulationHolder = simulationHolder;
         this.simulationPlayerHolder = simulationPlayerHolder;
-        // TODO port:1.20.1 - entity.getJointsHandler() not yet ported (Phase 7 — physics joints).
-        // if (changeContext != SimulationHolder.UpdateContext.ATTACHED_ENTITIES && entity.getJointsHandler() != null) {
-        //     entity.getJointsHandler().setSimulationHolderOnJointedEntities(simulationHolder, simulationPlayerHolder);
-        // }
-        // TODO port:1.20.1 - ModularPhysicsEntity#getModules / IPhysicsModule#onSetSimulationHolder hook
-        // — restore once Phase 8 modules are ported.
+        if (changeContext != SimulationHolder.UpdateContext.ATTACHED_ENTITIES && entity.getJointsHandler() != null) {
+            entity.getJointsHandler().setSimulationHolderOnJointedEntities(simulationHolder, simulationPlayerHolder);
+        }
+        if (entity instanceof ModularPhysicsEntity) {
+            ((ModularPhysicsEntity<?>) entity).getModules().forEach(m -> m.onSetSimulationHolder(simulationHolder, simulationPlayerHolder, changeContext));
+        }
     }
 
     public void resyncEntity(ServerPlayer target) {
-        PooledHashMap<Integer, EntityVariable<?>> vars = getVarsToSync(LogicalSide.SERVER, SyncTarget.ALL_CLIENTS);
-        if (vars.isEmpty()) {
-            vars.release();
-            return;
-        }
         int simulationTimeClient = fr.dynamx.server.network.ServerPhysicsSyncManager.getTime(target);
         MessagePhysicsEntitySync<PhysicsEntity<?>> msg = new MessagePhysicsEntitySync<>(
-                (PhysicsEntity<?>) entity, simulationTimeClient, vars, true);
+                (PhysicsEntity<?>) entity, simulationTimeClient, synchronizedVariables, false);
         fr.dynamx.common.network.DynamXNetwork.sendTo(msg, target);
-        // TODO port:1.20.1 - Joints sync (MessageJoints) + Seats sync (MessageSeatsSync) need their
-        // own port work before being re-broadcast here.
+        if (entity instanceof fr.dynamx.api.entities.IModuleContainer.ISeatsContainer
+                && ((fr.dynamx.api.entities.IModuleContainer.ISeatsContainer) entity).hasSeats()) {
+            fr.dynamx.common.network.DynamXNetwork.sendTo(
+                    new MessageSeatsSync((fr.dynamx.api.entities.IModuleContainer.ISeatsContainer) entity), target);
+        }
+        if (entity.getJointsHandler() != null) {
+            entity.getJointsHandler().sync(target);
+        }
     }
 
     public PooledHashMap<Integer, EntityVariable<?>> getVarsToSync(LogicalSide fromSide, SyncTarget target) {
