@@ -305,7 +305,7 @@ public class ModularVehicleInfo extends AbstractItemObject<ModularVehicleInfo, M
     public byte getIdForVariant(String variantName) {
         if (variants != null) {
             for (byte i = 0; i < variants.getVariantsMap().size(); i++) {
-                if (String.valueOf(variants.getVariantsMap().get(i)).equalsIgnoreCase(variantName))
+                if (variants.getVariantsMap().get(i).getName().equalsIgnoreCase(variantName))
                     return i;
             }
         }
@@ -314,14 +314,14 @@ public class ModularVehicleInfo extends AbstractItemObject<ModularVehicleInfo, M
 
     public String getVariantName(byte variantId) {
         if (variants != null) {
-            return String.valueOf(variants.getVariantsMap().getOrDefault(variantId, variants.getDefaultVariant()));
+            return variants.getVariantsMap().getOrDefault(variantId, variants.getDefaultVariant()).getName();
         }
         return "default";
     }
 
     @Override
     public String getIconFileName(byte metadata) {
-        return variants != null ? String.valueOf(variants.getVariantsMap().get(metadata)) : super.getIconFileName(metadata);
+        return variants != null ? variants.getVariantsMap().get(metadata).getName() : super.getIconFileName(metadata);
     }
 
     /**
