@@ -4,9 +4,6 @@ import fr.dynamx.api.audio.EnumSoundState;
 import fr.dynamx.common.entities.BaseVehicleEntity;
 import fr.dynamx.common.entities.modules.engines.BasicEngineModule;
 
-/**
- * <p>TODO port:1.20.1 - direct port; only {@code entity.isDead} -> {@code !entity.isAlive()}.</p>
- */
 public class EngineSound extends VehicleSound {
     private final BasicEngineModule engine;
     private final fr.dynamx.common.contentpack.type.vehicle.EngineSound soundIn;

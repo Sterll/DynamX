@@ -9,21 +9,6 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.Vec3;
 
-/**
- * <p>TODO port:1.20.1 - light migration:</p>
- * <ul>
- *   <li>{@code EntityPlayer} -> {@code Player}.</li>
- *   <li>{@code Vec3d} -> {@code Vec3}.</li>
- *   <li>{@code Minecraft.getMinecraft()} -> {@code Minecraft.getInstance()}.</li>
- *   <li>{@code Minecraft.isGamePaused()} -> {@code Minecraft.isPaused()}.</li>
- *   <li>{@code player.posX/Y/Z} -> {@code player.getX()/getY()/getZ()}.</li>
- *   <li>{@code entity.motionX/Y/Z} -> {@code entity.getDeltaMovement().x/y/z}.</li>
- *   <li>{@code player.getRidingEntity()} -> {@code player.getVehicle()}.</li>
- *   <li>{@code entity.isDead} -> {@code !entity.isAlive()}.</li>
- *   <li>{@code entity.getPositionVector()} -> {@code entity.position()}.</li>
- *   <li>{@code entity.getEntityId()} -> {@code entity.getId()}.</li>
- * </ul>
- */
 public abstract class VehicleSound implements IDynamXSound {
     protected final BaseVehicleEntity<?> vehicleEntity;
     protected final Player player;

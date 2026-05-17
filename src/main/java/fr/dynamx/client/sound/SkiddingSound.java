@@ -4,9 +4,6 @@ import fr.dynamx.common.contentpack.parts.PartWheel;
 import fr.dynamx.common.entities.BaseVehicleEntity;
 import fr.dynamx.common.entities.modules.WheelsModule;
 
-/**
- * <p>TODO port:1.20.1 - direct port, no API changes.</p>
- */
 public class SkiddingSound extends VehicleSound {
     private final WheelsModule wheelsModule;
     private boolean playing;

@@ -5,9 +5,6 @@ import fr.dynamx.api.entities.VehicleEntityProperties;
 import fr.dynamx.common.entities.BaseVehicleEntity;
 import fr.dynamx.common.entities.modules.engines.BasicEngineModule;
 
-/**
- * <p>TODO port:1.20.1 - direct port, no API changes.</p>
- */
 public class ReversingSound extends VehicleSound {
     private final BasicEngineModule engine;
     private final boolean isInterior;
