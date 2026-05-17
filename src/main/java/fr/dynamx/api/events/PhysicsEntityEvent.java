@@ -1,5 +1,12 @@
 package fr.dynamx.api.events;
 
+import fr.dynamx.api.entities.modules.IPhysicsModule;
+import fr.dynamx.client.renders.RenderPhysicsEntity;
+import fr.dynamx.client.renders.scene.node.SceneNode;
+import fr.dynamx.common.entities.ModularPhysicsEntity;
+import fr.dynamx.common.entities.PhysicsEntity;
+import fr.dynamx.common.items.DynamXItemSpawner;
+import fr.dynamx.utils.debug.renderer.DebugRenderer;
 import lombok.Getter;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Entity;
@@ -7,57 +14,51 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.eventbus.api.Event;
 import net.minecraftforge.eventbus.api.Cancelable;
+import net.minecraftforge.eventbus.api.Event;
+import net.minecraftforge.eventbus.api.GenericEvent;
+import net.minecraftforge.eventbus.api.IGenericEvent;
 
 import javax.annotation.Nullable;
+import java.lang.reflect.Type;
 import java.util.List;
 
 /**
  * Physics entity events.
- *
- * TODO port:1.20.1 - PhysicsEntity / ModularPhysicsEntity / IPhysicsModule / DynamXItemSpawner /
- *   RenderPhysicsEntity / DebugRenderer / SceneNode all live in not-yet-ported packages
- *   (Phases 6 / 7). Their references are typed as Object to keep the API compilable; tighten
- *   when those packages are ported.
- * TODO port:1.20.1 - net.minecraftforge.fml.common.eventhandler.GenericEvent / IGenericEvent
- *   were removed in NeoForge 1.20.1; the InitRenderer / CreateModules classes that used them
- *   are kept as plain events here without the generic-type filtering. Bus listeners that relied
- *   on filtering will need to be updated.
  */
-@Cancelable
 public class PhysicsEntityEvent extends Event {
     @Getter
     private final Dist side;
-    private final Object physicsEntity;
+    private final PhysicsEntity<?> physicsEntity;
 
-    public PhysicsEntityEvent(Dist side, Object physicsEntity) {
+    public PhysicsEntityEvent(Dist side, PhysicsEntity<?> physicsEntity) {
         this.physicsEntity = physicsEntity;
         this.side = side;
     }
 
-    public Object getEntity() {
+    public PhysicsEntity<?> getEntity() {
         return physicsEntity;
     }
 
     /**
      * Fired when an entity is being spawned
      */
+    @Cancelable
     public static class Spawn extends PhysicsEntityEvent {
 
         @Getter
-        private final Object physicsEntity;
+        private final PhysicsEntity<?> physicsEntity;
         @Getter
         private final Level world;
         @Getter
         @Nullable
         private final Player player;
         @Getter
-        private final Object itemSpawner; // TODO port:1.20.1 - DynamXItemSpawner<?>
+        private final DynamXItemSpawner<?> itemSpawner;
         @Getter
         private final Vec3 pos;
 
-        public Spawn(Level world, Object physicsEntity, Player player, Object item, Vec3 pos) {
+        public Spawn(Level world, PhysicsEntity<?> physicsEntity, Player player, DynamXItemSpawner<?> item, Vec3 pos) {
             super(Dist.DEDICATED_SERVER, physicsEntity);
             this.world = world;
             this.physicsEntity = physicsEntity;
@@ -70,13 +71,14 @@ public class PhysicsEntityEvent extends Event {
     /**
      * Fired on server side when a player tries to kill a physics entity
      */
+    @Cancelable
     public static class Attacked extends PhysicsEntityEvent {
         @Getter
         private final Entity sourceEntity;
         @Getter
         private final DamageSource damageSource;
 
-        public Attacked(Object physicsEntity, Entity sourceEntity, DamageSource damageSource) {
+        public Attacked(PhysicsEntity<?> physicsEntity, Entity sourceEntity, DamageSource damageSource) {
             super(Dist.DEDICATED_SERVER, physicsEntity);
             this.sourceEntity = sourceEntity;
             this.damageSource = damageSource;
@@ -90,7 +92,7 @@ public class PhysicsEntityEvent extends Event {
         @Getter
         private final boolean usesPhysics;
 
-        public Init(Dist side, Object physicsEntity, boolean usesPhysics) {
+        public Init(Dist side, PhysicsEntity<?> physicsEntity, boolean usesPhysics) {
             super(side, physicsEntity);
             this.usesPhysics = usesPhysics;
         }
@@ -105,7 +107,7 @@ public class PhysicsEntityEvent extends Event {
         @Getter
         private final boolean simulatePhysics;
 
-        public Update(Dist side, Object physicsEntity, UpdateType type, boolean simulatePhysics) {
+        public Update(Dist side, PhysicsEntity<?> physicsEntity, UpdateType type, boolean simulatePhysics) {
             super(side, physicsEntity);
             this.type = type;
             this.simulatePhysics = simulatePhysics;
@@ -115,36 +117,26 @@ public class PhysicsEntityEvent extends Event {
     /**
      * Called when the renderer on an entity is created.
      *
-     * TODO port:1.20.1 - GenericEvent removed in NeoForge 1.20.1. Filtering by generic type is
-     *   no longer supported; addons must filter manually.
-     *
-     * @deprecated The debug should be rendered using the new SceneNodes system
+     * @see DebugRenderer
+     * @see RenderPhysicsEntity
+     * @deprecated The debug should be rendered using the new {@link SceneNode}s system
      */
     @Deprecated
-    public static class InitRenderer extends Event {
-        /**
-         * The renderer for this type of entity. TODO port:1.20.1 - RenderPhysicsEntity is in Phase 7.
-         */
+    public static class InitRenderer<T extends PhysicsEntity> extends GenericEvent<T> {
         @Getter
-        private final Object renderer;
-        @Getter
-        private final Class<?> type;
+        private final RenderPhysicsEntity<?> renderer;
 
-        public InitRenderer(Class<?> type, Object renderer) {
-            this.type = type;
+        public InitRenderer(Class<T> type, RenderPhysicsEntity<?> renderer) {
+            super(type);
             this.renderer = renderer;
         }
 
         /**
-         * Adds the debug renders to the list of the entity renderer.
-         *
-         * TODO port:1.20.1 - DebugRenderer is in fr.dynamx.utils.debug.renderer (not yet ported).
-         *
-         * @deprecated The debug should be rendered using the new SceneNodes system
+         * @deprecated The debug should be rendered using the new {@link SceneNode}s system
          */
         @Deprecated
-        public void addDebugRenderers(Object... renderers) {
-            // TODO port:1.20.1 - this.renderer.addDebugRenderers(renderers);
+        public void addDebugRenderers(DebugRenderer<?>... renderers) {
+            this.renderer.addDebugRenderers(renderers);
         }
     }
 
@@ -152,7 +144,7 @@ public class PhysicsEntityEvent extends Event {
      * Fired each tick when a physics entity is updated, on server side
      */
     public static class ServerUpdate extends Update {
-        public ServerUpdate(Object physicsEntity, UpdateType type, boolean simulatePhysics) {
+        public ServerUpdate(PhysicsEntity<?> physicsEntity, UpdateType type, boolean simulatePhysics) {
             super(Dist.DEDICATED_SERVER, physicsEntity, type, simulatePhysics);
         }
     }
@@ -161,7 +153,7 @@ public class PhysicsEntityEvent extends Event {
      * Fired each tick when a physics entity is updated, on client side
      */
     public static class ClientUpdate extends Update {
-        public ClientUpdate(Object physicsEntity, UpdateType type, boolean simulatePhysics) {
+        public ClientUpdate(PhysicsEntity<?> physicsEntity, UpdateType type, boolean simulatePhysics) {
             super(Dist.CLIENT, physicsEntity, type, simulatePhysics);
         }
     }
@@ -178,16 +170,15 @@ public class PhysicsEntityEvent extends Event {
     /**
      * Called when the module list of a vehicle is created.
      *
-     * TODO port:1.20.1 - IGenericEvent removed in NeoForge 1.20.1; the &lt;T&gt; generic kept as
-     *   plain type parameter, but no automatic filtering by type happens anymore.
-     *   IPhysicsModule and ModularPhysicsEntity are in Phase 6, typed as Object until then.
+     * @see IPhysicsModule
+     * @see ModularPhysicsEntity
      */
-    public static class CreateModules<T> extends PhysicsEntityEvent {
+    public static class CreateModules<T extends ModularPhysicsEntity> extends PhysicsEntityEvent implements IGenericEvent<T> {
         private final Class<T> type;
         @Getter
-        private final List<Object> moduleList;
+        private final List<IPhysicsModule<?>> moduleList;
 
-        public CreateModules(Class<T> type, T entity, List<Object> moduleList, Dist side) {
+        public CreateModules(Class<T> type, T entity, List<IPhysicsModule<?>> moduleList, Dist side) {
             super(side, entity);
             this.type = type;
             this.moduleList = moduleList;
@@ -199,7 +190,8 @@ public class PhysicsEntityEvent extends Event {
             return (T) super.getEntity();
         }
 
-        public Class<T> getGenericType() {
+        @Override
+        public Type getGenericType() {
             return type;
         }
     }

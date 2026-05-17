@@ -36,6 +36,10 @@ public class MpsRepoSession {
     private final String repoUrl;
     private final Map<String, byte[]> remoteEntries = new HashMap<>();
     private final Map<String, String> fileKeys = new HashMap<>();
+    private String repoId;
+    private String mainHash;
+    private String signatureStore;
+    private String resourcesDomains;
     private boolean ready;
 
     public MpsRepoSession(String packName, String repoUrl) {
@@ -92,8 +96,11 @@ public class MpsRepoSession {
             throw new IOException("Failed to decrypt .desc for pack " + packName, ex);
         }
         parseDesc(decryptedDesc);
+        if (!verifyDescriptor()) {
+            throw new IOException("MPS descriptor for pack " + packName + " failed integrity check (missing headers or no resource keys).");
+        }
         ready = true;
-        DynamX.LOGGER.info("[MPS] Pack {} ready, {} encrypted resources tracked", packName, fileKeys.size());
+        DynamX.LOGGER.info("[MPS] Pack {} ready (id={}), {} encrypted resources tracked", packName, repoId, fileKeys.size());
     }
 
     private String extractTargetName() {
@@ -123,12 +130,56 @@ public class MpsRepoSession {
                 }
                 String[] sp = line.split("=", 2);
                 String head = sp[0];
-                if (head.equals("Main") || head.equals("SignatureStore") || head.equals("Id") || head.equals("ResourcesDomains")) {
-                    continue;
+                String value = sp[1];
+                switch (head) {
+                    case "Main":
+                        mainHash = value;
+                        break;
+                    case "SignatureStore":
+                        signatureStore = value;
+                        break;
+                    case "Id":
+                        repoId = value;
+                        break;
+                    case "ResourcesDomains":
+                        resourcesDomains = value;
+                        break;
+                    default:
+                        fileKeys.put(head, value);
+                        break;
                 }
-                fileKeys.put(head, sp[1]);
             }
         }
+    }
+
+    /**
+     * Best-effort integrity check on the decoded .desc payload. The original
+     * ModProtectionLib used the {@code Main} entry as a SHA-256 fingerprint of the
+     * pack metadata and {@code SignatureStore} as the RSA-signed key bundle.
+     *
+     * TODO port:1.20.1 - The ACsLib {@code RepositoryInformation} validator that
+     *  performed the cryptographic signature check is not ported yet. For now we
+     *  only verify that the mandatory descriptor headers were present after
+     *  decryption, which catches truncated or wrong-key payloads.
+     */
+    public boolean verifyDescriptor() {
+        return mainHash != null && repoId != null && !fileKeys.isEmpty();
+    }
+
+    public String getRepoId() {
+        return repoId;
+    }
+
+    public String getMainHash() {
+        return mainHash;
+    }
+
+    public String getSignatureStore() {
+        return signatureStore;
+    }
+
+    public String getResourcesDomains() {
+        return resourcesDomains;
     }
 
     /**
