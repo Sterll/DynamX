@@ -73,6 +73,40 @@ public final class MpsCrypto {
     }
 
     /**
+     * Computes a hex-encoded SHA-256 digest of the given bytes. Used to fingerprint
+     * downloaded MPS payloads and compare against the {@code Main} hash recorded in
+     * the .desc.
+     */
+    public static String sha256Hex(byte[] data) {
+        try {
+            byte[] hash = MessageDigest.getInstance("SHA-256").digest(data);
+            StringBuilder sb = new StringBuilder(hash.length * 2);
+            for (byte b : hash) {
+                sb.append(String.format("%02x", b));
+            }
+            return sb.toString();
+        } catch (Exception e) {
+            throw new IllegalStateException("SHA-256 unavailable on this JVM", e);
+        }
+    }
+
+    /**
+     * Returns {@code true} if the SHA-256 of {@code data} matches the (hex-encoded)
+     * {@code expectedHash}. A {@code null} or empty {@code expectedHash} is treated
+     * as a non-validating descriptor and short-circuits to {@code true}.
+     *
+     * TODO port:1.20.1 - ModProtectionLib stored the Main hash as a base64 RSA-signed
+     *  blob, not a raw hex digest. Until the signature pipeline is ported we only
+     *  validate as a defense against truncated downloads.
+     */
+    public static boolean matchesExpectedHash(byte[] data, String expectedHash) {
+        if (expectedHash == null || expectedHash.isEmpty()) {
+            return true;
+        }
+        return sha256Hex(data).equalsIgnoreCase(expectedHash);
+    }
+
+    /**
      * Derives the 16-character per-repository key from the original repository URL.
      * Mirrors {@code EncryptedMPSResourceLoader.getK(url, null)} for the
      * "URL mode" (no launcher-encoding path component).
