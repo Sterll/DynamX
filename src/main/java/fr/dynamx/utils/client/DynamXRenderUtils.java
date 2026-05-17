@@ -38,7 +38,6 @@ import java.util.List;
  *   <li>{@code Minecraft.IS_RUNNING_ON_MAC} - gone, use {@code DistPlatform} / {@code Util.getPlatform()}.</li>
  *   <li>{@code GL11.glPushAttrib(GL_ALL_ATTRIB_BITS)} - removed in OpenGL 3.2+ core profile; the
  *       push/pop attrib pair must be replaced by an explicit RenderSystem save/restore.</li>
- *   <li>{@code World.spawnParticle} -> {@code Level.addParticle}.</li>
  * </ul>
  * Public method signatures are kept; bodies are stubbed.</p>
  *

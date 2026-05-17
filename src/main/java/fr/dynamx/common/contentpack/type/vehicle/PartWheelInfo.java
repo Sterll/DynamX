@@ -22,9 +22,6 @@ import javax.annotation.Nullable;
  *   and referenced ObjObjectRenderer (fr.dynamx.client.renders.model.renderer) and SceneNode
  *   (fr.dynamx.client.renders.scene.node). All live in Phase 7. Implements relaxed; the
  *   texture variants accessor returns the MaterialVariantsInfo as Object.
- *
- * TODO port:1.20.1 - Original used net.minecraft.util.EnumParticleTypes.SMOKE_NORMAL. In 1.20.1
- *   this is net.minecraft.core.particles.ParticleOptions / ParticleTypes.SMOKE.
  */
 public class PartWheelInfo extends SubInfoTypeOwner<PartWheelInfo> implements IModelPackObject {
     @IPackFilePropertyFixer.PackFilePropertyFixer(registries = SubInfoTypeRegistries.WHEELS)
