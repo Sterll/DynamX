@@ -1,5 +1,6 @@
 package fr.dynamx.client.renders.animations;
 
+import com.modularmods.mcgltf.dynamx.animation.InterpolatedChannel;
 import fr.dynamx.client.renders.model.renderer.GltfModelRenderer;
 import fr.dynamx.common.blocks.TEDynamXBlock;
 import lombok.Getter;
@@ -31,12 +32,12 @@ public class DxAnimator {
     /**
      * Map of all the animations of a model (key: animation name, value: list of channels).
      * <p>
-     * TODO port:1.20.1 - channel values were {@code List<InterpolatedChannel>} from mcgltf;
-     * stored as raw Object lists until the GLTF runtime is ported.
+     * TODO port:1.20.1 - InterpolatedChannel is currently a stub; once the GLTF runtime is ported
+     * channels will carry real key frames + per-target transform updates.
      */
     @Nullable
     @Setter
-    public HashMap<String, List<Object>> modelAnimations;
+    public HashMap<String, List<InterpolatedChannel>> modelAnimations;
 
     @Getter
     protected final Queue<DxAnimation> animationQueue = new LinkedList<>();
@@ -54,13 +55,15 @@ public class DxAnimator {
         }
 
         DxAnimation currentAnimation = animationQueue.peek();
-        currentAnimation.playAnimation(modelRenderer, this, partialTicks);
+        if (currentAnimation != null) {
+            currentAnimation.playAnimation(modelRenderer, this, partialTicks);
+        }
     }
 
     public DxAnimation addAnimation(String animationName, DxAnimation.EnumAnimType type) {
         if (modelAnimations == null) throw new IllegalStateException("Model animations map is null,"
                 + " you should call the fillModelAnimations method before playing any animation");
-        List<Object> list = modelAnimations.containsKey(animationName)
+        List<InterpolatedChannel> list = modelAnimations.containsKey(animationName)
                 ? modelAnimations.get(animationName) : new ArrayList<>();
         DxAnimation animation = new DxAnimation(animationName, list, type);
         animationQueue.add(animation);
