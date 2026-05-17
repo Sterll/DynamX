@@ -5,6 +5,7 @@ import fr.dynamx.api.contentpack.object.subinfo.ISubInfoTypeOwner;
 import fr.dynamx.api.contentpack.registry.PackFileProperty;
 import fr.dynamx.api.contentpack.registry.RegisteredSubInfoType;
 import fr.dynamx.api.contentpack.registry.SubInfoTypeRegistries;
+import fr.dynamx.client.renders.model.texture.TextureVariantData;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -17,9 +18,6 @@ import java.util.List;
  * One part can have multiple {@link LightObject}
  *
  * @see PartLightSource
- *
- * TODO port:1.20.1 - Original stored fr.dynamx.client.renders.model.texture.TextureVariantData
- *   in the blinkTextures list. That class lives in Phase 7; relaxed to Object until ported.
  */
 @Setter
 public class LightObject {
@@ -37,11 +35,8 @@ public class LightObject {
 
     protected int lightIdHashed;
 
-    /**
-     * TODO port:1.20.1 - element type was TextureVariantData (Phase 7); relaxed to Object.
-     */
     @Getter
-    private final List<Object> blinkTextures = new ArrayList<>();
+    private final List<TextureVariantData> blinkTextures = new ArrayList<>();
 
     protected void hashLightId() {
         try {
@@ -53,7 +48,7 @@ public class LightObject {
 
     /**
      * @return The hashed light id (the light id if it's an int, or the hash if it's a string) <br>
-     * In AbstractLightsModule (Phase 6), it can be used to get the light (or you can use the string version of the id).
+     * In {@link fr.dynamx.common.entities.modules.AbstractLightsModule}, it can be used to get the light (or you can use the string version of the id).
      */
     public int getLightId() {
         return lightIdHashed;

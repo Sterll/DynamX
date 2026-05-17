@@ -21,7 +21,6 @@ import java.util.Map;
 /**
  * Lights state holder + trailer-light forwarding.
  */
-// TODO port:1.20.1 - ILightOwner/LightObject/PartLightSource not ported yet (Phase 4b).
 @Getter
 public abstract class AbstractLightsModule implements IPhysicsModule<BaseVehiclePhysicsHandler<?>>, IBlockEntityModule {
     private final ILightOwner<?> lightOwner;
@@ -78,6 +77,7 @@ public abstract class AbstractLightsModule implements IPhysicsModule<BaseVehicle
                 CompoundTag light = new CompoundTag();
                 light.putInt("Id", i);
                 light.putBoolean("St", b);
+                d.add(light);
             });
             tag.put("lights_m_states", d);
         }

@@ -19,15 +19,21 @@ import fr.dynamx.api.contentpack.registry.PackFileProperty;
 import fr.dynamx.api.contentpack.registry.RegisteredSubInfoType;
 import fr.dynamx.api.contentpack.registry.SubInfoTypeRegistries;
 import fr.dynamx.api.dxmodel.IModelTextureVariantsSupplier;
+import fr.dynamx.api.entities.modules.ModuleListBuilder;
 import fr.dynamx.client.renders.model.texture.TextureVariantData;
 import fr.dynamx.client.renders.scene.BaseRenderContext;
 import fr.dynamx.client.renders.scene.IRenderContext;
 import fr.dynamx.client.renders.scene.SceneBuilder;
 import fr.dynamx.client.renders.scene.node.SceneNode;
 import fr.dynamx.client.renders.scene.node.SimpleNode;
+import fr.dynamx.common.DynamXContext;
 import fr.dynamx.common.contentpack.type.MaterialVariantsInfo;
 import fr.dynamx.common.contentpack.type.objects.AbstractItemObject;
+import fr.dynamx.common.entities.PackPhysicsEntity;
 import fr.dynamx.common.entities.modules.AbstractLightsModule;
+import fr.dynamx.common.entities.vehicles.TrailerEntity;
+import fr.dynamx.common.objloader.data.DxModelData;
+import fr.dynamx.utils.DynamXUtils;
 import fr.dynamx.utils.errors.DynamXErrorManager;
 import lombok.Getter;
 import lombok.Setter;
@@ -87,8 +93,13 @@ public class PartLightSource extends SubInfoType<ILightOwner<?>> implements ISub
     }
 
     /**
-     * TODO port:1.20.1 - Original used DynamXContext.getDxModelDataFromCache / DynamXUtils.readPartPosition
-     *   to derive position/rotation from the obj/gltf model. Falls back to zero position if not set.
+     * If this is a rotating light, this method reads the position and rotation from the 3D model owning this part. <br>
+     * If the configured position is null, this method reads the position. <br>
+     * If the configured position and rotation are null, this method also reads the rotation (only for GLTF models). <br>
+     * <br>
+     * If this isn't a rotating light, we don't need to do any transform to render it, so we don't need its position and rotation.
+     *
+     * @param model The 3D model owning this part
      */
     public void readPositionFromModel(ResourceLocation model) {
         if (getPosition() != null) {
@@ -98,9 +109,17 @@ public class PartLightSource extends SubInfoType<ILightOwner<?>> implements ISub
             position = new Vector3f();
             return;
         }
-        DynamXErrorManager.addPackError(getPackName(), "position_not_found_in_model", ErrorLevel.HIGH, owner.getName(),
-                "3D object " + getObjectName() + " for part " + getName() + " - OBJ loader removed in 1.20.1, set Position explicitly");
-        position = new Vector3f();
+        DxModelData modelData = DynamXContext.getDxModelDataFromCache(DynamXUtils.getModelPath(getPackName(), model));
+        if (modelData != null) {
+            position = DynamXUtils.readPartPosition(modelData, getObjectName(), true);
+            if (getRotation() == null && position != null)
+                rotation = DynamXUtils.readPartRotation(modelData, getObjectName());
+        }
+        if (getPosition() == null) {
+            DynamXErrorManager.addPackError(getPackName(), "position_not_found_in_model", ErrorLevel.HIGH, owner.getName(), "3D object " + getObjectName() + " for part " + getName());
+        } else {
+            isAutomaticPosition = true;
+        }
     }
 
     @Override
@@ -125,8 +144,13 @@ public class PartLightSource extends SubInfoType<ILightOwner<?>> implements ISub
 
     @Override
     public void addModules(Object entity, Object modules) {
-        // TODO port:1.20.1 - Original wired AbstractLightsModule(.TrailerLightsModule).
-        //   The actual wiring lives in BaseVehicleEntity.createModules() in the 1.20.1 port; no-op here.
+        ModuleListBuilder builder = (ModuleListBuilder) modules;
+        if (!builder.hasModuleOfClass(AbstractLightsModule.class)) {
+            if (entity instanceof TrailerEntity)
+                builder.add(new AbstractLightsModule.TrailerLightsModule(getOwner(), (PackPhysicsEntity<?, ?>) entity));
+            else
+                builder.add(new AbstractLightsModule.LightsModule(getOwner()));
+        }
     }
 
     @Override
@@ -169,9 +193,8 @@ public class PartLightSource extends SubInfoType<ILightOwner<?>> implements ISub
     }
 
     /**
-     * Computes texture variants of this light. Mirrors the 1.12 logic: ensures a variants holder
-     * exists, registers the base "off" variant, and assigns ids to each light's "on" textures
-     * (deduplicating across sources).
+     * Computes texture variants of this lights <br>
+     * It adds the variants configured on the light, and the owner's variants, if any
      */
     public void configureLightTextureVariants(boolean hotReload) {
         TextureVariantData textureVariant;
@@ -292,8 +315,7 @@ public class PartLightSource extends SubInfoType<ILightOwner<?>> implements ISub
             byte texId;
             if (isOn && !onLightObject.getBlinkTextures().isEmpty()) {
                 activeStep = activeStep % onLightObject.getBlinkTextures().size();
-                Object variantObj = onLightObject.getBlinkTextures().get(activeStep);
-                texId = variantObj instanceof TextureVariantData ? ((TextureVariantData) variantObj).getId() : context.getTextureId();
+                texId = onLightObject.getBlinkTextures().get(activeStep).getId();
             } else {
                 texId = context.getTextureId();
                 if (variants == null || !variants.hasVariant(texId)) {
