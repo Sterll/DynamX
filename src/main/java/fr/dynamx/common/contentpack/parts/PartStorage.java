@@ -12,22 +12,23 @@ import fr.dynamx.common.entities.modules.StorageModule;
 import fr.dynamx.utils.DynamXConstants;
 import lombok.Getter;
 import lombok.Setter;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.Container;
+import net.minecraft.world.MenuProvider;
+import net.minecraft.world.SimpleMenuProvider;
+import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.inventory.ChestMenu;
+import net.minecraft.world.inventory.MenuType;
+import net.minecraftforge.network.NetworkHooks;
 
 /**
  * Storage part of a pack object.
  *
- * TODO port:1.20.1 - Original referenced (Phase 6 / Phase 4):
- *   - fr.dynamx.api.entities.modules.ModuleListBuilder
- *   - fr.dynamx.common.entities.modules.StorageModule
- *   - fr.dynamx.common.entities.{IDynamXObject, PackPhysicsEntity}
- *   - fr.dynamx.common.blocks.TEDynamXBlock
- *   - net.minecraftforge.fml.common.FMLCommonHandler (removed) - now FMLEnvironment.dist.isClient()
- *   - EntityPlayer#openGui (removed in 1.20.1) - now NetworkHooks#openScreen or MenuProvider pattern
- *   The interact() / addModules() / addBlockModules() / postLoad() bodies are stubbed.
- *
- * TODO port:1.20.1 - The first generic A of InteractivePart was IDynamXObject (Phase 6); relaxed to Object.
+ * TODO port:1.20.1 - postLoad lang injection still needs ContentPackUtils + FMLEnvironment.dist.isClient() port.
  */
 @Getter
 @Setter
@@ -78,10 +79,59 @@ public class PartStorage<T extends ISubInfoTypeOwner<T>> extends InteractivePart
 
     @Override
     public boolean interact(Object entity, Player player) {
-        // TODO port:1.20.1 - Original opened a GUI via player.openGui(DynamXMain.instance, ...).
-        //   In 1.20.1 we need to use NetworkHooks.openScreen / a MenuProvider; both depend on
-        //   Phase 5 (network) and Phase 6 (modules) being ported.
-        return false;
+        if (player.level().isClientSide || !(player instanceof ServerPlayer))
+            return false;
+        Container inventory = resolveInventory(entity);
+        if (inventory == null)
+            return false;
+        int rows = Math.max(1, Math.min(6, storageSize / 9));
+        MenuProvider provider = new SimpleMenuProvider(
+                (containerId, playerInv, p) -> createChestMenu(rows, containerId, playerInv, inventory),
+                Component.literal(getPartName())
+        );
+        NetworkHooks.openScreen((ServerPlayer) player, provider);
+        return true;
+    }
+
+    private Container resolveInventory(Object entity) {
+        if (entity instanceof PackPhysicsEntity) {
+            PackPhysicsEntity<?, ?> packEntity = (PackPhysicsEntity<?, ?>) entity;
+            return packEntity.hasModuleOfType(StorageModule.class)
+                    ? packEntity.getModuleByType(StorageModule.class).getInventory(getId())
+                    : null;
+        }
+        if (entity instanceof TEDynamXBlock) {
+            TEDynamXBlock block = (TEDynamXBlock) entity;
+            return block.hasModuleOfType(StorageModule.class)
+                    ? block.getModuleByType(StorageModule.class).getInventory(getId())
+                    : null;
+        }
+        return null;
+    }
+
+    private static AbstractContainerMenu createChestMenu(int rows, int containerId, Inventory playerInv, Container inv) {
+        MenuType<ChestMenu> type;
+        switch (rows) {
+            case 1:
+                type = MenuType.GENERIC_9x1;
+                break;
+            case 2:
+                type = MenuType.GENERIC_9x2;
+                break;
+            case 3:
+                type = MenuType.GENERIC_9x3;
+                break;
+            case 4:
+                type = MenuType.GENERIC_9x4;
+                break;
+            case 5:
+                type = MenuType.GENERIC_9x5;
+                break;
+            default:
+                type = MenuType.GENERIC_9x6;
+                break;
+        }
+        return new ChestMenu(type, containerId, playerInv, inv, rows);
     }
 
     @Override
@@ -99,7 +149,6 @@ public class PartStorage<T extends ISubInfoTypeOwner<T>> extends InteractivePart
     public void postLoad(T owner, boolean hot) {
         super.postLoad(owner, hot);
         // TODO port:1.20.1 - Original added a missing lang translation via ContentPackUtils
-        //   on the client side only. FMLCommonHandler is removed; use FMLEnvironment.dist.isClient().
-        //   Skipping until ContentPackUtils and the lang-injection pipeline are ported.
+        //   on the client side only. Skipping until ContentPackUtils + FMLEnvironment dist check are ported.
     }
 }
