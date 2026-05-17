@@ -1,32 +1,22 @@
 package fr.dynamx.common.contentpack.type;
 
-import com.jme3.bullet.collision.shapes.BoxCollisionShape;
-import com.jme3.bullet.collision.shapes.CollisionShape;
-import com.jme3.bullet.collision.shapes.CompoundCollisionShape;
-import com.jme3.bullet.collision.shapes.CylinderCollisionShape;
-import com.jme3.bullet.collision.shapes.SphereCollisionShape;
+import com.jme3.bullet.collision.shapes.*;
 import com.jme3.math.Vector3f;
 import fr.aym.acslib.api.services.error.ErrorLevel;
 import fr.dynamx.api.contentpack.object.INamedObject;
 import fr.dynamx.api.contentpack.object.part.IShapeInfo;
+import fr.dynamx.api.dxmodel.DxModelPath;
+import fr.dynamx.api.dxmodel.EnumDxModelFormats;
+import fr.dynamx.common.DynamXContext;
+import fr.dynamx.common.objloader.data.DxModelData;
 import fr.dynamx.utils.errors.DynamXErrorManager;
 import fr.dynamx.utils.optimization.MutableBoundingBox;
+import fr.dynamx.utils.physics.ShapeUtils;
 import lombok.Getter;
 
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Helper that builds the physics collision shape of a pack object.
- *
- * TODO port:1.20.1 - Original referenced:
- *   - fr.dynamx.api.dxmodel.DxModelPath / EnumDxModelFormats (not yet ported)
- *   - fr.dynamx.common.DynamXContext / DxModelData (not yet ported)
- *   - fr.dynamx.utils.physics.ShapeUtils#generateComplexModelCollisions (not yet ported)
- *   The loadCollisions() implementation that read mesh dimensions/centers from the model is
- *   replaced with a stub that only consumes pre-defined PartShape entries until the obj/model
- *   pipeline lands. The signature is relaxed to use Object for the model path argument.
- */
 public class ObjectCollisionsHelper {
     private static CompoundCollisionShape EMPTY_COLLISION_SHAPE;
 
@@ -46,32 +36,67 @@ public class ObjectCollisionsHelper {
         shapes.add(partShape);
     }
 
-    /**
-     * Builds the physics collision shape from configured part shapes.
-     *
-     * TODO port:1.20.1 - The modelPath parameter is typed as Object because DxModelPath lives in
-     *   fr.dynamx.api.dxmodel (not yet ported). When the model pipeline lands, restore the original
-     *   signature taking a DxModelPath and re-enable the auto/complex collision branches.
-     */
-    public void loadCollisions(INamedObject object, Object modelPath, String partName, Vector3f centerOfMass, float shapeYOffset, boolean useComplexCollisions, Vector3f scaleModifier, CollisionType type) {
-        // TODO port:1.20.1 - The original method also handled:
-        //   - useComplexCollisions=true: ShapeUtils.generateComplexModelCollisions(...)
-        //   - empty shapes + obj model: auto-generated BoxCollisionShape per mesh
-        //   Both branches depend on DxModelPath/DxModelData/ShapeUtils which are not yet ported.
+    public void loadCollisions(INamedObject object, DxModelPath modelPath, String partName, Vector3f centerOfMass, float shapeYOffset, boolean useComplexCollisions, Vector3f scaleModifier, CollisionType type) {
+        // TODO port:1.20.1 - Pack object callers (BlockObject, PropObject, ModularVehicleInfo, PartDoor)
+        //   still pass null while DynamXUtils.getModelPath(...) is not wired. When modelPath is null we
+        //   skip the obj-model branches and fall back to the PartShape-only path.
+        EnumDxModelFormats format = modelPath != null ? modelPath.getFormat() : EnumDxModelFormats.JSON;
+        useComplexCollisions = useComplexCollisions && modelPath != null && format != EnumDxModelFormats.JSON;
         try {
-            if (getShapes().isEmpty()) {
-                // Without the obj pipeline we cannot synthesize shapes; leave physicsCollisionShape null.
-                if (type == CollisionType.VEHICLE && !useComplexCollisions) {
-                    throw new UnsupportedOperationException("Automatic physics collisions (UseComplexCollisions = false when no PartShape is added) are not supported for vehicles");
-                }
-                return;
+            if (useComplexCollisions) {
+                // Case 1: complex collisions
+                physicsCollisionShape = ShapeUtils.generateComplexModelCollisions(modelPath, partName, scaleModifier, centerOfMass, shapeYOffset);
             }
-            // TODO port:1.20.1 - Original: !useComplexCollisions branch built shape from PartShapes;
-            //  useComplexCollisions=true called ShapeUtils.generateComplexModelCollisions(...) which
-            //  reads the OBJ model. Until the model pipeline lands, fall back to PartShapes whenever
-            //  they are provided, even when useComplexCollisions is true. This unblocks pack vehicles
-            //  that ship a Shape_* fallback (e.g. the karting test pack).
-            if (!useComplexCollisions || !getShapes().isEmpty()) {
+            if (getShapes().isEmpty()) {
+                if (modelPath == null || format == EnumDxModelFormats.JSON) {
+                    // We can't generate collisions from a json model (or when no model path is provided yet)
+                    if (type == CollisionType.VEHICLE && !useComplexCollisions) {
+                        throw new UnsupportedOperationException("Automatic physics collisions (UseComplexCollisions = false when no PartShape is added) are not supported for vehicles");
+                    }
+                    return;
+                }
+                // Case 2: No shapes (doesn't depends on complex collisions)
+                DxModelData dxModelData = DynamXContext.getDxModelDataFromCache(modelPath);
+                if (!useComplexCollisions) {
+                    // Case 2.1: No shapes and no complex collisions: generate physics collisions automatically from the obj model (with part shapes)
+                    if (type == CollisionType.VEHICLE)
+                        throw new UnsupportedOperationException("Automatic physics collisions (UseComplexCollisions = false when no PartShape is added) are not supported for vehicles");
+                    physicsCollisionShape = new CompoundCollisionShape();
+                }
+
+                // Case 2.2: No shapes and complex collisions: generate part shapes from the obj model
+                boolean finalUseComplexCollisions = useComplexCollisions;
+                dxModelData.getMeshNames().forEach(meshName -> {
+                    if (!partName.isEmpty() && !meshName.contains(partName.toLowerCase()))
+                        return;
+                    Vector3f dimension = dxModelData.getMeshDimension(meshName, new Vector3f()).multLocal(scaleModifier);
+                    if (dimension.x == 0 && dimension.y == 0 && dimension.z == 0)
+                        return;
+                    Vector3f center = dxModelData.getMeshCenter(meshName, new Vector3f()).multLocal(scaleModifier);
+                    if (!finalUseComplexCollisions) {
+                        physicsCollisionShape.addChildShape(new BoxCollisionShape(dimension), center.add(centerOfMass));
+                    }
+                    MutableBoundingBox box = new MutableBoundingBox(dimension).offset(center);
+                    shapes.add(new IShapeInfo() {
+                        @Override
+                        public Vector3f getPosition() {
+                            return center;
+                        }
+
+                        @Override
+                        public Vector3f getSize() {
+                            return dimension;
+                        }
+
+                        @Override
+                        public MutableBoundingBox getBoundingBox() {
+                            return box;
+                        }
+                    });
+                });
+            } else if (!useComplexCollisions) {
+                // Case 3: no complex collisions and shapes
+                // nb: the scale modifier is already applied to the part shapes
                 physicsCollisionShape = new CompoundCollisionShape();
                 getShapes().forEach(shape -> {
                     CollisionShape collisionShape;

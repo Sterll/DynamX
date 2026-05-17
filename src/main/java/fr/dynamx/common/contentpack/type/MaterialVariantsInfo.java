@@ -5,21 +5,17 @@ import fr.dynamx.api.contentpack.object.subinfo.SubInfoType;
 import fr.dynamx.api.contentpack.registry.PackFileProperty;
 import fr.dynamx.api.contentpack.registry.RegisteredSubInfoType;
 import fr.dynamx.api.contentpack.registry.SubInfoTypeRegistries;
+import fr.dynamx.api.dxmodel.IModelTextureVariantsSupplier;
+import fr.dynamx.client.renders.model.texture.TextureVariantData;
 import lombok.Getter;
 import lombok.Setter;
 
 import java.util.HashMap;
 import java.util.Map;
 
-/**
- * TODO port:1.20.1 - Original implemented IModelTextureVariantsSupplier.IModelTextureVariants
- *   (fr.dynamx.api.dxmodel) and stored TextureVariantData (fr.dynamx.client.renders.model.texture)
- *   values. Both live in not-yet-ported packages (Phase 7). The class now uses Object placeholders;
- *   the texture variants map is keyed by Byte and stores Object values until those types are ported.
- */
 @RegisteredSubInfoType(name = "MaterialVariants", registries = {SubInfoTypeRegistries.WHEELED_VEHICLES, SubInfoTypeRegistries.WHEELS, SubInfoTypeRegistries.ARMORS, SubInfoTypeRegistries.BLOCKS,
         SubInfoTypeRegistries.HELICOPTER, SubInfoTypeRegistries.PROPS})
-public class MaterialVariantsInfo<T extends ISubInfoTypeOwner<T>> extends SubInfoType<T> {
+public class MaterialVariantsInfo<T extends ISubInfoTypeOwner<T>> extends SubInfoType<T> implements IModelTextureVariantsSupplier.IModelTextureVariants {
     @Setter
     @Getter
     @PackFileProperty(configNames = "BaseMaterial", required = false, defaultValue = "Primary material configured in the model")
@@ -27,7 +23,7 @@ public class MaterialVariantsInfo<T extends ISubInfoTypeOwner<T>> extends SubInf
     @PackFileProperty(configNames = "Variants", defaultValue = "\"DynamX1 DynamX2\"")
     private String[] texturesArray;
     @Getter
-    private final Map<Byte, Object> variantsMap = new HashMap<>();
+    private final Map<Byte, TextureVariantData> variantsMap = new HashMap<>();
 
     public MaterialVariantsInfo(ISubInfoTypeOwner<T> owner) {
         super(owner);
@@ -53,50 +49,38 @@ public class MaterialVariantsInfo<T extends ISubInfoTypeOwner<T>> extends SubInf
 
     @Override
     public void appendTo(T owner) {
-        // TODO port:1.20.1 - Re-introduce TextureVariantData once Phase 7 is ported.
-        //   Original logic stored TextureVariantData(baseMaterial, (byte) 0) at id 0 and
-        //   TextureVariantData(info, id) at incremental ids.
-        variantsMap.put((byte) 0, baseMaterial);
+        variantsMap.put((byte) 0, new TextureVariantData(baseMaterial, (byte) 0));
         byte id = 1;
         if (texturesArray != null) {
             for (String info : texturesArray) {
-                variantsMap.put(id, info);
+                TextureVariantData variant = new TextureVariantData(info, id);
+                variantsMap.put(id, variant);
                 id++;
             }
         }
         owner.addSubProperty(this);
     }
 
-    /**
-     * @return The default texture variant. TODO port:1.20.1 - typed as Object pending TextureVariantData port.
-     */
-    public Object getDefaultVariant() {
+    @Override
+    public TextureVariantData getDefaultVariant() {
         return variantsMap.get((byte) 0);
     }
 
-    /**
-     * @return The texture variant with the given id, or the default one. TODO port:1.20.1 - typed as Object.
-     */
-    public Object getVariant(byte variantId) {
+    @Override
+    public TextureVariantData getVariant(byte variantId) {
         return variantsMap.getOrDefault(variantId, getDefaultVariant());
     }
 
-    /**
-     * @return The texture variants map. TODO port:1.20.1 - values typed as Object.
-     */
-    public Map<Byte, Object> getTextureVariants() {
+    @Override
+    public Map<Byte, TextureVariantData> getTextureVariants() {
         return variantsMap;
     }
 
-    /**
-     * Adds a variant.
-     *
-     * TODO port:1.20.1 - variantData was TextureVariantData; relaxed to Object.
-     *   Original used variantData.getId() to key the map. Caller must currently provide id.
-     */
-    public void addVariant(Object variantData, boolean allowOverride) {
-        // TODO port:1.20.1 - Once TextureVariantData is ported, derive the id from variantData.getId().
-        //   For now this stub keeps the API surface but cannot derive an id.
+    public void addVariant(TextureVariantData variantData, boolean allowOverride) {
+        if (variantsMap.containsKey(variantData.getId()) && !allowOverride) {
+            throw new IllegalArgumentException("Texture variant id " + variantData.getId() + " already took");
+        }
+        variantsMap.put(variantData.getId(), variantData);
     }
 
     public boolean hasVariant(byte variantId) {
