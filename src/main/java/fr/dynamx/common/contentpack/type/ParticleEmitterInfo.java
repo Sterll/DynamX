@@ -14,13 +14,8 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * Particle emitter sub info.
- *
- * TODO port:1.20.1 - Original stored a net.minecraft.util.EnumParticleTypes in the
- *   particleType field. In 1.20.1 the equivalent is net.minecraft.core.particles.ParticleOptions
- *   (or a ParticleType resolved from a ResourceLocation). The field type has been updated; the
- *   DefinitionType.DynamXDefinitionTypes.PARTICLE_TYPE parser must also be updated when
- *   DefinitionType is fully reworked for 1.20.1.
+ * Particle emitter sub info. The {@link ParticleOptions} is resolved from the pack
+ * definition via {@link DefinitionType.DynamXDefinitionTypes#PARTICLE_TYPE}.
  */
 @RegisteredSubInfoType(name = "emitter", registries = {SubInfoTypeRegistries.WHEELED_VEHICLES, SubInfoTypeRegistries.BLOCKS, SubInfoTypeRegistries.HELICOPTER, SubInfoTypeRegistries.PROPS}, strictName = false)
 public class ParticleEmitterInfo<T extends ISubInfoTypeOwner<T> & ParticleEmitterInfo.IParticleEmitterContainer> extends SubInfoType<T> {

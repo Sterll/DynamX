@@ -92,15 +92,86 @@ public class DynamXRenderUtils {
     }
 
     public static void drawSphere(Vector3f translation, float radius, @Nullable Color sphereColor) {
-        // TODO port:1.20.1 - GlStateManager.color/translate/scale removed. Stub.
+        // Conservee pour compatibilite API : en core profile 1.20.1, l'etat GL global a disparu.
+        // Utiliser la surcharge prenant PoseStack + MultiBufferSource pour un rendu effectif.
+    }
+
+    /**
+     * Trace une approximation de sphere en wireframe (trois cercles orthogonaux XY/XZ/YZ).
+     * Suffisant pour du debug, sans dependance a un mesh Octasphere dedie.
+     */
+    public static void drawSphere(PoseStack poseStack, MultiBufferSource bufferSource,
+                                  Vector3f translation, float radius,
+                                  float red, float green, float blue, float alpha) {
+        VertexConsumer consumer = bufferSource.getBuffer(RenderType.lines());
+        poseStack.pushPose();
+        poseStack.translate(translation.x, translation.y, translation.z);
+        var pose = poseStack.last();
+        org.joml.Matrix4f m = pose.pose();
+        org.joml.Matrix3f n = pose.normal();
+        final int segments = 24;
+        for (int plane = 0; plane < 3; plane++) {
+            float prevA = radius;
+            float prevB = 0f;
+            for (int i = 1; i <= segments; i++) {
+                float t = (float) (i * 2.0 * Math.PI / segments);
+                float a = (float) Math.cos(t) * radius;
+                float b = (float) Math.sin(t) * radius;
+                float x1, y1, z1, x2, y2, z2;
+                switch (plane) {
+                    case 0 -> { x1 = prevA; y1 = prevB; z1 = 0; x2 = a; y2 = b; z2 = 0; }
+                    case 1 -> { x1 = prevA; y1 = 0; z1 = prevB; x2 = a; y2 = 0; z2 = b; }
+                    default -> { x1 = 0; y1 = prevA; z1 = prevB; x2 = 0; y2 = a; z2 = b; }
+                }
+                consumer.vertex(m, x1, y1, z1).color(red, green, blue, alpha).normal(n, 0, 1, 0).endVertex();
+                consumer.vertex(m, x2, y2, z2).color(red, green, blue, alpha).normal(n, 0, 1, 0).endVertex();
+                prevA = a;
+                prevB = b;
+            }
+        }
+        poseStack.popPose();
     }
 
     public static void glTranslate(Vector3f translation) {
-        // TODO port:1.20.1 - GlStateManager.translate gone. Use PoseStack.translate at the call site.
+        // Conservee pour compatibilite API : GlStateManager.translate a disparu en core profile.
+        // Translater via PoseStack#translate au point d'appel a la place.
     }
 
     public static void drawConvexHull(List<Vector3f> vectorBuffer, boolean wireframe) {
-        // TODO port:1.20.1 - glPolygonMode / glBegin(GL_TRIANGLES) gone. Rewrite with VertexConsumer.
+        // Conservee pour compatibilite API : le pipeline immediate mode est mort. Utiliser
+        // la surcharge prenant PoseStack + MultiBufferSource.
+    }
+
+    /**
+     * Emet une enveloppe convexe en wireframe : chaque triplet de vertices forme un triangle
+     * dont les trois aretes sont emises via {@link RenderType#lines()}.
+     */
+    public static void drawConvexHull(PoseStack poseStack, MultiBufferSource bufferSource,
+                                      List<Vector3f> vectorBuffer,
+                                      float red, float green, float blue, float alpha) {
+        if (vectorBuffer == null || vectorBuffer.size() < 3) {
+            return;
+        }
+        VertexConsumer consumer = bufferSource.getBuffer(RenderType.lines());
+        var pose = poseStack.last();
+        org.joml.Matrix4f m = pose.pose();
+        org.joml.Matrix3f nm = pose.normal();
+        int triCount = vectorBuffer.size() / 3;
+        for (int t = 0; t < triCount; t++) {
+            Vector3f a = vectorBuffer.get(t * 3);
+            Vector3f b = vectorBuffer.get(t * 3 + 1);
+            Vector3f c = vectorBuffer.get(t * 3 + 2);
+            emitLine(consumer, m, nm, a, b, red, green, blue, alpha);
+            emitLine(consumer, m, nm, b, c, red, green, blue, alpha);
+            emitLine(consumer, m, nm, c, a, red, green, blue, alpha);
+        }
+    }
+
+    private static void emitLine(VertexConsumer consumer, org.joml.Matrix4f m, org.joml.Matrix3f n,
+                                 Vector3f a, Vector3f b,
+                                 float red, float green, float blue, float alpha) {
+        consumer.vertex(m, a.x, a.y, a.z).color(red, green, blue, alpha).normal(n, 0, 1, 0).endVertex();
+        consumer.vertex(m, b.x, b.y, b.z).color(red, green, blue, alpha).normal(n, 0, 1, 0).endVertex();
     }
 
     @OnlyIn(Dist.CLIENT)

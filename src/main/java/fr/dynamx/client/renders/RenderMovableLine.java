@@ -1,34 +1,105 @@
 package fr.dynamx.client.renders;
 
+import com.jme3.bullet.objects.PhysicsRigidBody;
+import com.jme3.math.Quaternion;
+import com.jme3.math.Vector3f;
+import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.blaze3d.vertex.VertexConsumer;
+import fr.dynamx.client.handlers.ClientDebugSystem;
+import fr.dynamx.common.DynamXContext;
+import fr.dynamx.common.entities.PhysicsEntity;
+import fr.dynamx.common.entities.modules.MovableModule;
+import fr.dynamx.common.entities.modules.movables.PickObjects;
+import fr.dynamx.utils.DynamXUtils;
+import fr.dynamx.utils.maths.DynamXGeometry;
+import fr.dynamx.utils.optimization.QuaternionPool;
+import fr.dynamx.utils.optimization.Vector3fPool;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.RenderType;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.player.Player;
+
+import java.util.Map;
+
 /**
- * Renders the movable pick-up line from a player to a held physics entity.
+ * Rendu de la ligne de prise (player {@literal ->} entite physique attrapee).
  *
- * <p>TODO port:1.20.1 - This entire file is stubbed. The 1.12 implementation relied on:
- * <ul>
- *   <li>{@code DynamXContext.getPlayerPickingObjects()} (Phase 5).</li>
- *   <li>{@code Minecraft.getMinecraft().player / world.getEntityByID(...)} - now
- *       {@code Minecraft.getInstance().player / level().getEntity(id)}.</li>
- *   <li>{@code MovableModule#pickObjects#getHitBody} from {@code fr.dynamx.common.entities.modules}
- *       (Phase 6).</li>
- *   <li>{@code GlStateManager.glBegin(GL_LINE_STRIP) / glVertex3f / glEnd} - replaced by
- *       {@code MultiBufferSource.getBuffer(RenderType.lines())} + {@code VertexConsumer#vertex(...)}.</li>
- *   <li>{@code GlStateManager.disableLighting / disableTexture2D} - folded into the lines RenderType.</li>
- *   <li>{@code DynamXUtils.getCameraTranslation(Minecraft, partialTicks)} - {@code GameRenderer#getMainCamera()}.</li>
- * </ul>
- *
- * Public method signatures are kept; bodies are stubbed.
+ * <p>Pipeline 1.20.1 : on emet une primitive LINES via {@link RenderType#lines()} sur le
+ * {@link MultiBufferSource} fourni par {@code RenderLevelStageEvent}, en s'appuyant sur le
+ * {@link PoseStack} deja translate dans l'espace camera. Plus aucun GlStateManager ni
+ * immediate mode.
  */
 public class RenderMovableLine {
+
     public static boolean hasMovableLines() {
-        // TODO port:1.20.1 - was: return !DynamXContext.getPlayerPickingObjects().isEmpty();
-        return false;
+        return !DynamXContext.getPlayerPickingObjects().isEmpty();
     }
 
-    public static void renderLine(float partialTicks) {
-        // TODO port:1.20.1 - rewrite on top of PoseStack/MultiBufferSource and RenderType.lines().
-        // The 1.12 code iterated DynamXContext.getPlayerPickingObjects(), resolved the player and
-        // physics entity, looked up the MovableModule#pickObjects.getHitBody(), and drew a single
-        // line strip from the player's first-person hand offset to the local pick position on the
-        // hit body. See legacy RenderMovableLine for the reference math.
+    public static void renderLine(PoseStack poseStack, MultiBufferSource bufferSource, float partialTicks) {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.player == null || mc.level == null) {
+            return;
+        }
+        VertexConsumer consumer = bufferSource.getBuffer(RenderType.lines());
+        var pose = poseStack.last();
+        var matrix = pose.pose();
+        var normalMatrix = pose.normal();
+
+        for (Map.Entry<Integer, Integer> entry : DynamXContext.getPlayerPickingObjects().entrySet()) {
+            int playerEntityId = entry.getKey();
+            int physicsEntityId = entry.getValue();
+            // Seule la ligne du joueur local est tracee : le pivot des autres n'est pas synchronise localement.
+            if (playerEntityId != mc.player.getId()) {
+                continue;
+            }
+            Entity rawPlayer = mc.level.getEntity(playerEntityId);
+            Entity rawPhysics = mc.level.getEntity(physicsEntityId);
+            if (!(rawPlayer instanceof Player player) || !(rawPhysics instanceof PhysicsEntity<?> physicsEntity)) {
+                continue;
+            }
+            MovableModule movableModule = physicsEntity.getModuleByType(MovableModule.class);
+            if (!(movableModule instanceof PickObjects pickObjects)) {
+                continue;
+            }
+            PhysicsRigidBody hitBody = pickObjects.getHitBody();
+            if (hitBody == null) {
+                continue;
+            }
+
+            Vector3fPool.openPool();
+            QuaternionPool.openPool();
+            try {
+                Vector3f physicsLocation = ClientDebugSystem.getInterpolatedTranslation(hitBody, partialTicks);
+                Quaternion physicsRotation = ClientDebugSystem.getInterpolatedRotation(hitBody, partialTicks);
+
+                Vector3f firstPersonOffset = Vector3fPool.get(0, 0, 0.35f);
+                float interYaw = player.yRotO + (player.getYRot() - player.yRotO) * partialTicks;
+                float interPitch = player.xRotO + (player.getXRot() - player.xRotO) * partialTicks;
+                Vector3f firstPersonOffsetRot = DynamXGeometry.getRotatedPoint(firstPersonOffset, interPitch, interYaw, 0);
+
+                Vector3f cam = DynamXUtils.getCameraTranslation(mc, partialTicks);
+                Vector3f target = Vector3fPool.get(cam).add(firstPersonOffsetRot);
+                target.subtractLocal(physicsLocation.x, physicsLocation.y - player.getEyeHeight(), physicsLocation.z);
+
+                Vector3f pivot = DynamXGeometry.rotateVectorByQuaternion(pickObjects.getLocalPickPosition(), physicsRotation);
+
+                float ox = physicsLocation.x;
+                float oy = physicsLocation.y;
+                float oz = physicsLocation.z;
+
+                consumer.vertex(matrix, ox + target.x, oy + target.y, oz + target.z)
+                        .color(0.2f, 0.9f, 1.0f, 1.0f)
+                        .normal(normalMatrix, 0f, 1f, 0f)
+                        .endVertex();
+                consumer.vertex(matrix, ox + pivot.x, oy + pivot.y, oz + pivot.z)
+                        .color(0.2f, 0.9f, 1.0f, 1.0f)
+                        .normal(normalMatrix, 0f, 1f, 0f)
+                        .endVertex();
+            } finally {
+                QuaternionPool.closePool();
+                Vector3fPool.closePool();
+            }
+        }
     }
 }
