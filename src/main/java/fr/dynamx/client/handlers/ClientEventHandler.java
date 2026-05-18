@@ -83,12 +83,16 @@ public class ClientEventHandler {
     @SubscribeEvent
     public void onInteract(PlayerInteractEvent.EntityInteract event) {
         Player player = event.getEntity();
+        DynamXMain.log.info("[DynamX] EntityInteract target={} hand={} item={} clientSide={}",
+                event.getTarget(), event.getHand(), player.getItemInHand(event.getHand()).getItem(), player.level().isClientSide());
         if (!player.level().isClientSide()) {
             return;
         }
         if (!(event.getTarget() instanceof PhysicsEntity) || !event.getHand().equals(InteractionHand.MAIN_HAND) || event.getEntity().getItemInHand(event.getHand()).getItem() instanceof DynamXItemSpawner) {
+            DynamXMain.log.info("[DynamX] EntityInteract skipped (target/hand/item filter)");
             return;
         }
+        DynamXMain.log.info("[DynamX] EntityInteract sending MessageEntityInteract id={}", event.getTarget().getId());
         DynamXContext.getNetwork().sendToServer(new MessageEntityInteract(event.getTarget().getId()));
         event.setCanceled(true);
         event.setCancellationResult(InteractionResult.SUCCESS);
@@ -96,9 +100,23 @@ public class ClientEventHandler {
 
     @SubscribeEvent
     public void onRightClickAir(PlayerInteractEvent.RightClickItem e) {
+        DynamXMain.log.info("[DynamX] RightClickItem clientSide={} hitResult={} item={}",
+                e.getLevel().isClientSide(), MC.hitResult == null ? "null" : MC.hitResult.getType(), e.getItemStack().getItem());
         if (e.getLevel().isClientSide() && (MC.hitResult == null || MC.hitResult.getType() == HitResult.Type.MISS) && !e.getEntity().isShiftKeyDown() && e.getItemStack().getItem() instanceof ItemSlopes) {
             Minecraft.getInstance().setScreen(new GuiSlopesConfig(e.getItemStack()).getGuiScreen());
         }
+    }
+
+    @SubscribeEvent
+    public void onRightClickBlock(PlayerInteractEvent.RightClickBlock e) {
+        DynamXMain.log.info("[DynamX] RightClickBlock clientSide={} pos={} item={}",
+                e.getLevel().isClientSide(), e.getPos(), e.getItemStack().getItem());
+    }
+
+    @SubscribeEvent
+    public void onRightClickEmpty(PlayerInteractEvent.RightClickEmpty e) {
+        DynamXMain.log.info("[DynamX] RightClickEmpty clientSide={} hitResult={}",
+                e.getLevel().isClientSide(), MC.hitResult == null ? "null" : MC.hitResult.getType() + " " + MC.hitResult);
     }
 
     @SubscribeEvent

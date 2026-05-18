@@ -145,6 +145,16 @@ public class SPPhysicsEntitySynchronizer<T extends PhysicsEntity<?>> extends Phy
     }
 
     @Override
+    public void resyncEntity(net.minecraft.server.level.ServerPlayer target) {
+        // In single-player, variables are exchanged in-process between both sides' SP synchronizers
+        // (see #sendMyVars). The MP sync packet path must not be triggered, otherwise the client
+        // handler casts an SPPhysicsEntitySynchronizer to MPPhysicsEntitySynchronizer and crashes.
+        if (entity.getJointsHandler() != null) {
+            entity.getJointsHandler().sync(target);
+        }
+    }
+
+    @Override
     public SimulationHolder getDefaultSimulationHolder() {
         return SimulationHolder.SERVER_SP;
     }

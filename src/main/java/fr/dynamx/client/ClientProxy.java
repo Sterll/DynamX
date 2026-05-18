@@ -97,6 +97,7 @@ public class ClientProxy extends CommonProxy {
         // KeyMappings are registered via RegisterKeyMappingsEvent in DynamXClientRegistration.
         // The KeyHandler instance is subscribed here for per-tick key polling.
         net.minecraftforge.common.MinecraftForge.EVENT_BUS.register(new KeyHandler(Minecraft.getInstance()));
+        net.minecraftforge.common.MinecraftForge.EVENT_BUS.register(new ClientEventHandler());
 
         // TODO port:1.20.1 - DynamXClientCommand registration moves to RegisterClientCommandsEvent.
         //
@@ -216,7 +217,6 @@ public class ClientProxy extends CommonProxy {
             throw new RuntimeException("Bad ACSGUIS_REQUIRED_VERSION", e);
         }
 
-        // TODO port:1.20.1 - register ClientEventHandler on MinecraftForge.EVENT_BUS in the mod constructor.
         // TODO port:1.20.1 - reload listener registration moves to RegisterClientReloadListenersEvent.
         // The state-machine loading logic is kept inline as a lambda for the future hook.
         Runnable scheduledLoad = () -> {

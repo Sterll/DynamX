@@ -498,6 +498,11 @@ public abstract class PhysicsEntity<T extends AbstractEntityPhysicsHandler<?, ?>
         return true;
     }
 
+    @Override
+    public boolean isPickable() {
+        return true;
+    }
+
     // TODO port:1.20.1 - lerpTo signature in 1.20.1 is 5 args (no posRotationIncrements/teleport).
     @Override
     public void lerpTo(double x, double y, double z, float yaw, float pitch, int posRotationIncrements, boolean teleport) {

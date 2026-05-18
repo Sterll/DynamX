@@ -68,7 +68,7 @@ public class EntityJointsHandler implements IPhysicsModule<AbstractEntityPhysics
         if (!restoringJoints && queuedRestorations != null) {
             EntityJoint.CachedJoint rm = null;
             for (EntityJoint.CachedJoint k : queuedRestorations) {
-                if (k.getId().equals(target.getUUID())) {
+                if (k.getId() != null && k.getId().equals(target.getUUID())) {
                     rm = k;
                     break;
                 }
@@ -316,12 +316,10 @@ public class EntityJointsHandler implements IPhysicsModule<AbstractEntityPhysics
     /**
      * Internal function for the sync of the joints
      */
-    // TODO port:1.20.1 - returns the network-layer CachedJoint placeholder until Phase 7
-    // unifies the two CachedJoint types.
-    public List<fr.dynamx.common.network.packets.MessageJoints.CachedJoint> computeCachedJoints() {
-        List<fr.dynamx.common.network.packets.MessageJoints.CachedJoint> sendList = new ArrayList<>();
+    public List<EntityJoint.CachedJoint> computeCachedJoints() {
+        List<EntityJoint.CachedJoint> sendList = new ArrayList<>();
         for (EntityJoint<?> g : joints) {
-            sendList.add(new fr.dynamx.common.network.packets.MessageJoints.CachedJoint(g.getOtherEntity(entity).getUUID(), g.getJointId(), g.getType(), g.getHandler().isJointOwner(g, entity)));
+            sendList.add(new EntityJoint.CachedJoint(g.getOtherEntity(entity).getUUID(), g.getJointId(), g.getType(), g.getHandler().isJointOwner(g, entity)));
         }
         return sendList;
     }

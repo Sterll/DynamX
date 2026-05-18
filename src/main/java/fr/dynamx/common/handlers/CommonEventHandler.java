@@ -74,11 +74,22 @@ public class CommonEventHandler {
 
     @SubscribeEvent
     public void onStartTracking(net.minecraftforge.event.entity.player.PlayerEvent.StartTracking event) {
-        if (event.getTarget() instanceof fr.dynamx.common.entities.PhysicsEntity<?> entity
-                && event.getEntity() instanceof ServerPlayer serverPlayer
-                && entity.getSynchronizer() != null) {
-            entity.getSynchronizer().resyncEntity(serverPlayer);
+        if (!(event.getTarget() instanceof fr.dynamx.common.entities.PhysicsEntity<?> entity)
+                || !(event.getEntity() instanceof ServerPlayer serverPlayer)
+                || entity.getSynchronizer() == null) {
+            return;
         }
+        // In single-player, both sides share an SPPhysicsEntitySynchronizer that exchanges variables
+        // in-process (see SPPhysicsEntitySynchronizer#sendMyVars). Sending an MP sync packet here
+        // would crash the client handler (which casts to MPPhysicsEntitySynchronizer). Only the joints
+        // need a manual resync, because they are unloaded/reloaded with client chunks.
+        if (entity.getSynchronizer() instanceof fr.dynamx.common.network.sync.SPPhysicsEntitySynchronizer) {
+            if (entity.getJointsHandler() != null) {
+                entity.getJointsHandler().sync(serverPlayer);
+            }
+            return;
+        }
+        entity.getSynchronizer().resyncEntity(serverPlayer);
     }
 
     /**
