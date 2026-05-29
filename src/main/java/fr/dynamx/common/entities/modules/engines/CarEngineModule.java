@@ -117,16 +117,20 @@ public class CarEngineModule extends BasicEngineModule implements IPackInfoReloa
 
     @OnlyIn(Dist.CLIENT)
     protected void playHandbrakeSound(boolean on) {
-        String sound = on ? ((CarInfo) entity.getPackInfo()).getHandbrakeSoundOn() : ((CarInfo) entity.getPackInfo()).getHandbrakeSoundOff();
+        // Handbrake/reversing sounds are CarInfo-only properties; the pack may be a plain
+        // ModularVehicleInfo (no CarInfo section), so guard the cast to avoid a ClassCastException.
+        if (!(entity.getPackInfo() instanceof CarInfo carInfo))
+            return;
+        String sound = on ? carInfo.getHandbrakeSoundOn() : carInfo.getHandbrakeSoundOff();
         if (sound != null)
             SOUND_HANDLER.playSingleSound(entity.physicsPosition, sound, 1, 1);
     }
 
     @OnlyIn(Dist.CLIENT)
     protected void playReversingSound() {
-        if (getEngineInfo() == null)
+        if (getEngineInfo() == null || !(entity.getPackInfo() instanceof CarInfo carInfo))
             return;
-        String sound = ((CarInfo) entity.getPackInfo()).getReversingSound();
+        String sound = carInfo.getReversingSound();
         if (sound == null)
             return;
         boolean forInterior = Minecraft.getInstance().options.getCameraType() == CameraType.FIRST_PERSON && (entity.hasPassenger(Minecraft.getInstance().player) || entity.getVehicle() == Minecraft.getInstance().player);
