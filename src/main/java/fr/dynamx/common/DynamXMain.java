@@ -281,6 +281,12 @@ public class DynamXMain {
         //   (ModLoadingContext.get().registerConfig(...)).
         DynamXContext.initNetwork();
 
+        // Discover and register all @SynchronizedPhysicsModule classes (position/controls/etc.).
+        // Without this no EntityVariable is registered and physics entities never sync between sides
+        // (in single player the server-side vehicle stays frozen at its spawn position).
+        fr.dynamx.api.network.sync.SynchronizedEntityVariableRegistry.discoverSyncVars();
+        fr.dynamx.api.network.sync.SynchronizedEntityVariableRegistry.sortRegistry(modid -> true);
+
         // Content pack discovery has moved to the mod constructor so RegisterEvent can see the
         // loaded items. See DynamXMain#DynamXMain(IEventBus).
 

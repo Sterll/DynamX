@@ -35,11 +35,31 @@ public class SynchronizedEntityVariableRegistry {
     private static final Map<Integer, EntityVariableSerializer<?>> serializerMap = new HashMap<>();
 
     /**
-     * Discovers all the synchronized entity variables in the loaded mods.
+     * Discovers all the synchronized entity variables in the loaded mods by scanning for classes
+     * annotated with {@link SynchronizedEntityVariable.SynchronizedPhysicsModule}.
+     *
+     * <p>port:1.20.1 - re-implemented using Forge's {@code ModFileScanData} (replaces the 1.12
+     * ASMDataTable scan). Must be called once during mod setup, followed by {@link #sortRegistry}.
      */
-    // TODO port:1.20.1 - To be wired against NeoForge ModFileScanData in Phase 5.
     public static void discoverSyncVars() {
-        DynamX.LOGGER.warn("SynchronizedEntityVariableRegistry.discoverSyncVars() is a stub on 1.20.1 - no annotation scan performed yet (Phase 5 will wire ModFileScanData).");
+        org.objectweb.asm.Type annotationType = org.objectweb.asm.Type.getType(SynchronizedEntityVariable.SynchronizedPhysicsModule.class);
+        int found = 0;
+        for (net.minecraftforge.forgespi.language.ModFileScanData scanData : net.minecraftforge.fml.ModList.get().getAllScanData()) {
+            for (net.minecraftforge.forgespi.language.ModFileScanData.AnnotationData a : scanData.getAnnotations()) {
+                if (!annotationType.equals(a.annotationType())) {
+                    continue;
+                }
+                try {
+                    Class<?> clazz = Class.forName(a.clazz().getClassName(), false, SynchronizedEntityVariableRegistry.class.getClassLoader());
+                    Object modid = a.annotationData().get("modid");
+                    registerClass(clazz, modid != null ? modid.toString() : DynamX.MOD_ID);
+                    found++;
+                } catch (Throwable t) {
+                    DynamX.LOGGER.error("Failed to register synchronized entity variable class " + a.clazz(), t);
+                }
+            }
+        }
+        DynamX.LOGGER.info("Discovered {} synchronized-physics-module classes", found);
     }
 
     /**
@@ -152,14 +172,15 @@ public class SynchronizedEntityVariableRegistry {
                 f.setAccessible(false);
                 v.init(variable, findSerializer(variable));
                 if (syncVarRegistry.containsKey(variable)) {
-                    // TODO port:1.20.1 - replace with synchronizer.registerVariable(...) once
-                    // PhysicsEntitySynchronizer is ported (Phase 5).
+                    // The synchronizer exposes registerVariable(Integer, EntityVariable). Use Integer.class
+                    // (not int.class) for the reflective lookup, otherwise getMethod throws NoSuchMethodException
+                    // and no variable ever gets registered (the entity then never syncs).
                     try {
                         synchronizer.getClass()
-                                .getMethod("registerVariable", int.class, EntityVariable.class)
+                                .getMethod("registerVariable", Integer.class, EntityVariable.class)
                                 .invoke(synchronizer, syncVarRegistry.get(variable), v);
                     } catch (NoSuchMethodException nsme) {
-                        DynamX.LOGGER.error("Synchronizer {} has no registerVariable(int, EntityVariable) method (Phase 5 not done yet)", synchronizer);
+                        DynamX.LOGGER.error("Synchronizer {} has no registerVariable(Integer, EntityVariable) method", synchronizer);
                     }
                 } else {
                     DynamX.LOGGER.error("SynchronizedVariable {} not registered !", variable);
