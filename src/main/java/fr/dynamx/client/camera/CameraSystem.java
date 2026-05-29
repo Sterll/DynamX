@@ -7,6 +7,8 @@ import fr.dynamx.common.entities.PhysicsEntity;
 import fr.dynamx.utils.DynamXConfig;
 import fr.dynamx.utils.maths.DynamXGeometry;
 import fr.dynamx.utils.maths.DynamXMath;
+import fr.dynamx.utils.optimization.QuaternionPool;
+import fr.dynamx.utils.optimization.Vector3fPool;
 import net.minecraft.client.Minecraft;
 import net.minecraftforge.client.event.ViewportEvent;
 import org.joml.Quaternionf;
@@ -68,35 +70,54 @@ public class CameraSystem {
     }
 
     /**
-     * Banks and inclines the camera with the vehicle it rides. Called from
-     * {@link ViewportEvent.ComputeCameraAngles}.
+     * Makes the camera follow the ridden vehicle. Called from {@link ViewportEvent.ComputeCameraAngles}.
      *
-     * <p>port:1.20.1 - the 1.12 version pushed a full rotation onto the GL matrix stack (gone in
-     * core profile). The 1.20.1 event only exposes yaw/pitch/roll, so we apply the vehicle's roll
-     * (banking in turns) and pitch (incline on slopes) on top of the vanilla camera angles. Yaw is
-     * intentionally left untouched: the seated player's head already follows the vehicle yaw
-     * (see {@code SeatsModule#applyOrientationToEntity}), so adding it here would double-rotate the
-     * view and make the camera spin. The {@link CameraMode} rotator decides how much tilt to keep
-     * (AUTO drops tilt in third person, FIXED keeps it, FREE disables it).</p>
+     * <p>port:1.20.1 - the 1.12 version drove the whole camera through the GL matrix stack (gone in
+     * core profile); the 1.20.1 event only exposes yaw/pitch/roll. Two things are done here:</p>
+     * <ul>
+     *   <li><b>Yaw smoothing</b>: the seated player's yaw is force-followed to the vehicle each tick
+     *   ({@code SeatsModule#updatePassenger}), and the vehicle yaw advances unevenly per tick (physics
+     *   runs on its own thread), so the third-person camera jitters in turns. We rebuild the camera
+     *   yaw from the vehicle's <i>interpolated</i> yaw plus the player's free-look offset, which is
+     *   smooth. Uses {@link Mth#rotLerp} so it stays in Minecraft's yaw convention (no flip risk).</li>
+     *   <li><b>Tilt</b>: roll (banking) and pitch (incline) are derived from the vehicle's basis
+     *   vectors (yaw-independent, so a flat turn adds no tilt) and applied only in first-person or
+     *   FIXED mode - AUTO third person stays untilted like the original.</li>
+     * </ul>
      */
     public static void rotateVehicleCamera(ViewportEvent.ComputeCameraAngles event) {
         if (!(event.getCamera().getEntity().getVehicle() instanceof PhysicsEntity)) {
             return;
         }
-        PhysicsEntity<?> vehicle = (PhysicsEntity<?>) event.getCamera().getEntity().getVehicle();
-        // Interpolated vehicle orientation for this frame.
-        com.jme3.math.Quaternion rot = DynamXMath.slerp((float) event.getPartialTick(),
-                vehicle.prevRenderRotation, vehicle.renderRotation, jmeQuatCache);
-        int cameraTypeOrdinal = Minecraft.getInstance().options.getCameraType().ordinal();
-        cameraMode.rotator.apply(cameraTypeOrdinal, rot);
-        rot.normalizeLocal();
+        net.minecraft.world.entity.Entity camEntity = event.getCamera().getEntity();
+        PhysicsEntity<?> vehicle = (PhysicsEntity<?>) camEntity.getVehicle();
+        if (cameraMode == CameraMode.FREE) {
+            return; // free look: leave the camera entirely to vanilla
+        }
+        float partial = (float) event.getPartialTick();
+        Vector3fPool.openPool();
+        QuaternionPool.openPool();
+        try {
+            // Smooth yaw follow: swap the jittery per-tick vehicle yaw baked into the player's look
+            // for the interpolated vehicle yaw. The free-look offset is taken from the (non-interp)
+            // player vs vehicle yaw so both sides use the same frame of reference.
+            float smoothVehicleYaw = net.minecraft.util.Mth.rotLerp(partial, vehicle.yRotO, vehicle.getYRot());
+            float relativeYaw = net.minecraft.util.Mth.wrapDegrees(camEntity.getYRot() - vehicle.getYRot());
+            event.setYaw(smoothVehicleYaw + relativeYaw + (watchingBehind ? 180f : 0f));
 
-        Vector3f euler = DynamXGeometry.quaternionToEuler(rot); // (yaw, pitch, roll) in radians
-        float pitchDeg = (float) Math.toDegrees(euler.y);
-        float rollDeg = (float) Math.toDegrees(euler.z);
-
-        event.setRoll(event.getRoll() + rollDeg);
-        event.setPitch(event.getPitch() + pitchDeg);
+            // Tilt only in first person / FIXED, like the original CameraMode rotator.
+            boolean firstPerson = Minecraft.getInstance().options.getCameraType().ordinal() == 0;
+            if (cameraMode == CameraMode.FIXED || (cameraMode == CameraMode.AUTO && firstPerson)) {
+                com.jme3.math.Quaternion rot = DynamXMath.slerp(partial, vehicle.prevRenderRotation, vehicle.renderRotation, jmeQuatCache);
+                Vector3f forward = DynamXGeometry.getRotationColumn(rot, 2, Vector3fPool.get());
+                Vector3f left = DynamXGeometry.getRotationColumn(rot, 0, Vector3fPool.get());
+                event.setPitch(event.getPitch() + DynamXGeometry.getPitchFromRotationVector(forward));
+                event.setRoll(event.getRoll() + DynamXGeometry.getRollFromRotationVector(left, forward));
+            }
+        } finally {
+            QuaternionPool.closePool();
+            Vector3fPool.closePool();
+        }
     }
 
     private static final Vector3f pt0 = new Vector3f();
