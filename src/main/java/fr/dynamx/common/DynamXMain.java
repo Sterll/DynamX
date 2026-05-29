@@ -235,6 +235,26 @@ public class DynamXMain {
                         else log.warn("DynamX pack {} has no valid pack.mcmeta, assets won't be exposed to MC", name);
                     });
                 }
+
+                // Virtual pack that generates the blockstate/model JSONs DynamX blocks need but that the
+                // content packs don't ship (the legacy state-mapper / on-disk generation is gone in 1.20.1).
+                // Client resources only; it answers exclusively for DynamX block paths and returns null
+                // otherwise, so it never shadows the packs' own item models.
+                if (packType == net.minecraft.server.packs.PackType.CLIENT_RESOURCES) {
+                    event.addRepositorySource(consumer -> {
+                        net.minecraft.server.packs.repository.Pack.ResourcesSupplier supplier =
+                                id -> new fr.dynamx.client.DynamXGeneratedResourcePack();
+                        net.minecraft.server.packs.repository.Pack pack = net.minecraft.server.packs.repository.Pack.readMetaAndCreate(
+                                fr.dynamx.client.DynamXGeneratedResourcePack.PACK_ID,
+                                net.minecraft.network.chat.Component.literal("DynamX generated models"),
+                                true,
+                                supplier,
+                                net.minecraft.server.packs.PackType.CLIENT_RESOURCES,
+                                net.minecraft.server.packs.repository.Pack.Position.TOP,
+                                net.minecraft.server.packs.repository.PackSource.BUILT_IN);
+                        if (pack != null) consumer.accept(pack);
+                    });
+                }
             } catch (Throwable t) {
                 log.error("DynamX AddPackFindersEvent listener failed", t);
             }

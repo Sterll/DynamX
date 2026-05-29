@@ -113,7 +113,12 @@ public class DynamXItemRegistry {
                 log.error("Failed to derive json name for {}", item, t);
                 continue;
             }
-            String name = rawName.toLowerCase().replace('.', '_');
+            // Keep the json name verbatim (just lower-cased): the '.' separator is a VALID character
+            // in a 1.20.1 ResourceLocation path ([a-z0-9/._-]) and the content packs ship their item
+            // models under that exact name (e.g. "<pack>.vehicle_<name>_default.json"). Replacing '.'
+            // with '_' here desynced the registry id from the shipped model file, which is what produced
+            // the "Unable to load model ...#inventory / FileNotFoundException models/item/<name>.json" spam.
+            String name = rawName.toLowerCase();
             ResourceLocation id;
             try {
                 id = new ResourceLocation(DynamXConstants.ID, name);
@@ -168,7 +173,9 @@ public class DynamXItemRegistry {
                 log.error("Failed to derive json name for block {}", block, t);
                 continue;
             }
-            String name = rawName.toLowerCase().replace('.', '_');
+            // Same rule as items: keep the json name verbatim (lower-cased only). '.' is a valid
+            // ResourceLocation path char in 1.20.1 and the generated blockstate is keyed off this id.
+            String name = rawName.toLowerCase();
             ResourceLocation id;
             try {
                 id = new ResourceLocation(DynamXConstants.ID, name);

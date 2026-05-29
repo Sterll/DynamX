@@ -15,6 +15,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.EntityBlock;
+import net.minecraft.world.level.block.RenderShape;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.block.state.BlockState;
@@ -104,6 +105,18 @@ public class DynamXBlock<T extends BlockObject<?>> extends Block implements IDyn
     @Override
     protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
         builder.add(METADATA);
+    }
+
+    /**
+     * Dx-model blocks are drawn in 3D by {@link fr.dynamx.client.renders.TESRDynamXBlock} (a
+     * {@code BlockEntityRenderer}), so the block must NOT request a baked block model for its in-world
+     * render - {@link RenderShape#ENTITYBLOCK_ANIMATED} routes rendering through the BER instead.
+     * Non-dx blocks keep the vanilla {@link RenderShape#MODEL} path. Either way the (generated)
+     * blockstate JSON is what silences the "missing model for variant metadata=N" bake warning.
+     */
+    @Override
+    public RenderShape getRenderShape(BlockState state) {
+        return isDxModel ? RenderShape.ENTITYBLOCK_ANIMATED : RenderShape.MODEL;
     }
 
     // TODO port:1.20.1 - getCloneItemStack signature mismatch; in 1.20.1 NeoForge offers a BlockGetter
