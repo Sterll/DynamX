@@ -283,23 +283,33 @@ public class ClientEventHandler {
     }
 
     /**
-     * <p>TODO port:1.20.1 - {@code RenderPlayerEvent.Pre} still exists; access dispatcher via
-     * {@code event.getRenderer().entityRenderDispatcher.shouldRenderShadow}.</p>
+     * Cancels the vanilla world render of a player seated in a DynamX vehicle: the seat scene graph
+     * ({@code PartEntitySeat} node) draws the rider itself at the correct seat transform. Without
+     * this the player is drawn twice (vanilla rider position + seat position).
+     *
+     * <p>{@code renderingEntity} is set to the rider's UUID by the seat node while it draws them, so
+     * that render must NOT be cancelled. The shadow-enabled check keeps the inventory/GUI render of
+     * the player working (the inventory renderer disables shadows).</p>
      */
-    // TODO port:1.20.1 - re-add @SubscribeEvent(priority = EventPriority.HIGHEST) once the parameter is the real RenderPlayerEvent.Pre
-    //                     (Forge rejects @SubscribeEvent on a method whose argument is not an Event subtype).
-    public void playerRender(/* RenderPlayerEvent.Pre */ Object event) {
-        // TODO port:1.20.1 - stubbed.
+    @SubscribeEvent(priority = EventPriority.HIGHEST)
+    public void playerRender(net.minecraftforge.client.event.RenderPlayerEvent.Pre event) {
+        if (event.getEntity().getVehicle() instanceof PhysicsEntity
+                && !event.getEntity().getUUID().equals(renderingEntity)
+                && ((fr.dynamx.common.core.mixin.AccessorEntityRenderDispatcher) MC.getEntityRenderDispatcher()).dynamx$shouldRenderShadow()) {
+            event.setCanceled(true);
+        }
     }
 
     /**
-     * <p>TODO port:1.20.1 - see playerRender. Cancels rendering of riders that aren't being drawn by
-     * the entity's own renderer (to keep mod compatibility with priority HIGHEST).</p>
+     * Same as {@link #playerRender} for non-player living entities riding a DynamX vehicle.
      */
-    // TODO port:1.20.1 - re-add @SubscribeEvent(priority = EventPriority.HIGHEST) once the parameter is the real RenderLivingEvent.Pre
-    //                     (Forge rejects @SubscribeEvent on a method whose argument is not an Event subtype).
-    public void entityRender(/* RenderLivingEvent.Pre */ Object event) {
-        // TODO port:1.20.1 - stubbed.
+    @SubscribeEvent(priority = EventPriority.HIGHEST)
+    public void entityRender(net.minecraftforge.client.event.RenderLivingEvent.Pre<?, ?> event) {
+        if (event.getEntity().getVehicle() instanceof PhysicsEntity
+                && !event.getEntity().getUUID().equals(renderingEntity)
+                && ((fr.dynamx.common.core.mixin.AccessorEntityRenderDispatcher) MC.getEntityRenderDispatcher()).dynamx$shouldRenderShadow()) {
+            event.setCanceled(true);
+        }
     }
 
     @SuppressWarnings("unused")
