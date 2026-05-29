@@ -68,22 +68,35 @@ public class CameraSystem {
     }
 
     /**
-     * Adjusts roll and pitch for camera. Only works when camera is inside vehicles.
+     * Banks and inclines the camera with the vehicle it rides. Called from
+     * {@link ViewportEvent.ComputeCameraAngles}.
      *
-     * <p>TODO port:1.20.1 - rewrite using {@link ViewportEvent.ComputeCameraAngles}. The original
-     * pushed transforms onto the legacy GL matrix stack which no longer exists. The new event
-     * exposes {@code setYaw/setPitch/setRoll} but the body translations must move to
-     * {@code RenderLevelStageEvent}.</p>
+     * <p>port:1.20.1 - the 1.12 version pushed a full rotation onto the GL matrix stack (gone in
+     * core profile). The 1.20.1 event only exposes yaw/pitch/roll, so we apply the vehicle's roll
+     * (banking in turns) and pitch (incline on slopes) on top of the vanilla camera angles. Yaw is
+     * intentionally left untouched: the seated player's head already follows the vehicle yaw
+     * (see {@code SeatsModule#applyOrientationToEntity}), so adding it here would double-rotate the
+     * view and make the camera spin. The {@link CameraMode} rotator decides how much tilt to keep
+     * (AUTO drops tilt in third person, FIXED keeps it, FREE disables it).</p>
      */
     public static void rotateVehicleCamera(ViewportEvent.ComputeCameraAngles event) {
-        // TODO port:1.20.1 - body stubbed. Keeps the smoothed rotation update so other callers
-        // (debug overlays, raycast) still get a usable jmeQuatCache.
         if (!(event.getCamera().getEntity().getVehicle() instanceof PhysicsEntity)) {
             return;
         }
         PhysicsEntity<?> vehicle = (PhysicsEntity<?>) event.getCamera().getEntity().getVehicle();
-        animateCameraRotation(vehicle.prevRenderRotation, vehicle.renderRotation, (float) event.getPartialTick(), 0.1f);
-        // Yaw/pitch/roll application stubbed.
+        // Interpolated vehicle orientation for this frame.
+        com.jme3.math.Quaternion rot = DynamXMath.slerp((float) event.getPartialTick(),
+                vehicle.prevRenderRotation, vehicle.renderRotation, jmeQuatCache);
+        int cameraTypeOrdinal = Minecraft.getInstance().options.getCameraType().ordinal();
+        cameraMode.rotator.apply(cameraTypeOrdinal, rot);
+        rot.normalizeLocal();
+
+        Vector3f euler = DynamXGeometry.quaternionToEuler(rot); // (yaw, pitch, roll) in radians
+        float pitchDeg = (float) Math.toDegrees(euler.y);
+        float rollDeg = (float) Math.toDegrees(euler.z);
+
+        event.setRoll(event.getRoll() + rollDeg);
+        event.setPitch(event.getPitch() + pitchDeg);
     }
 
     private static final Vector3f pt0 = new Vector3f();

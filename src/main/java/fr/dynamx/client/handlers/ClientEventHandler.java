@@ -246,16 +246,14 @@ public class ClientEventHandler {
     }
 
     /**
-     * <p>TODO port:1.20.1 - {@code EntityViewRenderEvent.CameraSetup} -> {@code ViewportEvent.ComputeCameraAngles}.
-     * The vehicle-camera-rotation helper signature changes accordingly.</p>
+     * Banks/inclines the camera with the ridden vehicle. {@code EntityViewRenderEvent.CameraSetup}
+     * (1.12) became {@code ViewportEvent.ComputeCameraAngles} in 1.20.1.
      */
-    // TODO port:1.20.1 - re-add @SubscribeEvent once the parameter is the real ViewportEvent.ComputeCameraAngles
-    //                     (Forge rejects @SubscribeEvent on a method whose argument is not an Event subtype).
-    public void onEntityCameraSetup(/* ViewportEvent.ComputeCameraAngles */ Object event) {
-        // if (event.getCamera().getEntity().getVehicle() instanceof PhysicsEntity) {
-        //     CameraSystem.rotateVehicleCamera(event);
-        // }
-        // TODO port:1.20.1 - stubbed.
+    @SubscribeEvent
+    public void onEntityCameraSetup(net.minecraftforge.client.event.ViewportEvent.ComputeCameraAngles event) {
+        if (event.getCamera().getEntity().getVehicle() instanceof PhysicsEntity) {
+            fr.dynamx.client.camera.CameraSystem.rotateVehicleCamera(event);
+        }
     }
 
     /**
