@@ -128,8 +128,12 @@ public class SeatsModule implements IPhysicsModule<AbstractEntityPhysicsHandler<
             fr.dynamx.utils.optimization.Vector3fPool.closePool();
         }
 
-        // make player's yaw follow the entity yaw
-        float deltaRotation = entity.getYRot() - entity.yRotO;
+        // Make the player's yaw follow the entity yaw. The delta MUST be wrapped: the vehicle yaw
+        // (DynamXGeometry.getYawFromRotationVector) is discontinuous at one orientation (it jumps by
+        // ~360 deg), so the raw delta there is huge. Applying it unwrapped snaps the player - and the
+        // camera that follows it - by a full turn at that specific angle. Mth.wrapDegrees keeps it on
+        // the short path so the follow stays smooth through the wrap.
+        float deltaRotation = Mth.wrapDegrees(entity.getYRot() - entity.yRotO);
         passenger.setYRot(passenger.getYRot() + deltaRotation);
         passenger.setYHeadRot(passenger.getYHeadRot() + deltaRotation);
         applyOrientationToEntity(passenger);
