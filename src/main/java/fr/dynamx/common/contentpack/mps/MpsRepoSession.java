@@ -153,17 +153,21 @@ public class MpsRepoSession {
     }
 
     /**
-     * Best-effort integrity check on the decoded .desc payload. The original
-     * ModProtectionLib used the {@code Main} entry as a SHA-256 fingerprint of the
-     * pack metadata and {@code SignatureStore} as the RSA-signed key bundle.
+     * Best-effort integrity check on the decoded .desc payload, used to detect a
+     * wrong decryption key (which yields garbage with no recognisable headers).
      *
-     * TODO port:1.20.1 - The ACsLib {@code RepositoryInformation} validator that
-     *  performed the cryptographic signature check is not ported yet. For now we
-     *  only verify that the mandatory descriptor headers were present after
-     *  decryption, which catches truncated or wrong-key payloads.
+     * <p>Real {@code PACK_URL_V1} descriptors only carry an {@code Id} header, a set
+     * of {@code <resourcePath>=<key>} entries and (optionally) {@code ResourcesDomains}.
+     * The {@code Main} / {@code SignatureStore} headers the original ModProtectionLib
+     * documented are NOT emitted by the live {@code router.php} packs, so we must not
+     * require them - the presence of {@code Id} plus at least one resource key is what
+     * proves the payload decrypted correctly.
+     *
+     * TODO port:1.20.1 - the ACsLib {@code RepositoryInformation} RSA signature check
+     *  is still not ported; this remains a structural (not cryptographic) check.
      */
     public boolean verifyDescriptor() {
-        return mainHash != null && repoId != null && !fileKeys.isEmpty();
+        return repoId != null && !fileKeys.isEmpty();
     }
 
     public String getRepoId() {
