@@ -323,6 +323,13 @@ public abstract class PhysicsEntity<T extends AbstractEntityPhysicsHandler<?, ?>
 
         onMove(mX, mY, mZ);
 
+        // Push the physics-derived AABB to the vanilla bounding box so entity raycasts (mounting,
+        // interaction) hit the actual vehicle volume rather than the tiny default EntityDimensions.
+        AABB dynamxBox = getDynamxBoundingBox();
+        if (dynamxBox != null) {
+            setBoundingBox(dynamxBox);
+        }
+
         prevRenderRotation.set(renderRotation);
         renderRotation.set(physicsRotation);
 
@@ -531,7 +538,20 @@ public abstract class PhysicsEntity<T extends AbstractEntityPhysicsHandler<?, ?>
             physicsPosition.set((float) getX(), (float) getY(), (float) getZ());
         }
         Vector3fPool.openPool();
-        if (physicsHandler != null) {
+        // Prefer the pack-derived collision boxes when available: Bullet's runtime AABB includes
+        // broadphase margin and wheel sweeps, making the box much larger than the visible vehicle.
+        // Always copy the source boxes - getCollisionBoxes() returns the shared rawBoxes cache that
+        // rotateBB would mutate in-place.
+        List<MutableBoundingBox> packBoxes = getCollisionBoxes();
+        if (!packBoxes.isEmpty()) {
+            MutableBoundingBox container = new MutableBoundingBox(packBoxes.get(0));
+            for (int i = 1; i < packBoxes.size(); i++) {
+                container.growTo(packBoxes.get(i));
+            }
+            container = DynamXContext.getCollisionHandler().rotateBB(physicsPosition, container, physicsRotation);
+            container.grow(0.5, 0.0, 0.5);
+            entityBoxCache = container.toBB();
+        } else if (physicsHandler != null) {
             Vector3f min = Vector3fPool.get();
             Vector3f max = Vector3fPool.get();
             BoundingBox boundingBox = physicsHandler.getBoundingBox();

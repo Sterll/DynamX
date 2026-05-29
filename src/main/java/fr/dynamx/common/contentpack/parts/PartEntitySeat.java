@@ -97,8 +97,12 @@ public class PartEntitySeat extends BasePartSeat<Object, ModularVehicleInfo> imp
         if (door.isPlayerMounting() || doors == null) {
             return false;
         }
+        // TODO port:1.20.1 - DoorsModule/joints rely on NBTSerializer which is stubbed; door isn't
+        // attached on fresh spawn, so the standard mount path would never succeed. Bypass the
+        // door-attached check (and the door-open check below) for now so all seats are mountable.
+        // Remove once joints/NBT are properly ported.
         if (door.isEnabled() && !doors.isDoorAttached(door.getId())) {
-            return false;
+            return mountEntity(vehicleEntity, seats, player);
         }
         if (!door.isEnabled() || doors.isDoorOpened(door.getId())) {
             boolean didMount = mountEntity(vehicleEntity, seats, player);

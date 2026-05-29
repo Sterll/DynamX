@@ -83,16 +83,12 @@ public class ClientEventHandler {
     @SubscribeEvent
     public void onInteract(PlayerInteractEvent.EntityInteract event) {
         Player player = event.getEntity();
-        DynamXMain.log.info("[DynamX] EntityInteract target={} hand={} item={} clientSide={}",
-                event.getTarget(), event.getHand(), player.getItemInHand(event.getHand()).getItem(), player.level().isClientSide());
         if (!player.level().isClientSide()) {
             return;
         }
         if (!(event.getTarget() instanceof PhysicsEntity) || !event.getHand().equals(InteractionHand.MAIN_HAND) || event.getEntity().getItemInHand(event.getHand()).getItem() instanceof DynamXItemSpawner) {
-            DynamXMain.log.info("[DynamX] EntityInteract skipped (target/hand/item filter)");
             return;
         }
-        DynamXMain.log.info("[DynamX] EntityInteract sending MessageEntityInteract id={}", event.getTarget().getId());
         DynamXContext.getNetwork().sendToServer(new MessageEntityInteract(event.getTarget().getId()));
         event.setCanceled(true);
         event.setCancellationResult(InteractionResult.SUCCESS);
@@ -100,23 +96,9 @@ public class ClientEventHandler {
 
     @SubscribeEvent
     public void onRightClickAir(PlayerInteractEvent.RightClickItem e) {
-        DynamXMain.log.info("[DynamX] RightClickItem clientSide={} hitResult={} item={}",
-                e.getLevel().isClientSide(), MC.hitResult == null ? "null" : MC.hitResult.getType(), e.getItemStack().getItem());
         if (e.getLevel().isClientSide() && (MC.hitResult == null || MC.hitResult.getType() == HitResult.Type.MISS) && !e.getEntity().isShiftKeyDown() && e.getItemStack().getItem() instanceof ItemSlopes) {
             Minecraft.getInstance().setScreen(new GuiSlopesConfig(e.getItemStack()).getGuiScreen());
         }
-    }
-
-    @SubscribeEvent
-    public void onRightClickBlock(PlayerInteractEvent.RightClickBlock e) {
-        DynamXMain.log.info("[DynamX] RightClickBlock clientSide={} pos={} item={}",
-                e.getLevel().isClientSide(), e.getPos(), e.getItemStack().getItem());
-    }
-
-    @SubscribeEvent
-    public void onRightClickEmpty(PlayerInteractEvent.RightClickEmpty e) {
-        DynamXMain.log.info("[DynamX] RightClickEmpty clientSide={} hitResult={}",
-                e.getLevel().isClientSide(), MC.hitResult == null ? "null" : MC.hitResult.getType() + " " + MC.hitResult);
     }
 
     @SubscribeEvent
@@ -164,7 +146,8 @@ public class ClientEventHandler {
      * Use {@code event.getGuiGraphics()} to {@code blit} the custom cursor texture. The "connecting to server"
      * status overlay should be on {@code VanillaGuiOverlay.PLAYER_LIST} or a generic post overlay.</p>
      */
-    @SubscribeEvent
+    // TODO port:1.20.1 - re-add @SubscribeEvent once the parameter is the real RenderGuiOverlayEvent.Pre
+    //                     (Forge rejects @SubscribeEvent on a method whose argument is not an Event subtype).
     public void drawHudCursor(/* RenderGuiOverlayEvent.Pre */ Object event) {
         // TODO port:1.20.1 - body stubbed pending RenderGuiOverlayEvent integration.
     }
@@ -176,7 +159,8 @@ public class ClientEventHandler {
     /**
      * <p>TODO port:1.20.1 - {@code FMLNetworkEvent.ClientConnectedToServerEvent} -> {@code ClientPlayerNetworkEvent.LoggingIn}.</p>
      */
-    @SubscribeEvent
+    // TODO port:1.20.1 - re-add @SubscribeEvent once the parameter is the real ClientPlayerNetworkEvent.LoggingIn
+    //                     (Forge rejects @SubscribeEvent on a method whose argument is not an Event subtype).
     public void onClientConnected(/* ClientPlayerNetworkEvent.LoggingIn */ Object event) {
         connectionTime = System.currentTimeMillis();
     }
@@ -184,7 +168,8 @@ public class ClientEventHandler {
     /**
      * <p>TODO port:1.20.1 - {@code FMLNetworkEvent.ClientDisconnectionFromServerEvent} -> {@code ClientPlayerNetworkEvent.LoggingOut}.</p>
      */
-    @SubscribeEvent
+    // TODO port:1.20.1 - re-add @SubscribeEvent once the parameter is the real ClientPlayerNetworkEvent.LoggingOut
+    //                     (Forge rejects @SubscribeEvent on a method whose argument is not an Event subtype).
     public void onClientDisconnected(/* ClientPlayerNetworkEvent.LoggingOut */ Object event) {
         DynamXContext.getNetwork().stopNetwork();
         connectionTime = -1;
@@ -196,7 +181,8 @@ public class ClientEventHandler {
      * <p>TODO port:1.20.1 - {@code SoundSetupEvent} is gone, replaced by hooking into the {@code SoundEngine}.
      * See {@link DynamXSoundHandler} for the heavy rewrite.</p>
      */
-    @SubscribeEvent
+    // TODO port:1.20.1 - re-add @SubscribeEvent once the parameter is a real Event (SoundSetupEvent is gone)
+    //                     (Forge rejects @SubscribeEvent on a method whose argument is not an Event subtype).
     public void onSoundSystemSetup(/* SoundSetupEvent */ Object event) {
         // ClientProxy.SOUND_HANDLER.setup(event);
         // TODO port:1.20.1 - stubbed.
@@ -206,7 +192,8 @@ public class ClientEventHandler {
      * <p>TODO port:1.20.1 - {@code SoundLoadEvent} still exists; the body just needs to call into the
      * new {@link DynamXSoundHandler#load} once that's ported.</p>
      */
-    @SubscribeEvent
+    // TODO port:1.20.1 - re-add @SubscribeEvent once the parameter is the real SoundLoadEvent
+    //                     (Forge rejects @SubscribeEvent on a method whose argument is not an Event subtype).
     public void onSoundSystemLoad(/* SoundLoadEvent */ Object event) {
         // ClientProxy.SOUND_HANDLER.load(event);
         // TODO port:1.20.1 - stubbed.
@@ -252,7 +239,8 @@ public class ClientEventHandler {
      * <p>TODO port:1.20.1 - {@code DrawBlockHighlightEvent} -> {@code RenderHighlightEvent.Block};
      * preview rendering uses {@code DxModelRenderer} which lives in Phase 7.</p>
      */
-    @SubscribeEvent
+    // TODO port:1.20.1 - re-add @SubscribeEvent once the parameter is the real RenderHighlightEvent.Block
+    //                     (Forge rejects @SubscribeEvent on a method whose argument is not an Event subtype).
     public void onDrawBlockHighlight(/* RenderHighlightEvent.Block */ Object event) {
         // TODO port:1.20.1 - stubbed.
     }
@@ -261,7 +249,8 @@ public class ClientEventHandler {
      * <p>TODO port:1.20.1 - {@code EntityViewRenderEvent.CameraSetup} -> {@code ViewportEvent.ComputeCameraAngles}.
      * The vehicle-camera-rotation helper signature changes accordingly.</p>
      */
-    @SubscribeEvent
+    // TODO port:1.20.1 - re-add @SubscribeEvent once the parameter is the real ViewportEvent.ComputeCameraAngles
+    //                     (Forge rejects @SubscribeEvent on a method whose argument is not an Event subtype).
     public void onEntityCameraSetup(/* ViewportEvent.ComputeCameraAngles */ Object event) {
         // if (event.getCamera().getEntity().getVehicle() instanceof PhysicsEntity) {
         //     CameraSystem.rotateVehicleCamera(event);
@@ -273,7 +262,8 @@ public class ClientEventHandler {
      * <p>TODO port:1.20.1 - {@code RenderWorldLastEvent} -> {@code RenderLevelStageEvent} (filter by
      * {@code Stage.AFTER_TRANSLUCENT_BLOCKS}). The body renders MovableLines, debug, and "big entities".</p>
      */
-    @SubscribeEvent(priority = EventPriority.LOWEST)
+    // TODO port:1.20.1 - re-add @SubscribeEvent(priority = EventPriority.LOWEST) once the parameter is the real RenderLevelStageEvent
+    //                     (Forge rejects @SubscribeEvent on a method whose argument is not an Event subtype).
     public void renderWorldLast(/* RenderLevelStageEvent */ Object event) {
         // TODO port:1.20.1 - stubbed.
     }
@@ -298,7 +288,8 @@ public class ClientEventHandler {
      * <p>TODO port:1.20.1 - {@code RenderPlayerEvent.Pre} still exists; access dispatcher via
      * {@code event.getRenderer().entityRenderDispatcher.shouldRenderShadow}.</p>
      */
-    @SubscribeEvent(priority = EventPriority.HIGHEST)
+    // TODO port:1.20.1 - re-add @SubscribeEvent(priority = EventPriority.HIGHEST) once the parameter is the real RenderPlayerEvent.Pre
+    //                     (Forge rejects @SubscribeEvent on a method whose argument is not an Event subtype).
     public void playerRender(/* RenderPlayerEvent.Pre */ Object event) {
         // TODO port:1.20.1 - stubbed.
     }
@@ -307,7 +298,8 @@ public class ClientEventHandler {
      * <p>TODO port:1.20.1 - see playerRender. Cancels rendering of riders that aren't being drawn by
      * the entity's own renderer (to keep mod compatibility with priority HIGHEST).</p>
      */
-    @SubscribeEvent(priority = EventPriority.HIGHEST)
+    // TODO port:1.20.1 - re-add @SubscribeEvent(priority = EventPriority.HIGHEST) once the parameter is the real RenderLivingEvent.Pre
+    //                     (Forge rejects @SubscribeEvent on a method whose argument is not an Event subtype).
     public void entityRender(/* RenderLivingEvent.Pre */ Object event) {
         // TODO port:1.20.1 - stubbed.
     }

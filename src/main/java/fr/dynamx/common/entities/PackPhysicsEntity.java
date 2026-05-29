@@ -228,25 +228,34 @@ public abstract class PackPhysicsEntity<T extends PackEntityPhysicsHandler<A, ?>
         }
         Vec3 lookVec = entity.getViewVector(1.0F);
         Vec3 hitVec = entity.position().add(0, entity.getEyeHeight(), 0);
-        InteractivePart<?, ?> nearest = null;
-        Vector3f nearestPos = null;
         Vector3f playerPos = Vector3fPool.get((float) entity.getX(), (float) entity.getY(), (float) entity.getZ());
         MutableBoundingBox box = new MutableBoundingBox();
+        // Walk the look ray outwards and return the first part actually crossed by the ray. This is
+        // what the player is pointing at - picking the part nearest to the player's position instead
+        // would always resolve to the same seat (e.g. the driver, declared first) regardless of aim.
         for (float f = 1.0F; f < 4.0F; f += 0.1F) {
+            InteractivePart<?, ?> nearest = null;
+            Vector3f nearestPos = null;
             for (InteractivePart<?, ?> part : getPackInfo().getInteractiveParts()) {
                 part.getBox(box);
                 box = DynamXContext.getCollisionHandler().rotateBB(Vector3fPool.get(), box, physicsRotation);
                 Vector3f partPos = DynamXGeometry.rotateVectorByQuaternion(part.getPosition(), physicsRotation);
                 partPos.addLocal(physicsPosition);
                 box.offset(partPos);
-                if ((nearestPos == null || DynamXGeometry.distanceBetween(partPos, playerPos) < DynamXGeometry.distanceBetween(nearestPos, playerPos)) && box.contains(hitVec)) {
+                // At this ray step, if several parts overlap the point, keep the one whose anchor is
+                // closest to the player (tie-break only - both are at the same ray distance).
+                if (box.contains(hitVec) && (nearestPos == null
+                        || DynamXGeometry.distanceBetween(partPos, playerPos) < DynamXGeometry.distanceBetween(nearestPos, playerPos))) {
                     nearest = part;
                     nearestPos = partPos;
                 }
             }
+            if (nearest != null) {
+                return nearest;
+            }
             hitVec = hitVec.add(lookVec.x * 0.1F, lookVec.y * 0.1F, lookVec.z * 0.1F);
         }
-        return nearest;
+        return null;
     }
 
     @Override
