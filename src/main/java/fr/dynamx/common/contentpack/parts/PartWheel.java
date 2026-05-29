@@ -221,7 +221,6 @@ public class PartWheel extends InteractivePart<Object, ModularVehicleInfo> imple
      */
     class PartBaseWheelNode<A extends ModularVehicleInfo> extends SimpleNode<BaseRenderContext.EntityRenderContext, A> {
         private final boolean isMudGuard;
-        private static final java.util.Set<String> DUMPED_WHEELS = java.util.concurrent.ConcurrentHashMap.newKeySet();
 
         public PartBaseWheelNode(PartWheel wheel, Vector3f scale, List<SceneNode<BaseRenderContext.EntityRenderContext, A>> linkedChilds, boolean isMudGuard) {
             super(isMudGuard ? wheel.getRotationPoint() : wheel.getPosition(), wheel.getSuspensionAxis(), PartWheel.this.isAutomaticPosition, scale, linkedChilds);
@@ -232,24 +231,14 @@ public class PartWheel extends InteractivePart<Object, ModularVehicleInfo> imple
         public void render(BaseRenderContext.EntityRenderContext context, A packInfo, Matrix4f parentTransform) {
             WheelsModule wheelsModule = getWheelsModule(context);
             boolean hasWheelsModule = wheelsModule != null;
-            String diagKey = packInfo.getFullName() + "|" + getPartName() + "|mg=" + isMudGuard;
-            boolean dump = DUMPED_WHEELS.add(diagKey);
             if (!isMudGuard && hasWheelsModule && wheelsModule.getWheelsStates()[getId()] == WheelsModule.WheelState.REMOVED) {
-                if (dump) org.apache.logging.log4j.LogManager.getLogger("DynamX-WheelDump").info("wheel SKIP removed: {}", diagKey);
                 return;
             }
 
             PartWheelInfo info = hasWheelsModule ? wheelsModule.getWheelInfo((byte) getId()) : getDefaultWheelInfo();
             if (info == null || (!info.isModelValid() && getRimObjectName() == null && !isMudGuard)) {
-                if (dump) org.apache.logging.log4j.LogManager.getLogger("DynamX-WheelDump").info(
-                        "wheel SKIP null/invalid: {} info={} modelValid={} rim={} mg={}",
-                        diagKey, info, info != null && info.isModelValid(), getRimObjectName(), isMudGuard);
                 return;
             }
-            if (dump) org.apache.logging.log4j.LogManager.getLogger("DynamX-WheelDump").info(
-                    "wheel RENDER: {} pos={} rot={} autoPos={} rim={} tire={} mg={} sepModel={} hasWM={} poseStack={}",
-                    diagKey, translation, rotation, isAutomaticPosition, getRimObjectName(), getTireObjectName(), getMudGuardObjectName(),
-                    getRimObjectName() == null, hasWheelsModule, context.getPoseStack() != null);
 
             // Maintain the Matrix4f transform so attached-wheel children can chain off the
             // rotation point + suspension axis. Children read it via transformToRotationPoint.

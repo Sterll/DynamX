@@ -48,16 +48,6 @@ public class ObjModelData extends DxModelData {
             }
             byte[] bytes = DynamXUtils.readInputStream(stream);
             String content = new String(bytes, StandardCharsets.UTF_8);
-            // TODO port:1.20.1 - TEMP DIAGNOSTIC: hash + size of the loaded OBJ bytes per cache key
-            try {
-                java.security.MessageDigest md = java.security.MessageDigest.getInstance("SHA-1");
-                byte[] dig = md.digest(bytes);
-                StringBuilder hex = new StringBuilder();
-                for (int i = 0; i < Math.min(8, dig.length); i++) hex.append(String.format("%02x", dig[i]));
-                org.apache.logging.log4j.LogManager.getLogger("DynamX-ObjDump")
-                    .info("    +--[ OBJ LOAD ]-- path={} bytes={} sha1[0..8]={}",
-                          location, bytes.length, hex.toString());
-            } catch (Exception ignored) {}
             new OBJLoader(objObjects, materials).readAndLoadModel(clientSide ? startPath : null, resolver, content);
         } catch (Exception e) {
             throw new RuntimeException("OBJ model " + path + " cannot be loaded: " + e.getMessage(), e);

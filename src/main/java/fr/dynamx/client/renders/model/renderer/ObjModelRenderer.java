@@ -72,50 +72,19 @@ public class ObjModelRenderer extends DxModelRenderer {
         return true;
     }
 
-    private static final java.util.Set<String> DUMPED_DEFAULTS = java.util.concurrent.ConcurrentHashMap.newKeySet();
-
     @Override
     public boolean renderDefaultParts(byte textureDataId, boolean forceVanillaRender) {
         // Render every object that isn't a part-marker. The IModelTextureVariantsSupplier
         // gating (canRenderPart) is not wired in the minimal port — supplier may be null.
         boolean drawn = false;
-        String key = String.valueOf(getLocation());
-        boolean dump = DUMPED_DEFAULTS.add(key);
-        java.util.List<String[]> rows = dump ? new java.util.ArrayList<>() : null;
         for (ObjObjectRenderer object : objObjects) {
             boolean allowed = textureVariants == null || canRenderPart(object);
-            if (dump) {
-                rows.add(new String[]{
-                        object.getObjObjectData() != null ? object.getObjObjectData().getName() : "null",
-                        allowed ? "RENDER" : "skip",
-                        allowed ? "+" : "-"
-                });
-            }
             if (allowed) {
                 renderGroup(object, textureDataId, forceVanillaRender);
                 drawn = true;
             }
         }
-        if (dump) {
-            org.apache.logging.log4j.Logger lg = org.apache.logging.log4j.LogManager.getLogger("DynamX-ObjDump");
-            lg.info("");
-            lg.info("+==============================================================================+");
-            lg.info(String.format("| [ renderDefaultParts ] %-54s |", truncate(key, 54)));
-            lg.info(String.format("|   supplier: %-65s|", truncate(String.valueOf(textureVariants), 65)));
-            lg.info("+==============================================================================+");
-            for (String[] r : rows) {
-                lg.info(String.format("|   %s  %-40s  %-30s |", r[2], truncate(r[0], 40), r[1]));
-            }
-            lg.info("+==============================================================================+");
-            lg.info("");
-        }
         return drawn;
-    }
-
-    private static String truncate(String s, int max) {
-        if (s == null) return "";
-        if (s.length() <= max) return s;
-        return s.substring(0, max - 3) + "...";
     }
 
     private boolean canRenderPart(ObjObjectRenderer object) {

@@ -33,7 +33,6 @@ public class EntityNode<A extends IPhysicsPackInfo> extends AbstractItemNode<Bas
      * The children that are linked to the entity (ie that will be rendered with the entity
      * transformations)
      */
-    private static final java.util.Set<String> DUMPED_GRAPHS = java.util.concurrent.ConcurrentHashMap.newKeySet();
 
     @Getter
     private final List<SceneNode<BaseRenderContext.EntityRenderContext, A>> linkedChildren;
@@ -106,23 +105,6 @@ public class EntityNode<A extends IPhysicsPackInfo> extends AbstractItemNode<Bas
         // translation/rotation/scale - popping before rendering them would drop every part
         // (wheels, doors, lights, ...) to world-origin with the wrong orientation, which
         // produces the "shattered geometry" look.
-        if (DUMPED_GRAPHS.add(packInfo.getFullName())) {
-            org.apache.logging.log4j.Logger lg = org.apache.logging.log4j.LogManager.getLogger("DynamX-WheelDump");
-            lg.info("");
-            lg.info("+==============================================================================+");
-            lg.info(String.format("| [ ENTITY SCENE GRAPH :: %-52s ] |", packInfo.getFullName()));
-            lg.info("+==============================================================================+");
-            lg.info(String.format("|   linked  : %-3d                                                              |", linkedChildren.size()));
-            for (SceneNode<?, ?> c : linkedChildren) {
-                lg.info(String.format("|       |- %-66s |", c.getClass().getSimpleName()));
-            }
-            lg.info(String.format("|   unlinked: %-3d                                                              |", unlinkedChildren.size()));
-            for (SceneNode<?, ?> c : unlinkedChildren) {
-                lg.info(String.format("|       |- %-66s |", c.getClass().getSimpleName()));
-            }
-            lg.info("+==============================================================================+");
-            lg.info("");
-        }
         linkedChildren.forEach(c -> c.render(context, packInfo, transform));
 
         // Render the unlinked children, if this is a static scene graph (not in the world)
